@@ -2,8 +2,8 @@ import { AppShell } from "@/components/app-shell";
 import {
   getStateSourceMetadata,
   stateSources,
+  searchLatestOfficialResource,
   summarizeOfficialRecord,
-  verifyOfficialEntity,
   type VerificationKind
 } from "@/lib/state-intelligence";
 
@@ -29,7 +29,7 @@ export default async function StateIntelligencePage({
 
   const [metadata, verification] = await Promise.all([
     Promise.all(stateSources.map(getStateSourceMetadata)),
-    query ? verifyOfficialEntity(kind, query) : Promise.resolve(null)
+    query ? searchLatestOfficialResource(kind, query) : Promise.resolve(null)
   ]);
 
   const metaById = new Map(metadata.map((item) => [item.id, item]));
@@ -101,7 +101,7 @@ export default async function StateIntelligencePage({
         </form>
 
         <p className="verificationHint">
-          La primera versión busca texto e identificadores públicos disponibles en CKAN. Una coincidencia se marca como <strong>requiere revisión</strong> hasta corroborar identidad y contexto.
+          Busca sobre el recurso oficial más reciente publicado por RETC, incluyendo XLSX/CSV. Una coincidencia se marca como <strong>requiere revisión</strong> hasta corroborar identidad y contexto.
         </p>
 
         {verification ? (
@@ -113,9 +113,9 @@ export default async function StateIntelligencePage({
                 <p>{verification.detail}</p>
               </div>
               <div>
-                <span>Recurso consultable</span>
-                <strong>{verification.queryableYear ?? "—"}</strong>
-                <p>{verification.matches.length} coincidencias</p>
+                <span>Recurso más reciente</span>
+                <strong>{verification.resource?.year ?? "—"}</strong>
+                <p>{verification.resource?.format ?? "s/i"} · {verification.matches.length} coincidencias</p>
               </div>
             </div>
 
@@ -152,7 +152,7 @@ export default async function StateIntelligencePage({
               <div className="emptyState compactEmpty">
                 <strong>Sin coincidencias verificables en el recurso consultado.</strong>
                 <p>
-                  Esto no demuestra que la entidad no exista. Puede significar que el dataset consultable es histórico, que la fuente más reciente está publicada sólo como XLSX o que el nombre usado difiere.
+                  Esto no demuestra que la entidad no exista. Puede significar que el nombre usado difiere, que el registro pertenece a otra categoría o que la fuente oficial no contiene esa entidad.
                 </p>
               </div>
             )}
