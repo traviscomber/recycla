@@ -51,6 +51,7 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
         "evidence_links",
         "rep_ledger_entries",
         "audit_findings",
+        "compliance_findings",
         "market_introductions",
         "waste_management_operations",
         "monthly_rep_reports",
@@ -81,7 +82,20 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
     }
   }
 
-  if (exists.audit_findings) {
+  if (exists.compliance_findings) {
+    try {
+      const sql = db();
+      const rows = await sql<Array<{ count: number }>>`
+        select count(*)::int as count
+        from compliance_findings
+        where severity = 'critical'
+          and status = 'open'
+      `;
+      openCriticalFindings = rows[0]?.count ?? 0;
+    } catch {
+      openCriticalFindings = 0;
+    }
+  } else if (exists.audit_findings) {
     try {
       const sql = db();
       const rows = await sql<Array<{ count: number }>>`
