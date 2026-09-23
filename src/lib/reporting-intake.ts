@@ -55,10 +55,51 @@ function firstValue(row: Row, aliases: string[]) {
 
 function numberValue(value: string | null) {
   if (value === null) return null;
-  const normalized = value
-    .replace(/\./g, "")
-    .replace(",", ".")
-    .replace(/[^0-9.-]/g, "");
+
+  let normalized = value
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[^0-9,.-]/g, "");
+
+  if (!normalized) return null;
+
+  const comma = normalized.lastIndexOf(",");
+  const dot = normalized.lastIndexOf(".");
+
+  if (comma >= 0 && dot >= 0) {
+    const decimalSeparator = comma > dot ? "," : ".";
+    const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+    normalized = normalized.split(thousandsSeparator).join("");
+    normalized = normalized.replace(decimalSeparator, ".");
+  } else if (comma >= 0) {
+    const parts = normalized.split(",");
+    if (parts.length > 2) {
+      const decimal = parts.pop() ?? "";
+      normalized = parts.join("") + "." + decimal;
+    } else {
+      const [left, right = ""] = parts;
+      normalized =
+        right.length === 3 && left.replace("-", "").length <= 3
+          ? left + right
+          : left + "." + right;
+    }
+  } else if (dot >= 0) {
+    const parts = normalized.split(".");
+    if (parts.length > 2) {
+      const decimal = parts.pop() ?? "";
+      normalized =
+        decimal.length === 3
+          ? parts.join("") + decimal
+          : parts.join("") + "." + decimal;
+    } else {
+      const [left, right = ""] = parts;
+      normalized =
+        right.length === 3 && left.replace("-", "").length <= 3
+          ? left + right
+          : left + "." + right;
+    }
+  }
+
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -82,7 +123,9 @@ function dateValue(value: string | null) {
 
 function parseWorkbook(buffer: Buffer) {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
-  const candidates = workbook.SheetNames.map((sheetName) => {
+  const combined: Row[] = [];
+
+  for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const preview = XLSX.utils.sheet_to_json<Array<string | number | null>>(sheet, {
       header: 1,
@@ -91,30 +134,38 @@ function parseWorkbook(buffer: Buffer) {
       blankrows: false
     });
 
-    const headerIndex = preview.slice(0, 30).findIndex((row) => {
+    const headerIndex = preview.slice(0, 40).findIndex((row) => {
       const populated = row.filter(
         (value) => value !== null && String(value).trim() !== ""
       );
       return populated.length >= 3;
     });
 
+    if (headerIndex < 0) continue;
+
     const rows = XLSX.utils.sheet_to_json<Row>(sheet, {
       defval: null,
       raw: false,
-      range: headerIndex >= 0 ? headerIndex : 0
+      range: headerIndex
     });
 
-    return {
-      sheetName,
-      rows: rows.filter((row) =>
-        Object.values(row).some(
+    for (const row of rows) {
+      if (
+        !Object.values(row).some(
           (value) => value !== null && String(value).trim() !== ""
         )
-      )
-    };
-  }).sort((a, b) => b.rows.length - a.rows.length);
+      ) {
+        continue;
+      }
 
-  return candidates[0]?.rows ?? [];
+      combined.push({
+        ...row,
+        __source_sheet: sheetName
+      });
+    }
+  }
+
+  return combined;
 }
 
 function marketRecord(row: Row, rowNumber: number, subjectRef: string) {
@@ -135,6 +186,8 @@ function marketRecord(row: Row, rowNumber: number, subjectRef: string) {
   const unit = firstValue(row, ["unidad", "unit"]);
   const consumerRef = firstValue(row, [
     "rut consumidor",
+    "rut cliente",
+    "cliente",
     "consumidor",
     "consumer_ref"
   ]);
@@ -144,6 +197,9 @@ function marketRecord(row: Row, rowNumber: number, subjectRef: string) {
   ]);
   const transactionRef = firstValue(row, [
     "documento tributario",
+    "n documento",
+    "numero documento",
+    "nro documento",
     "folio",
     "factura",
     "transaction_ref"
@@ -181,7 +237,7 @@ function marketRecord(row: Row, rowNumber: number, subjectRef: string) {
 
 function wasteRecord(row: Row, rowNumber: number, subjectRef: string) {
   const occurredAt = dateValue(
-    firstValue(row, ["fecha", "fecha operacion", "occurred_at"])
+    firstValue(row, ["fecha", "fecha operacion", "fecha retiro", "fecha recepcion", "fecha recepción", "occurred_at"])
   );
   const priorityProduct = firstValue(row, [
     "producto prioritario",
