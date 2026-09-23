@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthServer, isAuthConfigured } from "@/lib/auth/server";
 
@@ -71,6 +72,7 @@ export default async function SignInPage({
             </label>
             {message ? <p className="authError">{message}</p> : null}
             <button type="submit">Ingresar</button>
+            <Link className="authSecondaryLink" href="/auth/forgot-password">Olvidé mi contraseña</Link>
           </form>
         )}
       </section>
