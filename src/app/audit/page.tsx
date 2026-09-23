@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { fmt } from "@/lib/rep";
 import { auditScope, complianceSources } from "@/lib/compliance";
+import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
+import { getLatestComplianceRun } from "@/lib/compliance-runs";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +16,11 @@ const findings = [
 ];
 
 export default async function AuditPage() {
-  const snapshots = await listRecentSnapshots(100);
+  const [snapshots, compliance, latestRun] = await Promise.all([
+    listRecentSnapshots(100),
+    evaluateComplianceReadiness(),
+    getLatestComplianceRun("recycla-os")
+  ]);
   const externalActorEvidence = snapshots.filter(
     (snapshot) =>
       snapshot.subjectType.startsWith("rep_actor_") &&
@@ -39,6 +45,21 @@ export default async function AuditPage() {
           <strong>{externalActorEvidence.length}</strong>
         </div>
       </header>
+
+      <section className="panel auditRunStatus">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Último compliance pre-check</p>
+            <h3>{latestRun?.status ?? "SIN EJECUTAR"}</h3>
+          </div>
+          <Link className="buttonLink" href="/reporting">Ejecutar desde Report Readiness →</Link>
+        </div>
+        <p className="muted">
+          {latestRun?.finishedAt
+            ? "Última corrida persistida: " + new Date(latestRun.finishedAt).toLocaleString("es-CL")
+            : "Aún no existe una corrida persistida de los gates de compliance."}
+        </p>
+      </section>
 
       <section className="decisionStrip auditDecisionStrip" aria-label="Resumen de auditoría">
         <article>
@@ -70,16 +91,25 @@ export default async function AuditPage() {
         </div>
 
         <div className="auditScopeGrid">
-          {auditScope.map((item, index) => (
-            <article key={item.id}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <strong>{item.label}</strong>
-                <p>{item.requirement}</p>
-                <small>{item.legalBasis}</small>
-              </div>
-            </article>
-          ))}
+          {auditScope.map((item, index) => {
+            const result = compliance.find((gate) => gate.id === item.id);
+            return (
+              <article key={item.id}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <strong>{item.label}</strong>
+                  <p>{result?.detail ?? item.requirement}</p>
+                  <small>
+                    {item.legalBasis}
+                    {result?.evidenceCount ? " · " + result.evidenceCount + " evidencias" : ""}
+                  </small>
+                </div>
+                <b className={"auditGateStatus auditGate-" + (result?.status ?? "NOT_CONNECTED").toLowerCase()}>
+                  {(result?.status ?? "NOT_CONNECTED").replaceAll("_", " ")}
+                </b>
+              </article>
+            );
+          })}
         </div>
       </section>
 
