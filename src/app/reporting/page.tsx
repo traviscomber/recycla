@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { AppShell } from "@/components/app-shell";
-import { fmt } from "@/lib/rep";
 import {
   auditScope,
   complianceSources,
@@ -44,12 +43,6 @@ async function generateMonthlyDraftAction() {
   revalidatePath("/audit");
 }
 
-const blockers = [
-  { label: "Certificados pendientes", count: 3, quantity: 18240 },
-  { label: "Diferencias de pesaje", count: 2, quantity: 3120 },
-  { label: "Clasificación pendiente", count: 1, quantity: 890 }
-];
-
 function gateTone(status: ComplianceGateStatus) {
   if (status === "LIVE" || status === "READY") return "done";
   if (status === "REVIEW_REQUIRED") return "next";
@@ -75,8 +68,6 @@ export default async function ReportingPage() {
   const reviewSnapshots = actorSnapshots.filter(
     (snapshot) => snapshot.status === "REVIEW_REQUIRED"
   );
-
-  const blocked = blockers.reduce((sum, item) => sum + item.quantity, 0);
 
   const gateStatus = new Map(
     compliance.map((gate) => [gate.id, gate.status])
@@ -171,9 +162,9 @@ export default async function ReportingPage() {
             <p>{reviewSnapshots.length} requieren revisión</p>
           </article>
           <article>
-            <span>Escenario demo</span>
-            <strong>{fmt(blocked)} kg</strong>
-            <p>Referencia visual · no afecta el estado live</p>
+            <span>Gates bloqueantes</span>
+            <strong>{Number(latestRun?.summary?.blocking ?? 0)}</strong>
+            <p>Estado persistido del último pre-check</p>
           </article>
         </div>
       </section>
