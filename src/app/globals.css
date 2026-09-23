@@ -445,3 +445,8 @@ h1{font-weight:500;letter-spacing:-.035em}
 .officialVerificationBand h3{margin-bottom:6px}
 .officialVerificationBand p{margin:0;color:var(--text-soft);font-size:10px}
 @media(max-width:640px){.officialVerificationBand{align-items:flex-start;flex-direction:column}}
+
+.externalAuditCheck{display:flex;align-items:center;justify-content:space-between;gap:24px;border:1px solid var(--line);background:#101713;padding:18px 20px;margin-bottom:18px;box-shadow:inset 2px 0 0 var(--green)}
+.externalAuditCheck h3{margin-bottom:6px}
+.externalAuditCheck p{margin:0;color:var(--text-soft);font-size:10px;line-height:1.45;max-width:900px}
+@media(max-width:640px){.externalAuditCheck{align-items:flex-start;flex-direction:column}}
