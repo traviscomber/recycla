@@ -16,66 +16,76 @@ export default function Home() {
     ["Acreditable", demo.accreditable]
   ] as const;
 
+  const slugMap = {
+    AEE_RAEE: "aee-raee",
+    NEUMATICOS: "neumaticos",
+    BATERIAS: "baterias",
+    PILAS: "pilas",
+    ACEITES_LUBRICANTES: "aceites-lubricantes"
+  } as const;
+
   return (
     <AppShell active="/">
       <header className="topbar">
         <div>
           <p className="eyebrow">Operational REP Intelligence</p>
           <h1>REP Control Tower</h1>
-          <p className="muted">De la operación física a toneladas acreditables y defendibles.</p>
+          <p className="muted">Qué está acreditable, qué está bloqueado y dónde actuar primero.</p>
         </div>
         <div className="period"><span>Período</span><strong>{demo.period}</strong></div>
       </header>
 
-      <section className="streams">
-        {priorityStreams.map((s, i) => {
-          const slugMap = {
-            AEE_RAEE: "aee-raee",
-            NEUMATICOS: "neumaticos",
-            BATERIAS: "baterias",
-            PILAS: "pilas",
-            ACEITES_LUBRICANTES: "aceites-lubricantes"
-          } as const;
-          return (
-            <Link
-              href={`/productos/${slugMap[s.id]}`}
-              key={s.id}
-              className={i === 0 ? "stream activeStream streamLink" : "stream streamLink"}
-            >
-              <span>{String(i + 1).padStart(2, "0")}</span>
-              <strong>{s.label}</strong>
-              <p>{s.traceability}</p>
-            </Link>
-          );
-        })}
+      <section className="decisionStrip" aria-label="Estado REP principal">
+        <article>
+          <span>REP Readiness</span>
+          <strong>{readiness.toFixed(1)}%</strong>
+          <p>Sobre cantidad acreditable</p>
+        </article>
+        <article>
+          <span>Gap actual</span>
+          <strong className="negative">{fmt(gap)} kg</strong>
+          <p>vs. obligación vigente</p>
+        </article>
+        <article>
+          <span>Gap proyectado</span>
+          <strong className="negative">{fmt(projectedGap)} kg</strong>
+          <p>Si continúa la trayectoria actual</p>
+        </article>
       </section>
 
-      <section className="heroGrid">
-        <article className="card dark">
-          <span className="label">Cliente</span>
+      <section className="streams">
+        {priorityStreams.map((s, i) => (
+          <Link
+            href={`/productos/${slugMap[s.id]}`}
+            key={s.id}
+            className={i === 0 ? "stream activeStream streamLink" : "stream streamLink"}
+          >
+            <span>{String(i + 1).padStart(2, "0")}</span>
+            <strong>{s.label}</strong>
+            <p>{s.traceability}</p>
+          </Link>
+        ))}
+      </section>
+
+      <section className="focusBand">
+        <article className="focusClient">
+          <span className="label">Cliente en foco</span>
           <h2>{demo.client}</h2>
           <p>AEE / RAEE · obligación {fmt(demo.obligation)} kg</p>
-        </article>
-        <article className="card">
-          <span className="label">REP Readiness</span>
-          <div className="big">{readiness.toFixed(1)}%</div>
           <div className="progress"><div style={{ width: `${readiness}%` }} /></div>
-          <p className="muted">Calculado sobre kg acreditables.</p>
         </article>
-        <article className="card risk">
-          <span className="label">Gap actual</span>
-          <div className="gap">{fmt(gap)} kg</div>
-          <p className="muted">vs. obligación</p>
-          <hr />
-          <span className="label">Gap proyectado</span>
-          <strong>{fmt(projectedGap)} kg</strong>
+        <article className="focusAction">
+          <span className="label">Qué importa ahora</span>
+          <h3>Cerrar evidencia antes de perseguir más volumen.</h3>
+          <p>{fmt(demo.eligible - demo.evidenceComplete)} kg son elegibles pero todavía no tienen evidencia completa.</p>
+          <Link className="buttonLink" href="/evidence">Abrir Evidence Graph →</Link>
         </article>
       </section>
 
       <section className="panel">
         <div className="panelHead">
           <div><p className="eyebrow">REP Ledger</p><h3>Estado regulatorio de la masa física</h3></div>
-          <a className="buttonLink" href="/ledger">Ver lineage</a>
+          <Link className="buttonLink" href="/ledger">Ver lineage</Link>
         </div>
         <div className="stages">
           {stages.map(([label, value], i) => (
@@ -105,7 +115,7 @@ export default function Home() {
 
         <article className="panel">
           <p className="eyebrow">Evidence Graph</p>
-          <h3>Cada número debe abrir su evidencia</h3>
+          <h3>Cada número abre su evidencia.</h3>
           <div className="path">
             <span>Retiro</span><span>Pesaje</span><span>Lote</span><span>Valorización</span><span>Certificado</span>
           </div>
