@@ -65,6 +65,7 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
   }
 
   let latestMonthlyStatus: "DRAFT" | "READY" | "SUBMITTED" | "REOPENED" | null = null;
+  let openCriticalFindings = 0;
   if (exists.monthly_rep_reports && counts.monthly_rep_reports > 0) {
     try {
       const sql = db();
@@ -77,6 +78,21 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
       latestMonthlyStatus = rows[0]?.status ?? null;
     } catch {
       latestMonthlyStatus = null;
+    }
+  }
+
+  if (exists.audit_findings) {
+    try {
+      const sql = db();
+      const rows = await sql<Array<{ count: number }>>`
+        select count(*)::int as count
+        from audit_findings
+        where severity = 'critical'
+          and status = 'open'
+      `;
+      openCriticalFindings = rows[0]?.count ?? 0;
+    } catch {
+      openCriticalFindings = 0;
     }
   }
 
@@ -214,12 +230,16 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
   ].map((id) => result.get(id)?.status);
 
   const allReady = preFinal.every((status) => status === "READY" || status === "LIVE");
+  const finalReady = allReady && openCriticalFindings === 0;
   set(
     "final-report",
-    allReady ? "READY" : "BLOCKED",
-    allReady
-      ? "Todos los controles previos están listos para construir el informe de cumplimiento."
-      : "El informe final permanece bloqueado mientras existan gates no conectados o pendientes."
+    finalReady ? "READY" : "BLOCKED",
+    finalReady
+      ? "Todos los controles previos están listos y no existen hallazgos críticos abiertos."
+      : openCriticalFindings > 0
+        ? "El informe final permanece bloqueado por " + openCriticalFindings + " hallazgo(s) crítico(s) abierto(s)."
+        : "El informe final permanece bloqueado mientras existan gates no conectados o pendientes.",
+    openCriticalFindings
   );
 
   if (exists.external_source_snapshots) {
