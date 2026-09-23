@@ -62,7 +62,7 @@ export default function Home() {
           >
             <span>{String(i + 1).padStart(2, "0")}</span>
             <strong>{s.label}</strong>
-            <p>{s.traceability}</p>
+            <p>{s.regulatoryMilestone} · {s.traceability}</p>
           </Link>
         ))}
       </section>
