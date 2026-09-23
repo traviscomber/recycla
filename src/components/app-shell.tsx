@@ -4,7 +4,10 @@ import { priorityStreams } from "@/lib/rep";
 const nav = [
   ["/", "Control Tower"],
   ["/clientes", "Clientes REP"],
-  ["/ledger", "REP Ledger"]
+  ["/ledger", "REP Ledger"],
+  ["/evidence", "Evidence Graph"],
+  ["/audit", "Audit Room"],
+  ["/reporting", "Report Readiness"]
 ] as const;
 
 export function AppShell({
@@ -31,9 +34,6 @@ export function AppShell({
               {label}
             </Link>
           ))}
-          <a>Evidence Graph</a>
-          <a>Audit Room</a>
-          <a>Report Readiness</a>
         </nav>
 
         <div className="scope">
