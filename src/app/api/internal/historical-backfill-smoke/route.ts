@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
         imported.acceptedRows === 108 &&
         duplicate.batchId === imported.batchId &&
         reconciliation?.status === "MATCH" &&
-        reconciliation.referenceTotalTonnes === 634,
+        Math.abs(reconciliation.referenceTotalTonnes - 634) < 0.001,
       result
     });
   } catch (error) {
