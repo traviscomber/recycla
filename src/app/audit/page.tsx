@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { fmt } from "@/lib/rep";
+import { listRecentSnapshots } from "@/lib/state-snapshots";
+
+export const dynamic = "force-dynamic";
 
 const findings = [
   { id: "AUD-001", severity: "critical", type: "Evidencia", entity: "VAL-551", affected: 18240, detail: "Valorización sin certificado final." },
@@ -18,7 +21,14 @@ const checks = [
   ["Clasificación REP", "1 pendiente", "warning"]
 ] as const;
 
-export default function AuditPage() {
+export default async function AuditPage() {
+  const snapshots = await listRecentSnapshots(50);
+  const externalActorEvidence = snapshots.filter(
+    (snapshot) =>
+      snapshot.subjectType.startsWith("rep_actor_") &&
+      snapshot.status !== "UNAVAILABLE"
+  );
+
   return (
     <AppShell active="/audit" dataMode="demo">
       <header className="topbar">
@@ -70,6 +80,41 @@ export default function AuditPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="panel auditExternalEvidence">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Official external evidence · Live</p>
+            <h3>Snapshots oficiales disponibles para revisión</h3>
+          </div>
+          <b>{externalActorEvidence.length}</b>
+        </div>
+
+        {externalActorEvidence.length ? (
+          <div className="auditExternalRows">
+            {externalActorEvidence.slice(0, 6).map((snapshot) => (
+              <article key={snapshot.id}>
+                <span className={`snapshotStatus snapshot-${snapshot.status.toLowerCase()}`}>
+                  {snapshot.status}
+                </span>
+                <div>
+                  <strong>{snapshot.subjectLabel ?? snapshot.externalIdentifier ?? "Actor externo"}</strong>
+                  <p>
+                    {snapshot.sourceId}
+                    {snapshot.sourceYear ? ` · fuente ${snapshot.sourceYear}` : ""}
+                  </p>
+                </div>
+                <time>{new Date(snapshot.fetchedAt).toLocaleString("es-CL")}</time>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin evidencia externa asociada a actores.</strong>
+            <p>Las verificaciones persistidas aparecerán aquí sin convertirlas automáticamente en PASS.</p>
+          </div>
+        )}
       </section>
 
       <section className="externalAuditCheck">
