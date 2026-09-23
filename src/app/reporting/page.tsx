@@ -256,6 +256,8 @@ export default async function ReportingPage() {
           <a href={complianceSources.law20920.url} target="_blank" rel="noreferrer">Ley 20.920 ↗</a>
           <a href={complianceSources.res2084.url} target="_blank" rel="noreferrer">Res. 2084 ↗</a>
           <a href={complianceSources.res2279.url} target="_blank" rel="noreferrer">Res. 2279 ↗</a>
+          <a href={complianceSources.annualNfu2025.url} target="_blank" rel="noreferrer">Plantilla SMA · NFU 2025 ↗</a>
+          <a href={complianceSources.annualPackaging2025.url} target="_blank" rel="noreferrer">Plantilla SMA · Envases 2025 ↗</a>
         </div>
       </section>
     </AppShell>
