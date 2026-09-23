@@ -4,7 +4,9 @@ import { getAuthServer, isAuthConfigured } from "@/lib/auth/server";
 
 export default async function proxy(request: NextRequest) {
   if (!isAuthConfigured()) {
-    return NextResponse.next();
+    const loginUrl = new URL("/auth/sign-in", request.url);
+    loginUrl.searchParams.set("error", "not-configured");
+    return NextResponse.redirect(loginUrl);
   }
 
   const middleware = getAuthServer().middleware({
