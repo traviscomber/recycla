@@ -14,6 +14,11 @@ import {
   getLatestComplianceRun,
   runCompliancePrecheck
 } from "@/lib/compliance-runs";
+import {
+  generateMonthlyRepDraft,
+  getLatestMonthlyRepReport,
+  latestReportableMonth
+} from "@/lib/monthly-reporting";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
@@ -23,6 +28,14 @@ async function runPrecheckAction() {
   "use server";
 
   await runCompliancePrecheck("recycla-os");
+  revalidatePath("/reporting");
+  revalidatePath("/audit");
+}
+
+async function generateMonthlyDraftAction() {
+  "use server";
+
+  await generateMonthlyRepDraft("recycla-os");
   revalidatePath("/reporting");
   revalidatePath("/audit");
 }
@@ -40,11 +53,12 @@ function gateTone(status: ComplianceGateStatus) {
 }
 
 export default async function ReportingPage() {
-  const [syncs, snapshots, compliance, latestRun] = await Promise.all([
+  const [syncs, snapshots, compliance, latestRun, latestMonthly] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
     evaluateComplianceReadiness(),
-    getLatestComplianceRun("recycla-os")
+    getLatestComplianceRun("recycla-os"),
+    getLatestMonthlyRepReport("recycla-os")
   ]);
 
   const producerSync = syncs.find((sync) => sync.sourceId === "retc-priority-products");
@@ -152,6 +166,40 @@ export default async function ReportingPage() {
             <span>Bloqueado demo</span>
             <strong className="negative">{fmt(blocked)} kg</strong>
             <p>Debe salir del dataset reportable</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="panel monthlyClosePanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Cierre mensual REP</p>
+            <h3>Generar un borrador versionado desde los datos normalizados.</h3>
+          </div>
+          <form action={generateMonthlyDraftAction}>
+            <button type="submit">Generar cierre mensual</button>
+          </form>
+        </div>
+
+        <div className="complianceRunSummary">
+          <article>
+            <span>Mes fuente sugerido</span>
+            <strong>{latestReportableMonth()}</strong>
+            <p>Se calcula como mes -2 para la ventana operativa actual.</p>
+          </article>
+          <article>
+            <span>Último cierre</span>
+            <strong>{latestMonthly?.status ?? "SIN GENERAR"}</strong>
+            <p>
+              {latestMonthly
+                ? latestMonthly.reportingMonth + " · v" + latestMonthly.version
+                : "No existe borrador mensual persistido"}
+            </p>
+          </article>
+          <article>
+            <span>Checksum</span>
+            <strong>{latestMonthly?.checksumSha256 ? "ACTIVO" : "—"}</strong>
+            <p>{latestMonthly?.checksumSha256?.slice(0, 16) ?? "Se genera al persistir"}</p>
           </article>
         </div>
       </section>
