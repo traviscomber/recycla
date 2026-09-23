@@ -141,7 +141,9 @@ export default async function StateIntelligencePage({
 
                     <div className="matchFoot">
                       <span>Match: texto / ID en dataset oficial</span>
-                      <span>Año fuente: {match.sourceYear ?? "s/i"}</span>
+                      <span className={match.isHistorical ? "historicalSource" : ""}>
+                        Año fuente: {match.sourceYear ?? "s/i"}{match.isHistorical ? " · histórica" : ""}
+                      </span>
                     </div>
                   </article>
                 ))}
