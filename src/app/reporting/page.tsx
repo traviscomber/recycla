@@ -80,7 +80,8 @@ export default async function ReportingPage() {
     return status === "LIVE" || status === "READY";
   }).length;
 
-  const closureReady = readyCount === auditScope.length && blocked === 0;
+  const finalGate = compliance.find((gate) => gate.id === "final-report");
+  const closureReady = finalGate?.status === "READY";
 
   return (
     <AppShell active="/reporting">
@@ -163,9 +164,9 @@ export default async function ReportingPage() {
             <p>{reviewSnapshots.length} requieren revisión</p>
           </article>
           <article>
-            <span>Bloqueado demo</span>
-            <strong className="negative">{fmt(blocked)} kg</strong>
-            <p>Debe salir del dataset reportable</p>
+            <span>Escenario demo</span>
+            <strong>{fmt(blocked)} kg</strong>
+            <p>Referencia visual · no afecta el estado live</p>
           </article>
         </div>
       </section>
