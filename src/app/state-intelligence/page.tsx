@@ -1,10 +1,37 @@
 import { AppShell } from "@/components/app-shell";
-import { getStateSourceMetadata, stateSources } from "@/lib/state-intelligence";
+import {
+  getStateSourceMetadata,
+  stateSources,
+  summarizeOfficialRecord,
+  verifyOfficialEntity,
+  type VerificationKind
+} from "@/lib/state-intelligence";
 
 export const dynamic = "force-dynamic";
 
-export default async function StateIntelligencePage() {
-  const metadata = await Promise.all(stateSources.map(getStateSourceMetadata));
+const verificationLabels: Record<VerificationKind, string> = {
+  producer: "Productor / establecimiento",
+  hazardous_destination: "Destinatario de residuos peligrosos",
+  storage_site: "Instalación de recepción / almacenamiento"
+};
+
+export default async function StateIntelligencePage({
+  searchParams
+}: {
+  searchParams: Promise<{ q?: string; kind?: VerificationKind }>;
+}) {
+  const params = await searchParams;
+  const query = params.q?.trim() ?? "";
+  const kind: VerificationKind =
+    params.kind === "hazardous_destination" || params.kind === "storage_site"
+      ? params.kind
+      : "producer";
+
+  const [metadata, verification] = await Promise.all([
+    Promise.all(stateSources.map(getStateSourceMetadata)),
+    query ? verifyOfficialEntity(kind, query) : Promise.resolve(null)
+  ]);
+
   const metaById = new Map(metadata.map((item) => [item.id, item]));
   const ready = metadata.filter((item) => item.status === "ready").length;
 
@@ -40,6 +67,95 @@ export default async function StateIntelligencePage() {
           <strong>Versionado</strong>
           <p>El estado oficial usado por una decisión debe poder reconstruirse.</p>
         </article>
+      </section>
+
+      <section className="panel stateVerifier">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Verificación oficial</p>
+            <h3>Buscar una entidad en datasets públicos RETC</h3>
+          </div>
+        </div>
+
+        <form className="verificationForm" method="get">
+          <label>
+            <span>Tipo de entidad</span>
+            <select name="kind" defaultValue={kind}>
+              <option value="producer">Productor / establecimiento</option>
+              <option value="hazardous_destination">Destinatario de residuos peligrosos</option>
+              <option value="storage_site">Instalación de recepción / almacenamiento</option>
+            </select>
+          </label>
+
+          <label className="queryField">
+            <span>Razón social, establecimiento o ID VU</span>
+            <input
+              name="q"
+              defaultValue={query}
+              placeholder="Ej. Recycla, nombre de planta o ID Establecimiento VU"
+              minLength={3}
+            />
+          </label>
+
+          <button type="submit">Buscar en RETC</button>
+        </form>
+
+        <p className="verificationHint">
+          La primera versión busca texto e identificadores públicos disponibles en CKAN. Una coincidencia se marca como <strong>requiere revisión</strong> hasta corroborar identidad y contexto.
+        </p>
+
+        {verification ? (
+          <div className="verificationResult">
+            <div className="verificationSummary">
+              <div>
+                <span>Consulta</span>
+                <strong>{verificationLabels[kind]}</strong>
+                <p>{verification.detail}</p>
+              </div>
+              <div>
+                <span>Recurso consultable</span>
+                <strong>{verification.queryableYear ?? "—"}</strong>
+                <p>{verification.matches.length} coincidencias</p>
+              </div>
+            </div>
+
+            {verification.matches.length ? (
+              <div className="matchList">
+                {verification.matches.map((match, index) => (
+                  <article className="matchCard" key={`${match.resourceId}-${index}`}>
+                    <div className="matchHead">
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <b>{match.status === "REVIEW_REQUIRED" ? "REQUIERE REVISIÓN" : match.status}</b>
+                    </div>
+                    <strong>{match.sourceLabel}</strong>
+                    <p>{match.resourceName}</p>
+
+                    <dl>
+                      {summarizeOfficialRecord(match.record).map(([key, value]) => (
+                        <div key={key}>
+                          <dt>{key}</dt>
+                          <dd>{String(value)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+
+                    <div className="matchFoot">
+                      <span>Match: texto / ID en dataset oficial</span>
+                      <span>Año fuente: {match.sourceYear ?? "s/i"}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptyState compactEmpty">
+                <strong>Sin coincidencias verificables en el recurso consultado.</strong>
+                <p>
+                  Esto no demuestra que la entidad no exista. Puede significar que el dataset consultable es histórico, que la fuente más reciente está publicada sólo como XLSX o que el nombre usado difiere.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : null}
       </section>
 
       <section className="stateSourceGrid">
@@ -78,7 +194,7 @@ export default async function StateIntelligencePage() {
           <p className="eyebrow">Verification flow</p>
           <h3>Actor / destino → búsqueda oficial → match → evidencia → auditoría.</h3>
           <p className="muted">
-            La primera versión prioriza sistemas de gestión, destinatarios e instalaciones. El resultado debe ser “verificado”, “no encontrado” o “requiere revisión”.
+            El resultado operativo debe evolucionar de “requiere revisión” a “verificado” sólo cuando identidad, fuente y contexto coincidan de forma suficiente.
           </p>
         </article>
 
