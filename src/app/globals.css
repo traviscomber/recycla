@@ -566,3 +566,17 @@ h1{font-weight:500;letter-spacing:-.035em}
 }
 
 .monthlyClosePanel{margin-bottom:18px}
+
+.panelActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.intakeFeedback{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px;padding:12px 14px;border:1px solid var(--line);background:var(--surface-3);font-size:10px}
+.intakeFeedback-imported{border-color:#315d43;color:var(--success)}
+.intakeFeedback-partial{border-color:#5b4c2f;color:var(--warning)}
+.intakeFeedback-rejected,.intakeFeedback-invalid{border-color:#5b3532;color:var(--danger)}
+.intakeGrid{margin-bottom:18px}
+.intakeForm{display:grid;gap:12px;margin-top:16px}
+.intakeForm label{display:grid;gap:6px}
+.intakeForm label>span{font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-faint)}
+.intakeForm input[type=file]{width:100%;border:1px solid var(--line-strong);background:var(--surface-3);color:var(--text-soft);padding:10px;font-size:9px}
+.intakeFields{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.intakeFields span{border:1px solid var(--line);background:var(--surface-3);padding:6px 8px;font-size:8px;color:var(--text-faint)}
+@media(max-width:700px){.intakeFeedback{align-items:flex-start;flex-direction:column}}
