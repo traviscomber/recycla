@@ -178,6 +178,18 @@ create table valuation_outputs (
   created_at timestamptz not null default now()
 );
 
+create table documents (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid references organizations(id),
+  document_type text not null,
+  file_name text not null,
+  checksum_sha256 text,
+  issued_at date,
+  expires_at date,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
 create table valuation_allocations (
   id uuid primary key default gen_random_uuid(),
   valuation_output_id uuid not null references valuation_outputs(id),
@@ -191,18 +203,6 @@ create table valuation_allocations (
 
 create index valuation_allocations_org_idx
   on valuation_allocations(organization_id, valuation_output_id);
-
-create table documents (
-  id uuid primary key default gen_random_uuid(),
-  organization_id uuid references organizations(id),
-  document_type text not null,
-  file_name text not null,
-  checksum_sha256 text,
-  issued_at date,
-  expires_at date,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
 
 alter table weighings
   add constraint weighings_evidence_document_fk
