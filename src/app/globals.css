@@ -382,3 +382,22 @@ h1{font-weight:500;letter-spacing:-.035em}
   .flowNodes{grid-template-columns:1fr}
   .flowNodes i{padding:6px 0;transform:rotate(90deg)}
 }
+
+.stateSourceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.stateSourceCard{border:1px solid var(--line);background:var(--surface);padding:18px}
+.stateSourceHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.stateSourceHead>span{color:var(--green);font-size:8px;font-weight:800}
+.sourceStatus{font-size:8px;letter-spacing:.08em;border:1px solid var(--line-strong);padding:5px 7px;color:var(--text-faint)}
+.source-ready{color:var(--success);border-color:#315d43}
+.source-unavailable{color:var(--danger);border-color:#5b3532}
+.source-not_applicable{color:var(--warning);border-color:#5b4c2f}
+.stateSourceCard>strong{display:block;font-size:14px;margin-bottom:7px}
+.stateSourceCard>p{color:var(--text-soft);font-size:10px;line-height:1.5;min-height:30px}
+.stateSourceCard dl{margin:14px 0 0}
+.stateSourceCard dl>div{display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--line);padding:9px 0}
+.stateSourceCard dt{color:var(--text-faint);font-size:9px}
+.stateSourceCard dd{margin:0;color:var(--text);font-size:9px;text-align:right;max-width:65%}
+.stateSourceFoot{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+.stateSourceFoot span{color:var(--text-faint);font-size:9px;line-height:1.4}
+.stateSourceFoot a{flex:0 0 auto;color:var(--green);font-size:9px}
+@media(max-width:900px){.stateSourceGrid{grid-template-columns:1fr}}
