@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { priorityStreams } from "@/lib/rep";
 
+const streamHref = {
+  AEE_RAEE: "/productos/aee-raee",
+  NEUMATICOS: "/productos/neumaticos",
+  BATERIAS: "/productos/baterias",
+  PILAS: "/productos/pilas",
+  ACEITES_LUBRICANTES: "/productos/aceites-lubricantes"
+} as const;
+
 const nav = [
   ["/", "Control Tower", "01"],
   ["/clientes", "Clientes REP", "02"],
@@ -51,7 +59,11 @@ export function AppShell({
 
         <div className="scope">
           <span>Streams activos</span>
-          {priorityStreams.map((s) => <b key={s.id}>{s.label}</b>)}
+          {priorityStreams.map((s) => (
+            <Link className="scopeLink" href={streamHref[s.id]} key={s.id}>
+              {s.label}
+            </Link>
+          ))}
         </div>
 
         <div className="systemState">
