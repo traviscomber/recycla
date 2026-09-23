@@ -21,17 +21,22 @@ function firstValue(
   record: Record<string, string | number | null>,
   keys: string[]
 ) {
-  const exact = new Set(keys.map(normalizeKey));
+  const entries = Object.entries(record).map(([key, value]) => ({
+    key: normalizeKey(key),
+    value
+  }));
 
-  for (const [key, value] of Object.entries(record)) {
-    if (
-      value !== undefined &&
-      value !== null &&
-      String(value).trim() &&
-      exact.has(normalizeKey(key))
-    ) {
-      return String(value).trim();
-    }
+  for (const desiredKey of keys) {
+    const normalizedDesired = normalizeKey(desiredKey);
+    const match = entries.find(
+      (entry) =>
+        entry.key === normalizedDesired &&
+        entry.value !== undefined &&
+        entry.value !== null &&
+        String(entry.value).trim()
+    );
+
+    if (match) return String(match.value).trim();
   }
 
   return null;
