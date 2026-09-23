@@ -81,6 +81,7 @@ function canonicalName(record: Record<string, string | number | null>) {
 function externalIdentifier(record: Record<string, string | number | null>) {
   return (
     firstValue(record, [
+      "id_vu",
       "ID Establecimiento VU",
       "ID Establecimiento",
       "RUT",
