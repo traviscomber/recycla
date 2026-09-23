@@ -5,6 +5,7 @@ import {
   listRecentSnapshots,
   persistOfficialSnapshot
 } from "@/lib/state-snapshots";
+import { getStateSyncOverview } from "@/lib/state-ingestion";
 import {
   getStateSourceMetadata,
   stateSources,
@@ -82,13 +83,15 @@ export default async function StateIntelligencePage({
       ? params.kind
       : "producer";
 
-  const [metadata, verification, snapshots] = await Promise.all([
+  const [metadata, verification, snapshots, syncOverview] = await Promise.all([
     Promise.all(stateSources.map(getStateSourceMetadata)),
     query ? searchLatestOfficialResource(kind, query) : Promise.resolve(null),
-    listRecentSnapshots(8)
+    listRecentSnapshots(8),
+    getStateSyncOverview()
   ]);
 
   const metaById = new Map(metadata.map((item) => [item.id, item]));
+  const syncById = new Map(syncOverview.map((item) => [item.sourceId, item]));
   const ready = metadata.filter((item) => item.status === "ready").length;
 
   return (
@@ -240,6 +243,7 @@ export default async function StateIntelligencePage({
       <section className="stateSourceGrid">
         {stateSources.map((source, index) => {
           const meta = metaById.get(source.id);
+          const sync = syncById.get(source.id);
           return (
             <article className="stateSourceCard" key={source.id}>
               <div className="stateSourceHead">
@@ -257,6 +261,18 @@ export default async function StateIntelligencePage({
                 <div><dt>Uso</dt><dd>{source.productUse.join(" · ")}</dd></div>
                 {meta?.lastModified ? <div><dt>Metadata</dt><dd>{new Date(meta.lastModified).toLocaleDateString("es-CL")}</dd></div> : null}
                 {typeof meta?.resources === "number" ? <div><dt>Recursos</dt><dd>{meta.resources}</dd></div> : null}
+                {sync ? (
+                  <div>
+                    <dt>Ingesta</dt>
+                    <dd>{sync.rowCount.toLocaleString("es-CL")} filas · {sync.status}</dd>
+                  </div>
+                ) : null}
+                {sync?.finishedAt ? (
+                  <div>
+                    <dt>Último sync</dt>
+                    <dd>{new Date(sync.finishedAt).toLocaleString("es-CL")}</dd>
+                  </div>
+                ) : null}
               </dl>
 
               <div className="stateSourceFoot">
