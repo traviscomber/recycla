@@ -19,7 +19,7 @@ if (!token || process.env.VERCEL_GIT_COMMIT_REF !== "feat/state-intelligence") {
 
   try {
     const syncResponse = await fetch(
-      "https://recycla-cmaekw1fm-travis-projects-c14a785a.vercel.app/api/state-intelligence/sync?source=retc-priority-products",
+      "https://recycla-o9gtda3f7-travis-projects-c14a785a.vercel.app/api/state-intelligence/sync?source=retc-priority-products",
       { method: "POST", headers }
     );
     result.sync = {
@@ -35,7 +35,7 @@ if (!token || process.env.VERCEL_GIT_COMMIT_REF !== "feat/state-intelligence") {
 
   try {
     const snapshotResponse = await fetch(
-      "https://recycla-e50pnf5q2-travis-projects-c14a785a.vercel.app/api/state-intelligence/snapshot",
+      "https://recycla-o9gtda3f7-travis-projects-c14a785a.vercel.app/api/state-intelligence/snapshot",
       {
         method: "POST",
         headers,
