@@ -528,3 +528,15 @@ h1{font-weight:500;letter-spacing:-.035em}
   .complianceGate{grid-template-columns:32px 1fr}
   .complianceGate>b{grid-column:2;text-align:left}
 }
+
+.auditScopeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px}
+.auditScopeGrid article{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;padding:14px 0;border-top:1px solid var(--line)}
+.auditScopeGrid article:nth-child(-n+2){border-top:0}
+.auditScopeGrid article>span{color:var(--green);font-size:8px;font-weight:800;padding-top:2px}
+.auditScopeGrid strong{display:block;font-size:11px}
+.auditScopeGrid p{margin:4px 0;color:var(--text-soft);font-size:9px;line-height:1.45}
+.auditScopeGrid small{color:var(--text-faint);font-size:8px}
+@media(max-width:760px){
+  .auditScopeGrid{grid-template-columns:1fr}
+  .auditScopeGrid article:nth-child(2){border-top:1px solid var(--line)}
+}
