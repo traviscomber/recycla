@@ -4,6 +4,7 @@ import { fmt } from "@/lib/rep";
 import { auditScope, complianceSources } from "@/lib/compliance";
 import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
 import { getLatestComplianceRun } from "@/lib/compliance-runs";
+import { listComplianceFindings } from "@/lib/compliance-findings";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +17,11 @@ const findings = [
 ];
 
 export default async function AuditPage() {
-  const [snapshots, compliance, latestRun] = await Promise.all([
+  const [snapshots, compliance, latestRun, liveFindings] = await Promise.all([
     listRecentSnapshots(100),
     evaluateComplianceReadiness(),
-    getLatestComplianceRun("recycla-os")
+    getLatestComplianceRun("recycla-os"),
+    listComplianceFindings("recycla-os", 100)
   ]);
   const externalActorEvidence = snapshots.filter(
     (snapshot) =>
@@ -111,6 +113,45 @@ export default async function AuditPage() {
             );
           })}
         </div>
+      </section>
+
+      <section className="panel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Hallazgos live · reconciliación</p>
+            <h3>Brechas detectadas automáticamente en los datos reportables.</h3>
+          </div>
+          <b>{liveFindings.filter((finding) => finding.status === "open").length}</b>
+        </div>
+
+        {liveFindings.length ? (
+          <div className="tableWrap">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>Severidad</th><th>Estado</th><th>Período</th><th>Código</th><th>Detalle</th><th>Casos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liveFindings.map((finding) => (
+                  <tr key={finding.id}>
+                    <td><span className={"auditTag audit-" + finding.severity}>{finding.severity}</span></td>
+                    <td>{finding.status}</td>
+                    <td>{finding.reportingMonth}</td>
+                    <td><strong>{finding.code}</strong></td>
+                    <td>{finding.detail}</td>
+                    <td>{finding.occurrenceCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin hallazgos live persistidos.</strong>
+            <p>Ejecuta el compliance pre-check para sincronizar la reconciliación con Audit Room.</p>
+          </div>
+        )}
       </section>
 
       <section className="panel">
