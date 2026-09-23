@@ -56,12 +56,6 @@ export type CircularityOutcome = {
   quantityKg: number;
 };
 
-export const demoCircularityOutcomes: CircularityOutcome[] = [
-  { route: "PREPARATION_FOR_REUSE", quantityKg: 14800 },
-  { route: "RECYCLING", quantityKg: 84250 },
-  { route: "ENERGY_RECOVERY", quantityKg: 4620 },
-  { route: "DISPOSAL", quantityKg: 6200 }
-];
 
 export function routeLabel(route: CircularityRoute) {
   return circularityHierarchy.find((item) => item.id === route)?.label ?? route;
