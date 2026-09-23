@@ -83,3 +83,35 @@ Volume/weight conversion where required, collection event, transporter, treatmen
 AI may classify documents, explain gaps and propose mappings.
 
 AI may not decide regulatory eligibility without deterministic rules or silently override evidence requirements.
+
+
+## Circularity outcome model
+
+The treatment hierarchy is modeled as an orthogonal physical-outcome dimension, not as sequential REP Ledger states.
+
+Canonical hierarchy:
+
+1. Prevention
+2. Preparation for reuse
+3. Recycling
+4. Energy recovery
+5. Disposal
+
+Prevention happens before waste generation, so it is represented in product strategy and analytics but is not a `valuation_output`.
+
+Waste treatment outputs store one `circularity_route`:
+
+- PREPARATION_FOR_REUSE
+- RECYCLING
+- ENERGY_RECOVERY
+- DISPOSAL
+
+This prevents a modeling error where reuse, recycling and energy recovery would appear as if every kilogram must pass through each step.
+
+### Internal Circularity Quality
+
+Recycla OS may calculate an internal decision-support index to compare the mix of outcomes across clients, periods and materials.
+
+This is explicitly an internal operational metric, not a statutory REP compliance metric.
+
+Compliance remains governed by versioned REP rules and evidence.
