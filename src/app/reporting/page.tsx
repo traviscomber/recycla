@@ -19,7 +19,7 @@ export default function ReportingPage() {
   const blocked = blockers.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <AppShell active="/reporting">
+    <AppShell active="/reporting" dataMode="demo">
       <header className="topbar">
         <div>
           <p className="eyebrow">Preparación de reporte</p>
