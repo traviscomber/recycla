@@ -140,5 +140,5 @@ Before release:
 - visible focus;
 - no hidden navigation;
 - no unsupported regulatory claims;
-- no misleading demo data in persistence-backed screens;
+- no synthetic or misleading data in persistence-backed screens;
 - exact preview SHA visually verified.
