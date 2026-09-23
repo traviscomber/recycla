@@ -1,3 +1,6 @@
+import "server-only";
+import * as XLSX from "xlsx";
+
 export type StateSource = {
   id: string;
   label: string;
@@ -159,6 +162,9 @@ type CkanResource = {
   name?: string;
   format?: string;
   datastore_active?: boolean;
+  url?: string;
+  last_modified?: string;
+  created?: string;
 };
 
 type CkanPackageFull = {
@@ -331,4 +337,159 @@ export function summarizeOfficialRecord(
   }
 
   return selected.slice(0, 8);
+}
+
+
+export type LatestResourceInfo = {
+  id: string;
+  name: string;
+  format: string;
+  url: string;
+  year?: number;
+  lastModified?: string;
+  datastoreActive: boolean;
+};
+
+export async function getLatestOfficialResource(sourceId: string): Promise<LatestResourceInfo | null> {
+  const source = stateSources.find((item) => item.id === sourceId);
+  if (!source?.datasetSlug) return null;
+
+  try {
+    const response = await fetch(
+      `${CKAN_BASE}?id=${encodeURIComponent(source.datasetSlug)}`,
+      { next: { revalidate: 21600 }, headers: { Accept: "application/json" } }
+    );
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as CkanPackageFull;
+    const resources = (payload.result?.resources ?? [])
+      .filter((resource) => resource.id && resource.url)
+      .map((resource) => ({
+        ...resource,
+        year: extractYear(resource.name)
+      }))
+      .sort((a, b) => {
+        const yearDiff = (b.year ?? 0) - (a.year ?? 0);
+        if (yearDiff !== 0) return yearDiff;
+        return String(b.last_modified ?? b.created ?? "").localeCompare(
+          String(a.last_modified ?? a.created ?? "")
+        );
+      });
+
+    const resource = resources[0];
+    if (!resource?.id || !resource.url) return null;
+
+    return {
+      id: resource.id,
+      name: resource.name ?? "Recurso RETC",
+      format: String(resource.format ?? "").toUpperCase(),
+      url: resource.url,
+      year: resource.year,
+      lastModified: resource.last_modified ?? resource.created,
+      datastoreActive: Boolean(resource.datastore_active)
+    };
+  } catch {
+    return null;
+  }
+}
+
+function rowText(record: Record<string, unknown>) {
+  return Object.values(record)
+    .map((value) => String(value ?? "").toLocaleLowerCase("es-CL"))
+    .join(" ");
+}
+
+async function fetchLatestRows(resource: LatestResourceInfo) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch(resource.url, {
+      next: { revalidate: 21600 },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const contentLength = Number(response.headers.get("content-length") ?? 0);
+    if (contentLength > 25 * 1024 * 1024) {
+      throw new Error("RESOURCE_TOO_LARGE");
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength > 25 * 1024 * 1024) {
+      throw new Error("RESOURCE_TOO_LARGE");
+    }
+
+    const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
+    const firstSheet = workbook.SheetNames[0];
+    if (!firstSheet) return [];
+
+    return XLSX.utils.sheet_to_json<Record<string, string | number | null>>(
+      workbook.Sheets[firstSheet],
+      { defval: null, raw: false }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function searchLatestOfficialResource(
+  kind: VerificationKind,
+  query: string
+): Promise<{
+  status: "ok" | "invalid" | "unavailable";
+  detail: string;
+  resource?: LatestResourceInfo;
+  matches: StateMatch[];
+}> {
+  const cleanQuery = query.trim();
+  if (cleanQuery.length < 3) {
+    return { status: "invalid", detail: "Ingresa al menos 3 caracteres.", matches: [] };
+  }
+
+  const sourceId = verificationSourceMap[kind];
+  const source = stateSources.find((item) => item.id === sourceId);
+  if (!source) {
+    return { status: "unavailable", detail: "La fuente oficial no está configurada.", matches: [] };
+  }
+
+  const resource = await getLatestOfficialResource(sourceId);
+  if (!resource) {
+    return { status: "unavailable", detail: "No fue posible resolver el recurso oficial más reciente.", matches: [] };
+  }
+
+  try {
+    const needle = cleanQuery.toLocaleLowerCase("es-CL");
+    const rows = await fetchLatestRows(resource);
+    const records = rows.filter((record) => rowText(record).includes(needle)).slice(0, 20);
+
+    return {
+      status: "ok",
+      detail: records.length
+        ? "Coincidencias encontradas en el recurso oficial más reciente publicado por RETC."
+        : "No se encontraron coincidencias en el recurso oficial más reciente publicado por RETC.",
+      resource,
+      matches: records.map((record) => ({
+        sourceId: source.id,
+        sourceLabel: source.label,
+        resourceId: resource.id,
+        resourceName: resource.name,
+        sourceYear: resource.year,
+        isHistorical: resource.year ? resource.year < new Date().getFullYear() - 2 : false,
+        status: "REVIEW_REQUIRED",
+        matchBasis: "OFFICIAL_DATASET_TEXT_MATCH",
+        record
+      }))
+    };
+  } catch (error) {
+    const tooLarge = error instanceof Error && error.message === "RESOURCE_TOO_LARGE";
+    return {
+      status: "unavailable",
+      detail: tooLarge
+        ? "El recurso oficial más reciente supera el límite de lectura en línea; debe procesarse por el worker de ingestión."
+        : "No fue posible procesar el recurso oficial más reciente en esta ejecución.",
+      resource,
+      matches: []
+    };
+  }
 }
