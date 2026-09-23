@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { AppShell } from "@/components/app-shell";
 import { fmt } from "@/lib/rep";
 import {
@@ -9,10 +10,22 @@ import {
   type ComplianceGateStatus
 } from "@/lib/compliance";
 import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
+import {
+  getLatestComplianceRun,
+  runCompliancePrecheck
+} from "@/lib/compliance-runs";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
 export const dynamic = "force-dynamic";
+
+async function runPrecheckAction() {
+  "use server";
+
+  await runCompliancePrecheck("recycla-os");
+  revalidatePath("/reporting");
+  revalidatePath("/audit");
+}
 
 const blockers = [
   { label: "Certificados pendientes", count: 3, quantity: 18240 },
@@ -27,10 +40,11 @@ function gateTone(status: ComplianceGateStatus) {
 }
 
 export default async function ReportingPage() {
-  const [syncs, snapshots, compliance] = await Promise.all([
+  const [syncs, snapshots, compliance, latestRun] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
-    evaluateComplianceReadiness()
+    evaluateComplianceReadiness(),
+    getLatestComplianceRun("recycla-os")
   ]);
 
   const producerSync = syncs.find((sync) => sync.sourceId === "retc-priority-products");
@@ -83,6 +97,36 @@ export default async function ReportingPage() {
         <a className="buttonLink" href={complianceSources.declaration2026.url} target="_blank" rel="noreferrer">
           Fuente MMA ↗
         </a>
+      </section>
+
+      <section className="panel complianceRunPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Compliance pre-check</p>
+            <h3>Persistir el estado real de los gates antes del cierre.</h3>
+          </div>
+          <form action={runPrecheckAction}>
+            <button type="submit">Ejecutar pre-check</button>
+          </form>
+        </div>
+
+        <div className="complianceRunSummary">
+          <article>
+            <span>Último resultado</span>
+            <strong>{latestRun?.status ?? "SIN EJECUTAR"}</strong>
+            <p>{latestRun?.finishedAt ? new Date(latestRun.finishedAt).toLocaleString("es-CL") : "Aún no hay corrida persistida"}</p>
+          </article>
+          <article>
+            <span>Gates bloqueantes</span>
+            <strong>{Number(latestRun?.summary?.blocking ?? 0)}</strong>
+            <p>NOT CONNECTED + BLOCKED</p>
+          </article>
+          <article>
+            <span>Requieren revisión</span>
+            <strong>{Number(latestRun?.summary?.reviewRequired ?? 0)}</strong>
+            <p>Controles con evidencia pero sin cierre</p>
+          </article>
+        </div>
       </section>
 
       <section className="reportHero">
