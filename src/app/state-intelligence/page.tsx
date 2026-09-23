@@ -1,5 +1,10 @@
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { AppShell } from "@/components/app-shell";
-import { listRecentSnapshots } from "@/lib/state-snapshots";
+import {
+  listRecentSnapshots,
+  persistOfficialSnapshot
+} from "@/lib/state-snapshots";
 import {
   getStateSourceMetadata,
   stateSources,
@@ -9,6 +14,50 @@ import {
 } from "@/lib/state-intelligence";
 
 export const dynamic = "force-dynamic";
+
+async function saveSnapshotAction(formData: FormData) {
+  "use server";
+
+  const query = String(formData.get("query") ?? "").trim();
+  const rawKind = String(formData.get("kind") ?? "producer");
+  const matchIndex = Number(formData.get("matchIndex") ?? 0);
+
+  const kind: VerificationKind =
+    rawKind === "hazardous_destination" || rawKind === "storage_site"
+      ? rawKind
+      : "producer";
+
+  if (query.length < 3 || !Number.isInteger(matchIndex) || matchIndex < 0) {
+    redirect("/state-intelligence?snapshot=invalid");
+  }
+
+  const subjectType =
+    kind === "producer"
+      ? "rep_actor_producer"
+      : kind === "hazardous_destination"
+        ? "rep_actor_hazardous_destination"
+        : "rep_actor_storage_site";
+
+  const result = await persistOfficialSnapshot({
+    kind,
+    query,
+    matchIndex,
+    subjectType,
+    status: "REVIEW_REQUIRED"
+  });
+
+  revalidatePath("/state-intelligence");
+  revalidatePath("/network");
+  revalidatePath("/audit");
+
+  const params = new URLSearchParams({
+    kind,
+    q: query,
+    snapshot: result.ok ? "saved" : "error"
+  });
+
+  redirect(`/state-intelligence?${params.toString()}`);
+}
 
 const verificationLabels: Record<VerificationKind, string> = {
   producer: "Productor / establecimiento",
@@ -23,6 +72,7 @@ export default async function StateIntelligencePage({
 }) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
+  const snapshotFeedback = params.snapshot;
   const kind: VerificationKind =
     params.kind === "hazardous_destination" || params.kind === "storage_site"
       ? params.kind
@@ -106,6 +156,16 @@ export default async function StateIntelligencePage({
           Busca sobre el recurso oficial más reciente publicado por RETC, incluyendo XLSX/CSV. Una coincidencia se marca como <strong>requiere revisión</strong> hasta corroborar identidad y contexto.
         </p>
 
+        {snapshotFeedback ? (
+          <div className={`snapshotFeedback snapshotFeedback-${snapshotFeedback}`}>
+            {snapshotFeedback === "saved"
+              ? "Snapshot oficial persistido. Quedó disponible en REP Network y Audit Room."
+              : snapshotFeedback === "invalid"
+                ? "La solicitud de snapshot no era válida."
+                : "No fue posible persistir el snapshot oficial."}
+          </div>
+        ) : null}
+
         {verification ? (
           <div className="verificationResult">
             <div className="verificationSummary">
@@ -147,6 +207,17 @@ export default async function StateIntelligencePage({
                         Año fuente: {match.sourceYear ?? "s/i"}{match.isHistorical ? " · histórica" : ""}
                       </span>
                     </div>
+
+                    <form action={saveSnapshotAction} className="snapshotAction">
+                      <input type="hidden" name="query" value={query} />
+                      <input type="hidden" name="kind" value={kind} />
+                      <input type="hidden" name="matchIndex" value={index} />
+                      <div>
+                        <span>State Snapshot</span>
+                        <p>Congela esta coincidencia oficial como evidencia externa. No la convierte en cumplimiento REP.</p>
+                      </div>
+                      <button type="submit">Guardar snapshot</button>
+                    </form>
                   </article>
                 ))}
               </div>
