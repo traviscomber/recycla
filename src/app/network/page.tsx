@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { listRecentSnapshots } from "@/lib/state-snapshots";
+
+export const dynamic = "force-dynamic";
 
 const roles = [
   {
@@ -28,7 +31,15 @@ const roles = [
   }
 ] as const;
 
-export default function NetworkPage() {
+export default async function NetworkPage() {
+  const snapshots = await listRecentSnapshots(50);
+  const actorSnapshots = snapshots.filter(
+    (snapshot) =>
+      snapshot.subjectType.startsWith("rep_actor_") &&
+      snapshot.status !== "NOT_FOUND" &&
+      snapshot.status !== "UNAVAILABLE"
+  );
+
   return (
     <AppShell active="/network">
       <header className="topbar">
@@ -50,6 +61,44 @@ export default function NetworkPage() {
             </Link>
           </article>
         ))}
+      </section>
+
+      <section className="panel networkEvidenceRegistry">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">External actor evidence</p>
+            <h3>Actores REP contrastados con fuentes oficiales</h3>
+          </div>
+          <b>{actorSnapshots.length}</b>
+        </div>
+
+        {actorSnapshots.length ? (
+          <div className="networkEvidenceRows">
+            {actorSnapshots.slice(0, 8).map((snapshot) => (
+              <article key={snapshot.id}>
+                <span className={`snapshotStatus snapshot-${snapshot.status.toLowerCase()}`}>
+                  {snapshot.status}
+                </span>
+                <div>
+                  <strong>{snapshot.subjectLabel ?? snapshot.externalIdentifier ?? "Actor sin etiqueta"}</strong>
+                  <p>
+                    {snapshot.externalIdentifier && snapshot.externalIdentifier !== snapshot.subjectLabel
+                      ? `ID oficial: ${snapshot.externalIdentifier} · `
+                      : ""}
+                    {snapshot.sourceId}
+                    {snapshot.sourceYear ? ` · ${snapshot.sourceYear}` : ""}
+                  </p>
+                </div>
+                <time>{new Date(snapshot.fetchedAt).toLocaleDateString("es-CL")}</time>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin actores REP con snapshot oficial todavía.</strong>
+            <p>Las verificaciones persistidas aparecerán aquí antes de asociarlas a operaciones o relaciones.</p>
+          </div>
+        )}
       </section>
 
       <section className="networkFlowPanel">
