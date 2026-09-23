@@ -1,0 +1,200 @@
+import "server-only";
+
+import { db, hasDatabase } from "@/lib/db";
+import { auditScope, type ComplianceGateStatus } from "@/lib/compliance";
+
+export type ComplianceGateResult = {
+  id: string;
+  label: string;
+  status: ComplianceGateStatus;
+  blocking: boolean;
+  detail: string;
+  evidenceCount: number;
+};
+
+async function tableExists(name: string) {
+  if (!hasDatabase()) return false;
+  try {
+    const sql = db();
+    const rows = await sql<Array<{ exists: string | null }>>`
+      select to_regclass(${"public." + name})::text as exists
+    `;
+    return Boolean(rows[0]?.exists);
+  } catch {
+    return false;
+  }
+}
+
+async function tableCount(name: string) {
+  if (!hasDatabase()) return 0;
+  const sql = db();
+  try {
+    const rows = await sql<Array<{ count: number }>>.unsafe(
+      `select count(*)::int as count from "${name.replace(/"/g, '""')}"`
+    );
+    return rows[0]?.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function evaluateComplianceReadiness(): Promise<ComplianceGateResult[]> {
+  const exists = Object.fromEntries(
+    await Promise.all(
+      [
+        "rep_rules",
+        "rep_obligations",
+        "collections",
+        "valuation_outputs",
+        "valuation_allocations",
+        "documents",
+        "evidence_links",
+        "rep_ledger_entries",
+        "audit_findings",
+        "monthly_rep_reports",
+        "external_source_snapshots"
+      ].map(async (name) => [name, await tableExists(name)])
+    )
+  ) as Record<string, boolean>;
+
+  const counts: Record<string, number> = {};
+  for (const name of Object.keys(exists)) {
+    counts[name] = exists[name] ? await tableCount(name) : 0;
+  }
+
+  const result = new Map<string, ComplianceGateResult>();
+
+  const set = (
+    id: string,
+    status: ComplianceGateStatus,
+    detail: string,
+    evidenceCount = 0
+  ) => {
+    const def = auditScope.find((item) => item.id === id);
+    if (!def) return;
+    result.set(id, {
+      id,
+      label: def.label,
+      status,
+      blocking: status === "BLOCKED" || status === "NOT_CONNECTED",
+      detail,
+      evidenceCount
+    });
+  };
+
+  if (exists.rep_rules && exists.rep_ledger_entries) {
+    set(
+      "classification",
+      counts.rep_ledger_entries > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      counts.rep_ledger_entries > 0
+        ? "Hay ledger REP disponible; falta ejecutar validación de clasificación contra reglas versionadas."
+        : "Las tablas existen, pero todavía no hay entradas REP para auditar.",
+      counts.rep_ledger_entries
+    );
+  } else {
+    set("classification", "NOT_CONNECTED", "REP Ledger / reglas todavía no están conectados a la base activa.");
+  }
+
+  if (exists.rep_obligations && exists.valuation_allocations) {
+    set(
+      "equivalence",
+      counts.valuation_allocations > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      counts.valuation_allocations > 0
+        ? "Existen asignaciones de valorización; falta reconciliar equivalencia producto → residuo."
+        : "Las tablas existen, pero no hay asignaciones suficientes para reconciliar equivalencias.",
+      counts.valuation_allocations
+    );
+  } else {
+    set("equivalence", "NOT_CONNECTED", "Obligaciones y asignaciones de valorización aún no están conectadas.");
+  }
+
+  set(
+    "market-transactions",
+    "NOT_CONNECTED",
+    "Falta el registro normalizado de introducción al mercado y transacciones comerciales exigidas para la reconciliación mensual."
+  );
+
+  if (exists.collections && exists.valuation_outputs) {
+    const total = counts.collections + counts.valuation_outputs;
+    set(
+      "waste-operations",
+      total > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      total > 0
+        ? "Existen operaciones físicas; falta validar contraparte, cantidad, costo y respaldo tributario."
+        : "Las tablas existen, pero todavía no hay operaciones físicas suficientes para auditar.",
+      total
+    );
+  } else {
+    set("waste-operations", "NOT_CONNECTED", "La operación física REP todavía no está conectada a la base activa.");
+  }
+
+  if (exists.monthly_rep_reports) {
+    set(
+      "monthly-reports",
+      counts.monthly_rep_reports > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      counts.monthly_rep_reports > 0
+        ? "Existen cierres mensuales persistidos; deben reconciliarse antes del informe final."
+        : "El registro mensual está disponible, pero aún no tiene cierres persistidos.",
+      counts.monthly_rep_reports
+    );
+  } else {
+    set("monthly-reports", "NOT_CONNECTED", "El registro de cierres mensuales todavía no está instalado.");
+  }
+
+  if (exists.documents && exists.evidence_links) {
+    const total = counts.documents + counts.evidence_links;
+    set(
+      "archive",
+      total > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      total > 0
+        ? "Existe evidencia documental; falta confirmar cobertura e integridad del archivo regulatorio."
+        : "Las tablas de evidencia existen, pero aún no hay archivo suficiente para demostrar cobertura.",
+      total
+    );
+  } else {
+    set("archive", "NOT_CONNECTED", "Evidence Graph documental todavía no está conectado a la base activa.");
+  }
+
+  const preFinal = [
+    "classification",
+    "equivalence",
+    "market-transactions",
+    "waste-operations",
+    "monthly-reports",
+    "archive"
+  ].map((id) => result.get(id)?.status);
+
+  const allReady = preFinal.every((status) => status === "READY" || status === "LIVE");
+  set(
+    "final-report",
+    allReady ? "READY" : "BLOCKED",
+    allReady
+      ? "Todos los controles previos están listos para construir el informe de cumplimiento."
+      : "El informe final permanece bloqueado mientras existan gates no conectados o pendientes."
+  );
+
+  if (exists.external_source_snapshots) {
+    set(
+      "external-audit",
+      counts.external_source_snapshots > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      counts.external_source_snapshots > 0
+        ? "Hay evidencia estatal persistida disponible para el pack de auditoría."
+        : "State Intelligence está disponible, pero no hay snapshots suficientes para el pack.",
+      counts.external_source_snapshots
+    );
+  } else {
+    set("external-audit", "NOT_CONNECTED", "State Snapshot Registry no está disponible.");
+  }
+
+  return auditScope.map(
+    (def) =>
+      result.get(def.id) ?? {
+        id: def.id,
+        label: def.label,
+        status: "NOT_CONNECTED",
+        blocking: true,
+        detail: "Control no evaluado.",
+        evidenceCount: 0
+      }
+  );
+}
