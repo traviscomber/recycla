@@ -29,9 +29,9 @@ async function tableCount(name: string) {
   if (!hasDatabase()) return 0;
   const sql = db();
   try {
-    const rows = await sql<Array<{ count: number }>>.unsafe(
+    const rows = (await sql.unsafe(
       `select count(*)::int as count from "${name.replace(/"/g, '""')}"`
-    );
+    )) as Array<{ count: number }>;
     return rows[0]?.count ?? 0;
   } catch {
     return 0;
