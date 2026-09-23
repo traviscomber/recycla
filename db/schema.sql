@@ -270,3 +270,35 @@ create table external_source_snapshots (
 
 create index external_source_snapshots_subject_idx
   on external_source_snapshots(subject_type, subject_id, source_id, fetched_at desc);
+
+
+create table external_source_records (
+  id uuid primary key default gen_random_uuid(),
+  source_id text not null,
+  resource_id text not null,
+  resource_name text not null,
+  source_year int,
+  external_identifier text,
+  canonical_name text,
+  normalized_payload jsonb not null,
+  record_sha256 text not null,
+  source_url text not null,
+  ingested_at timestamptz not null default now(),
+  unique(source_id, resource_id, record_sha256)
+);
+
+create index external_source_records_lookup_idx
+  on external_source_records(source_id, canonical_name);
+
+create table external_source_sync_runs (
+  id uuid primary key default gen_random_uuid(),
+  source_id text not null,
+  resource_id text,
+  resource_name text,
+  source_year int,
+  status text not null check (status in ('RUNNING','SUCCESS','FAILED','SKIPPED')),
+  row_count int not null default 0,
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  detail text
+);
