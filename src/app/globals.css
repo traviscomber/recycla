@@ -240,3 +240,12 @@ h3{font-size:16px;font-weight:650;letter-spacing:-.012em}
 .notice-unavailable{box-shadow:inset 2px 0 0 var(--danger)}
 .notice-not_configured{box-shadow:inset 2px 0 0 var(--text-faint)}
 @media(max-width:640px){.systemNotice{align-items:flex-start;flex-direction:column}.systemNotice>span{align-self:flex-start}}
+
+/* Typography alignment */
+html,body{font-family:var(--font-body),Montserrat,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+h1,h2,h3,.eyebrow,.label,.period span,.period strong,.brand,.sideNav,.mobileNav,.buttonLink,button,.decisionStrip strong,.reportState strong,.gateRail strong{
+  font-family:var(--font-display),Rajdhani,var(--font-body),sans-serif
+}
+h1{font-weight:500;letter-spacing:-.035em}
+.eyebrow,.label,.period span{font-weight:600}
+.sideNav a strong{font-family:var(--font-body),Montserrat,sans-serif;font-weight:600}
