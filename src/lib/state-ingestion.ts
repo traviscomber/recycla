@@ -288,3 +288,40 @@ export async function syncOfficialSource(sourceId: string): Promise<StateSyncRes
     };
   }
 }
+
+
+export type StateSyncOverview = {
+  sourceId: string;
+  status: "SUCCESS" | "FAILED" | "RUNNING" | "SKIPPED";
+  rowCount: number;
+  sourceYear: number | null;
+  resourceName: string | null;
+  finishedAt: string | null;
+};
+
+export async function getStateSyncOverview(): Promise<StateSyncOverview[]> {
+  if (!hasDatabase()) return [];
+
+  try {
+    const sql = db();
+    const table = await sql<Array<{ runs: string | null }>>`
+      select to_regclass('public.external_source_sync_runs')::text as runs
+    `;
+
+    if (!table[0]?.runs) return [];
+
+    return await sql<StateSyncOverview[]>`
+      select distinct on (source_id)
+        source_id as "sourceId",
+        status,
+        row_count as "rowCount",
+        source_year as "sourceYear",
+        resource_name as "resourceName",
+        finished_at::text as "finishedAt"
+      from external_source_sync_runs
+      order by source_id, started_at desc
+    `;
+  } catch {
+    return [];
+  }
+}
