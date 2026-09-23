@@ -1,14 +1,12 @@
 import { AppShell } from "@/components/app-shell";
 import {
   circularityHierarchy,
-  circularityQualityIndex,
   demoCircularityOutcomes,
   routeLabel
 } from "@/lib/circularity";
 import { fmt } from "@/lib/rep";
 
 export default function CircularityPage() {
-  const quality = circularityQualityIndex(demoCircularityOutcomes);
   const total = demoCircularityOutcomes.reduce((sum, item) => sum + item.quantityKg, 0);
   const reuseAndRecycle = demoCircularityOutcomes
     .filter((item) => item.route === "PREPARATION_FOR_REUSE" || item.route === "RECYCLING")
@@ -29,14 +27,14 @@ export default function CircularityPage() {
 
       <section className="decisionStrip">
         <article>
-          <span>Índice interno</span>
-          <strong>{quality.toFixed(1)}</strong>
-          <p>0–100 · métrica operacional propia, no regulatoria</p>
+          <span>Rutas materiales prioritarias</span>
+          <strong>{((reuseAndRecycle / total) * 100).toFixed(1)}%</strong>
+          <p>Preparación para reutilización + reciclaje</p>
         </article>
         <article>
-          <span>Reutilización + reciclaje</span>
-          <strong>{((reuseAndRecycle / total) * 100).toFixed(1)}%</strong>
-          <p>{fmt(reuseAndRecycle)} kg en rutas materiales prioritarias</p>
+          <span>Masa en rutas materiales</span>
+          <strong>{fmt(reuseAndRecycle)} kg</strong>
+          <p>Sin asignar ponderaciones regulatorias inexistentes</p>
         </article>
         <article>
           <span>Disposición</span>
@@ -89,7 +87,7 @@ export default function CircularityPage() {
           <h3>Ruta circular ≠ estado del REP Ledger.</h3>
           <p className="muted">
             Reutilización, reciclaje, valorización energética y disposición son outcomes alternativos
-            del material. No deben convertirse en etapas secuenciales del ledger.
+            del material. La interfaz muestra su distribución sin inventar un puntaje regulatorio.
           </p>
           <div className="notReady circularityNote">
             <span>REGLA DE MODELO</span>
