@@ -228,3 +228,158 @@ export async function getRepClient(slug: string): Promise<PersistedClient | null
   const clients = await listRepClients();
   return clients.find((client) => client.slug === slug) ?? null;
 }
+
+
+export type PersistedLedgerEntry = {
+  id: string;
+  createdAt: string;
+  client: string;
+  period: string;
+  stream: PriorityStream;
+  state: string;
+  quantity: number;
+  unit: "kg" | "l";
+  sourceEntityType: string;
+  sourceEntityId: string;
+  evidenceCount: number;
+};
+
+export async function listRepLedgerEntries(limit = 50): Promise<PersistedLedgerEntry[]> {
+  const status = await getRepDatabaseStatus();
+  if (status.state !== "ready") return [];
+
+  try {
+    const sql = db();
+    const safeLimit = Math.min(Math.max(limit, 1), 200);
+    const schema = await sql<Array<{ evidence_links: string | null }>>`
+      select to_regclass('public.evidence_links')::text as evidence_links
+    `;
+    const hasEvidenceLinks = Boolean(schema[0]?.evidence_links);
+
+    if (hasEvidenceLinks) {
+      return await sql<PersistedLedgerEntry[]>`
+        select
+          le.id::text as id,
+          le.created_at::text as "createdAt",
+          o.display_name as client,
+          rp.year::text as period,
+          le.stream,
+          le.state::text as state,
+          le.quantity::float8 as quantity,
+          le.unit,
+          le.source_entity_type as "sourceEntityType",
+          le.source_entity_id::text as "sourceEntityId",
+          count(distinct el.document_id)::int as "evidenceCount"
+        from rep_ledger_entries le
+        join organizations o on o.id = le.organization_id
+        join reporting_periods rp on rp.id = le.reporting_period_id
+        left join evidence_links el
+          on el.entity_type = le.source_entity_type
+          and el.entity_id = le.source_entity_id
+        where not exists (
+          select 1 from rep_ledger_entries newer
+          where newer.supersedes_entry_id = le.id
+        )
+        group by le.id, o.display_name, rp.year
+        order by le.created_at desc
+        limit ${safeLimit}
+      `;
+    }
+
+    return await sql<PersistedLedgerEntry[]>`
+      select
+        le.id::text as id,
+        le.created_at::text as "createdAt",
+        o.display_name as client,
+        rp.year::text as period,
+        le.stream,
+        le.state::text as state,
+        le.quantity::float8 as quantity,
+        le.unit,
+        le.source_entity_type as "sourceEntityType",
+        le.source_entity_id::text as "sourceEntityId",
+        0::int as "evidenceCount"
+      from rep_ledger_entries le
+      join organizations o on o.id = le.organization_id
+      join reporting_periods rp on rp.id = le.reporting_period_id
+      where not exists (
+        select 1 from rep_ledger_entries newer
+        where newer.supersedes_entry_id = le.id
+      )
+      order by le.created_at desc
+      limit ${safeLimit}
+    `;
+  } catch {
+    return [];
+  }
+}
+
+export type PersistedEvidenceDocument = {
+  id: string;
+  client: string | null;
+  documentType: string;
+  fileName: string;
+  checksumSha256: string | null;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  linkedEntities: number;
+};
+
+export async function listEvidenceDocuments(limit = 50): Promise<PersistedEvidenceDocument[]> {
+  if (!hasDatabase()) return [];
+
+  try {
+    const sql = db();
+    const safeLimit = Math.min(Math.max(limit, 1), 200);
+    const schema = await sql<Array<{
+      documents: string | null;
+      evidence_links: string | null;
+    }>>`
+      select
+        to_regclass('public.documents')::text as documents,
+        to_regclass('public.evidence_links')::text as evidence_links
+    `;
+    if (!schema[0]?.documents) return [];
+
+    if (schema[0]?.evidence_links) {
+      return await sql<PersistedEvidenceDocument[]>`
+        select
+          d.id::text as id,
+          o.display_name as client,
+          d.document_type as "documentType",
+          d.file_name as "fileName",
+          d.checksum_sha256 as "checksumSha256",
+          d.issued_at::text as "issuedAt",
+          d.expires_at::text as "expiresAt",
+          d.created_at::text as "createdAt",
+          count(distinct el.id)::int as "linkedEntities"
+        from documents d
+        left join organizations o on o.id = d.organization_id
+        left join evidence_links el on el.document_id = d.id
+        group by d.id, o.display_name
+        order by d.created_at desc
+        limit ${safeLimit}
+      `;
+    }
+
+    return await sql<PersistedEvidenceDocument[]>`
+      select
+        d.id::text as id,
+        o.display_name as client,
+        d.document_type as "documentType",
+        d.file_name as "fileName",
+        d.checksum_sha256 as "checksumSha256",
+        d.issued_at::text as "issuedAt",
+        d.expires_at::text as "expiresAt",
+        d.created_at::text as "createdAt",
+        0::int as "linkedEntities"
+      from documents d
+      left join organizations o on o.id = d.organization_id
+      order by d.created_at desc
+      limit ${safeLimit}
+    `;
+  } catch {
+    return [];
+  }
+}
