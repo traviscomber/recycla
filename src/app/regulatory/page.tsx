@@ -63,7 +63,7 @@ export default function RegulatoryRadarPage() {
         </article>
         <article className="panel">
           <p className="eyebrow">Scope discipline</p>
-          <h3>Textiles y envases permanecen fuera del MVP operacional.</h3>
+          <h3>Textiles y envases permanecen fuera del alcance operacional activo.</h3>
           <p className="muted">Sí deben estar en radar para anticipar cambios sin convertir la interfaz en un ERP REP genérico.</p>
         </article>
       </section>
