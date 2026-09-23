@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import {
   importReportingFile,
-  listRecentReportingImports
+  listRecentReportingImports,
+  validateReportingUpload
 } from "@/lib/reporting-intake";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,17 @@ async function importFileAction(formData: FormData) {
         ? "WASTE_OPERATIONS"
         : null;
 
-  if (!(file instanceof File) || !file.size || !type) {
+  if (!(file instanceof File) || !type) {
     redirect("/reporting/intake?result=invalid");
+  }
+
+  const validationError = validateReportingUpload(file.name, file.size);
+  if (validationError) {
+    const params = new URLSearchParams({
+      result: "rejected",
+      detail: validationError
+    });
+    redirect("/reporting/intake?" + params.toString());
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -53,6 +63,7 @@ export default async function ReportingIntakePage({
     result?: string;
     accepted?: string;
     rejected?: string;
+    detail?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -78,7 +89,9 @@ export default async function ReportingIntakePage({
         <section className={"intakeFeedback intakeFeedback-" + params.result}>
           <strong>{params.result.replaceAll("_", " ").toUpperCase()}</strong>
           <span>
-            {params.accepted ?? "0"} filas aceptadas · {params.rejected ?? "0"} rechazadas
+            {params.detail
+              ? params.detail
+              : `${params.accepted ?? "0"} filas aceptadas · ${params.rejected ?? "0"} rechazadas`}
           </span>
         </section>
       ) : null}
