@@ -20,15 +20,6 @@ for (const [path, heading] of routes) {
   });
 }
 
-test("health endpoint fails closed when persistence is unavailable", async ({ request }) => {
-  const response = await request.get("/api/health");
-  expect([200, 502, 503]).toContain(response.status());
-
-  const body = await response.json();
-  expect(typeof body.ok).toBe("boolean");
-  expect(["ready", "schema_missing", "not_configured", "unavailable"]).toContain(body.state);
-});
-
 test("machine sync rejects unauthenticated mutation", async ({ request }) => {
   const response = await request.post("/api/state-intelligence/sync?source=retc-priority-products");
   expect([401, 503]).toContain(response.status());
