@@ -1,25 +1,30 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 
 const roles = [
   {
     id: "producer",
     label: "Productor / Importador",
-    description: "Introduce productos prioritarios al mercado, declara volumen y financia su gestión."
+    description: "Introduce productos prioritarios al mercado, declara volumen y financia su gestión.",
+    verifyHref: "/state-intelligence?kind=producer"
   },
   {
     id: "system",
     label: "Sistema de Gestión",
-    description: "Organiza la recolección y valorización y contrata gestores."
+    description: "Organiza la recolección y valorización y contrata gestores.",
+    verifyHref: "/state-intelligence"
   },
   {
     id: "manager",
     label: "Gestor",
-    description: "Ejecuta recolección, almacenamiento, transporte, pretratamiento y/o valorización."
+    description: "Ejecuta recolección, almacenamiento, transporte, pretratamiento y/o valorización.",
+    verifyHref: "/state-intelligence?kind=hazardous_destination"
   },
   {
     id: "consumer",
     label: "Consumidor",
-    description: "Recibe el producto y entrega el residuo al circuito de gestión."
+    description: "Recibe el producto y entrega el residuo al circuito de gestión.",
+    verifyHref: "/state-intelligence?kind=storage_site"
   }
 ] as const;
 
@@ -40,6 +45,9 @@ export default function NetworkPage() {
             <span>{String(index + 1).padStart(2, "0")}</span>
             <strong>{role.label}</strong>
             <p>{role.description}</p>
+            <Link className="networkVerifyLink" href={role.verifyHref}>
+              Verificar fuente oficial →
+            </Link>
           </article>
         ))}
       </section>
@@ -72,6 +80,17 @@ export default function NetworkPage() {
             <article><span>03</span><strong>Gestor</strong></article>
           </div>
         </div>
+      </section>
+
+      <section className="officialVerificationBand">
+        <div>
+          <p className="eyebrow">State Intelligence</p>
+          <h3>La red REP puede contrastarse con fuentes públicas oficiales.</h3>
+          <p>Productores, gestores y destinos pueden buscarse en RETC antes de asociarlos a una operación.</p>
+        </div>
+        <Link className="buttonLink" href="/state-intelligence">
+          Abrir verificación oficial →
+        </Link>
       </section>
 
       <section className="bottomGrid">
