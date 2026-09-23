@@ -336,14 +336,22 @@ export function summarizeOfficialRecord(
     }
   }
 
-  if (selected.length) return selected.slice(0, 8);
-
-  return Object.entries(record)
+  const seen = new Set(selected.map(([key]) => key));
+  const fallback = Object.entries(record)
     .filter(([key, value]) => {
       const cleanKey = key.trim();
-      return cleanKey && !cleanKey.startsWith("__EMPTY") && value !== null && value !== undefined && String(value).trim() !== "";
+      return (
+        cleanKey &&
+        !cleanKey.startsWith("__EMPTY") &&
+        !seen.has(key) &&
+        value !== null &&
+        value !== undefined &&
+        String(value).trim() !== ""
+      );
     })
-    .slice(0, 8) as Array<[string, string | number]>;
+    .map(([key, value]) => [key, value as string | number] as [string, string | number]);
+
+  return [...selected, ...fallback].slice(0, 8);
 }
 
 
