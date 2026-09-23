@@ -1,0 +1,211 @@
+import "server-only";
+
+import { createHash } from "crypto";
+import { db, hasDatabase } from "@/lib/db";
+import {
+  fetchLatestRows,
+  getLatestOfficialResource,
+  stateSources
+} from "@/lib/state-intelligence";
+
+function firstValue(
+  record: Record<string, string | number | null>,
+  keys: string[]
+) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+  return null;
+}
+
+function canonicalName(record: Record<string, string | number | null>) {
+  return firstValue(record, [
+    "Razón Social",
+    "Razon Social",
+    "Nombre Establecimiento",
+    "Nombre Destinatario",
+    "Destinatario",
+    "Nombre",
+    "Establecimiento"
+  ]);
+}
+
+function externalIdentifier(record: Record<string, string | number | null>) {
+  return firstValue(record, [
+    "ID Establecimiento VU",
+    "ID Establecimiento",
+    "RUT",
+    "Rut",
+    "RUT Destinatario",
+    "Identificador"
+  ]);
+}
+
+function stableHash(record: Record<string, string | number | null>) {
+  const sorted = Object.keys(record)
+    .sort()
+    .reduce<Record<string, string | number | null>>((acc, key) => {
+      acc[key] = record[key];
+      return acc;
+    }, {});
+
+  return createHash("sha256").update(JSON.stringify(sorted)).digest("hex");
+}
+
+export type StateSyncResult = {
+  sourceId: string;
+  status: "SUCCESS" | "FAILED" | "SKIPPED";
+  rows: number;
+  resource?: string;
+  year?: number;
+  detail: string;
+};
+
+export async function syncOfficialSource(sourceId: string): Promise<StateSyncResult> {
+  if (!hasDatabase()) {
+    return {
+      sourceId,
+      status: "SKIPPED",
+      rows: 0,
+      detail: "DATABASE_URL no está configurada."
+    };
+  }
+
+  const source = stateSources.find((item) => item.id === sourceId);
+  if (!source?.datasetSlug) {
+    return {
+      sourceId,
+      status: "SKIPPED",
+      rows: 0,
+      detail: "La fuente no expone un dataset RETC ingerible."
+    };
+  }
+
+  const sql = db();
+
+  try {
+    const tables = await sql<Array<{ records: string | null; runs: string | null }>>`
+      select
+        to_regclass('public.external_source_records')::text as records,
+        to_regclass('public.external_source_sync_runs')::text as runs
+    `;
+
+    if (!tables[0]?.records || !tables[0]?.runs) {
+      return {
+        sourceId,
+        status: "SKIPPED",
+        rows: 0,
+        detail: "El esquema State Intelligence todavía no está aplicado."
+      };
+    }
+
+    const resource = await getLatestOfficialResource(sourceId);
+    if (!resource) {
+      return {
+        sourceId,
+        status: "FAILED",
+        rows: 0,
+        detail: "No fue posible resolver el recurso oficial más reciente."
+      };
+    }
+
+    const [run] = await sql<Array<{ id: string }>>`
+      insert into external_source_sync_runs (
+        source_id, resource_id, resource_name, source_year, status
+      ) values (
+        ${sourceId}, ${resource.id}, ${resource.name}, ${resource.year ?? null}, 'RUNNING'
+      )
+      returning id
+    `;
+
+    try {
+      const rows = await fetchLatestRows(resource);
+
+      const normalized = rows.map((record) => ({
+        source_id: sourceId,
+        resource_id: resource.id,
+        resource_name: resource.name,
+        source_year: resource.year ?? null,
+        external_identifier: externalIdentifier(record),
+        canonical_name: canonicalName(record),
+        normalized_payload: record,
+        record_sha256: stableHash(record),
+        source_url: resource.url
+      }));
+
+      if (normalized.length) {
+        for (let index = 0; index < normalized.length; index += 500) {
+          const chunk = normalized.slice(index, index + 500);
+          await sql`
+            insert into external_source_records ${sql(
+              chunk,
+              "source_id",
+              "resource_id",
+              "resource_name",
+              "source_year",
+              "external_identifier",
+              "canonical_name",
+              "normalized_payload",
+              "record_sha256",
+              "source_url"
+            )}
+            on conflict (source_id, resource_id, record_sha256)
+            do update set
+              external_identifier = excluded.external_identifier,
+              canonical_name = excluded.canonical_name,
+              normalized_payload = excluded.normalized_payload,
+              source_url = excluded.source_url,
+              ingested_at = now()
+          `;
+        }
+      }
+
+      await sql`
+        update external_source_sync_runs
+        set status = 'SUCCESS',
+            row_count = ${normalized.length},
+            finished_at = now(),
+            detail = 'Recurso oficial normalizado e ingerido.'
+        where id = ${run.id}
+      `;
+
+      return {
+        sourceId,
+        status: "SUCCESS",
+        rows: normalized.length,
+        resource: resource.name,
+        year: resource.year,
+        detail: "Recurso oficial más reciente ingerido correctamente."
+      };
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Error desconocido";
+
+      await sql`
+        update external_source_sync_runs
+        set status = 'FAILED',
+            finished_at = now(),
+            detail = ${detail.slice(0, 1000)}
+        where id = ${run.id}
+      `;
+
+      return {
+        sourceId,
+        status: "FAILED",
+        rows: 0,
+        resource: resource.name,
+        year: resource.year,
+        detail
+      };
+    }
+  } catch (error) {
+    return {
+      sourceId,
+      status: "FAILED",
+      rows: 0,
+      detail: error instanceof Error ? error.message : "Error desconocido"
+    };
+  }
+}
