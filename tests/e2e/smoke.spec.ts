@@ -27,6 +27,12 @@ test("auth entry remains public", async ({ page }) => {
   await expect(page.getByText("RECYCLA REP OS")).toBeVisible();
 });
 
+test("password recovery remains public", async ({ page }) => {
+  const response = await page.goto("/auth/forgot-password");
+  expect(response?.status()).toBeLessThan(500);
+  await expect(page.getByText("Olvidé mi contraseña")).toBeVisible();
+});
+
 test("machine sync rejects unauthenticated mutation", async ({ request }) => {
   const response = await request.post("/api/state-intelligence/sync?source=retc-priority-products");
   expect([401, 503]).toContain(response.status());
