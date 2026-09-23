@@ -6,6 +6,31 @@ import { db, hasDatabase } from "@/lib/db";
 
 type IntakeType = "MARKET_INTRODUCTIONS" | "WASTE_OPERATIONS";
 
+export const MAX_INTAKE_FILE_BYTES = 20 * 1024 * 1024;
+export const MAX_INTAKE_ROWS = 50_000;
+export const MAX_INTAKE_SHEETS = 20;
+export const MAX_INTAKE_COLUMNS = 100;
+
+const allowedExtensions = new Set(["csv", "xls", "xlsx"]);
+
+export function validateReportingUpload(fileName: string, byteLength: number) {
+  const extension = fileName.toLowerCase().split(".").pop() ?? "";
+
+  if (!allowedExtensions.has(extension)) {
+    return "Formato no permitido. Usa CSV, XLS o XLSX.";
+  }
+
+  if (byteLength <= 0) {
+    return "Archivo vacío.";
+  }
+
+  if (byteLength > MAX_INTAKE_FILE_BYTES) {
+    return "El archivo supera 20 MB.";
+  }
+
+  return null;
+}
+
 type Row = Record<string, string | number | null>;
 
 type IntakeError = {
@@ -120,10 +145,34 @@ function dateValue(value: string | null) {
 
 function parseWorkbook(buffer: Buffer) {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
+
+  if (workbook.SheetNames.length > MAX_INTAKE_SHEETS) {
+    throw new Error(`El archivo contiene más de ${MAX_INTAKE_SHEETS} hojas.`);
+  }
+
   const combined: Row[] = [];
 
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
+    const ref = sheet["!ref"];
+
+    if (ref) {
+      const range = XLSX.utils.decode_range(ref);
+      const rowCount = range.e.r - range.s.r + 1;
+      const columnCount = range.e.c - range.s.c + 1;
+
+      if (columnCount > MAX_INTAKE_COLUMNS) {
+        throw new Error(
+          `La hoja "${sheetName}" supera el máximo de ${MAX_INTAKE_COLUMNS} columnas.`
+        );
+      }
+
+      if (rowCount > MAX_INTAKE_ROWS + 50) {
+        throw new Error(
+          `La hoja "${sheetName}" supera el máximo de ${MAX_INTAKE_ROWS.toLocaleString("es-CL")} filas operacionales.`
+        );
+      }
+    }
     const preview = XLSX.utils.sheet_to_json<Array<string | number | null>>(sheet, {
       header: 1,
       defval: null,
@@ -159,6 +208,12 @@ function parseWorkbook(buffer: Buffer) {
         ...row,
         __source_sheet: sheetName
       });
+
+      if (combined.length > MAX_INTAKE_ROWS) {
+        throw new Error(
+          `El archivo supera el máximo de ${MAX_INTAKE_ROWS.toLocaleString("es-CL")} filas operacionales.`
+        );
+      }
     }
   }
 
@@ -321,7 +376,8 @@ export async function importReportingFile(args: {
     };
   }
 
-  if (!args.buffer.length) {
+  const uploadError = validateReportingUpload(args.fileName, args.buffer.byteLength);
+  if (uploadError) {
     return {
       ok: false,
       status: "REJECTED",
@@ -329,11 +385,14 @@ export async function importReportingFile(args: {
       acceptedRows: 0,
       rejectedRows: 0,
       errors: [],
-      detail: "Archivo vacío."
+      detail: uploadError
     };
   }
 
-  if (args.buffer.byteLength > 20 * 1024 * 1024) {
+  let rows: Row[];
+  try {
+    rows = parseWorkbook(args.buffer);
+  } catch (error) {
     return {
       ok: false,
       status: "REJECTED",
@@ -341,11 +400,22 @@ export async function importReportingFile(args: {
       acceptedRows: 0,
       rejectedRows: 0,
       errors: [],
-      detail: "El archivo supera 20 MB."
+      detail: error instanceof Error ? error.message : "No fue posible leer el archivo."
     };
   }
 
-  const rows = parseWorkbook(args.buffer);
+  if (!rows.length) {
+    return {
+      ok: false,
+      status: "REJECTED",
+      totalRows: 0,
+      acceptedRows: 0,
+      rejectedRows: 0,
+      errors: [],
+      detail: "El archivo no contiene filas operacionales legibles."
+    };
+  }
+
   const fileSha = createHash("sha256").update(args.buffer).digest("hex");
   const sql = db();
 
@@ -406,6 +476,7 @@ export async function importReportingFile(args: {
 
     const errors: IntakeError[] = [];
     const accepted: Array<Record<string, unknown>> = [];
+    const seenRowHashes = new Set<string>();
 
     rows.forEach((row, index) => {
       const parsed =
@@ -417,6 +488,16 @@ export async function importReportingFile(args: {
         errors.push(...parsed.errors);
       } else {
         const sourceRowHash = stableHash(parsed.normalized);
+
+        if (seenRowHashes.has(sourceRowHash)) {
+          errors.push({
+            row: index + 2,
+            message: "Fila duplicada dentro del archivo."
+          });
+          return;
+        }
+
+        seenRowHashes.add(sourceRowHash);
         accepted.push({
           ...parsed.normalized,
           import_batch_id: batch.id,
