@@ -63,25 +63,6 @@ export const demoCircularityOutcomes: CircularityOutcome[] = [
   { route: "DISPOSAL", quantityKg: 6200 }
 ];
 
-const internalWeight: Record<Exclude<CircularityRoute, "PREVENTION">, number> = {
-  PREPARATION_FOR_REUSE: 1,
-  RECYCLING: 0.8,
-  ENERGY_RECOVERY: 0.35,
-  DISPOSAL: 0
-};
-
-export function circularityQualityIndex(outcomes: CircularityOutcome[]) {
-  const total = outcomes.reduce((sum, item) => sum + item.quantityKg, 0);
-  if (total <= 0) return 0;
-
-  const weighted = outcomes.reduce(
-    (sum, item) => sum + item.quantityKg * internalWeight[item.route],
-    0
-  );
-
-  return (weighted / total) * 100;
-}
-
 export function routeLabel(route: CircularityRoute) {
   return circularityHierarchy.find((item) => item.id === route)?.label ?? route;
 }
