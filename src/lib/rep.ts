@@ -20,41 +20,6 @@ export const priorityStreams: Array<{
   { id: "ACEITES_LUBRICANTES", label: "Aceites lubricantes", unit: "l", traceability: "Volumen, retiro y balance", regulatoryStage: "Revisión regulatoria", regulatoryMilestone: "MMA 25.08.2026" }
 ];
 
-export type RepReadiness = {
-  client: string;
-  stream: PriorityStream;
-  period: string;
-  obligation: number;
-  collected: number;
-  processed: number;
-  valued: number;
-  eligible: number;
-  evidenceComplete: number;
-  accreditable: number;
-  projectedAccreditable: number;
-};
-
-export const demo: RepReadiness = {
-  client: "Cliente piloto Recycla",
-  stream: "AEE_RAEE",
-  period: "2028",
-  obligation: 128000,
-  collected: 117420,
-  processed: 113900,
-  valued: 109870,
-  eligible: 105130,
-  evidenceComplete: 98440,
-  accreditable: 98440,
-  projectedAccreditable: 116700
-};
-
-export const auditFindings = [
-  { label: "Valorización sin certificado final", kg: 18240, severity: "critical" },
-  { label: "Material aún en procesamiento", kg: 7310, severity: "warning" },
-  { label: "Diferencia de pesaje", kg: 3120, severity: "warning" },
-  { label: "Clasificación REP pendiente", kg: 890, severity: "info" }
-] as const;
-
 export const fmt = (n: number) => new Intl.NumberFormat("es-CL").format(Math.round(n));
 
 
