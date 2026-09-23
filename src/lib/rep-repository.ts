@@ -22,6 +22,12 @@ export type PersistedClient = {
   obligations: PersistedObligation[];
 };
 
+export type RepDatabaseStatus =
+  | { state: "not_configured"; detail: string }
+  | { state: "schema_missing"; detail: string }
+  | { state: "ready"; detail: string }
+  | { state: "unavailable"; detail: string };
+
 const labels: Record<PriorityStream, string> = {
   AEE_RAEE: "AEE / RAEE",
   NEUMATICOS: "Neumáticos",
@@ -47,6 +53,7 @@ type ClientRow = {
 
 function groupRows(rows: ClientRow[]): PersistedClient[] {
   const map = new Map<string, PersistedClient>();
+
   for (const row of rows) {
     const key = `${row.slug}:${row.year}`;
     const current = map.get(key) ?? {
@@ -56,6 +63,7 @@ function groupRows(rows: ClientRow[]): PersistedClient[] {
       period: String(row.year),
       obligations: []
     };
+
     current.obligations.push({
       stream: row.stream,
       label: labels[row.stream],
@@ -67,13 +75,62 @@ function groupRows(rows: ClientRow[]): PersistedClient[] {
       evidenceComplete: Number(row.evidence_complete),
       accreditable: Number(row.accreditable)
     });
+
     map.set(key, current);
   }
+
   return [...map.values()];
 }
 
+export async function getRepDatabaseStatus(): Promise<RepDatabaseStatus> {
+  if (!hasDatabase()) {
+    return {
+      state: "not_configured",
+      detail: "DATABASE_URL no está configurada en este entorno."
+    };
+  }
+
+  try {
+    const sql = db();
+    const rows = await sql<Array<{
+      organizations: string | null;
+      obligations: string | null;
+      periods: string | null;
+      ledger: string | null;
+    }>>`
+      select
+        to_regclass('public.organizations')::text as organizations,
+        to_regclass('public.rep_obligations')::text as obligations,
+        to_regclass('public.reporting_periods')::text as periods,
+        to_regclass('public.rep_ledger_entries')::text as ledger
+    `;
+
+    const row = rows[0];
+    const ready = Boolean(
+      row?.organizations &&
+      row?.obligations &&
+      row?.periods &&
+      row?.ledger
+    );
+
+    return ready
+      ? { state: "ready", detail: "Base REP conectada y esquema disponible." }
+      : {
+          state: "schema_missing",
+          detail: "La base está conectada, pero el esquema REP todavía no está aplicado."
+        };
+  } catch {
+    return {
+      state: "unavailable",
+      detail: "La base está configurada, pero no respondió correctamente."
+    };
+  }
+}
+
 export async function listRepClients(): Promise<PersistedClient[]> {
-  if (!hasDatabase()) return [];
+  const status = await getRepDatabaseStatus();
+  if (status.state !== "ready") return [];
+
   const sql = db();
   const rows = await sql<ClientRow[]>`
     select
@@ -101,6 +158,7 @@ export async function listRepClients(): Promise<PersistedClient[]> {
       ro.stream, ro.unit, ro.quantity
     order by o.display_name, ro.stream
   `;
+
   return groupRows(rows);
 }
 
