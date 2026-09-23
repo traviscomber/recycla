@@ -1,5 +1,6 @@
 import "server-only";
 import { db, hasDatabase } from "@/lib/db";
+import { inspectSchemaContract } from "@/lib/schema-contract";
 import type { PriorityStream } from "@/lib/rep";
 
 export type PersistedObligation = {
@@ -83,48 +84,37 @@ function groupRows(rows: ClientRow[]): PersistedClient[] {
 }
 
 export async function getRepDatabaseStatus(): Promise<RepDatabaseStatus> {
-  if (!hasDatabase()) {
+  const health = await inspectSchemaContract();
+
+  if (health.state === "ready") {
+    return {
+      state: "ready",
+      detail: "Base REP conectada y contrato de esquema completo."
+    };
+  }
+
+  if (health.state === "schema_missing") {
+    const missingColumnCount = health.missingColumns.reduce(
+      (sum, item) => sum + item.columns.length,
+      0
+    );
+    return {
+      state: "schema_missing",
+      detail: `Contrato de esquema incompleto: ${health.missingTables.length} tablas y ${missingColumnCount} columnas requeridas faltantes.`
+    };
+  }
+
+  if (health.state === "not_configured") {
     return {
       state: "not_configured",
-      detail: "DATABASE_URL no está configurada en este entorno."
+      detail: health.detail
     };
   }
 
-  try {
-    const sql = db();
-    const rows = await sql<Array<{
-      organizations: string | null;
-      obligations: string | null;
-      periods: string | null;
-      ledger: string | null;
-    }>>`
-      select
-        to_regclass('public.organizations')::text as organizations,
-        to_regclass('public.rep_obligations')::text as obligations,
-        to_regclass('public.reporting_periods')::text as periods,
-        to_regclass('public.rep_ledger_entries')::text as ledger
-    `;
-
-    const row = rows[0];
-    const ready = Boolean(
-      row?.organizations &&
-      row?.obligations &&
-      row?.periods &&
-      row?.ledger
-    );
-
-    return ready
-      ? { state: "ready", detail: "Base REP conectada y esquema disponible." }
-      : {
-          state: "schema_missing",
-          detail: "La base está conectada, pero el esquema REP todavía no está aplicado."
-        };
-  } catch {
-    return {
-      state: "unavailable",
-      detail: "La base está configurada, pero no respondió correctamente."
-    };
-  }
+  return {
+    state: "unavailable",
+    detail: health.detail
+  };
 }
 
 export async function listRepClients(): Promise<PersistedClient[]> {
