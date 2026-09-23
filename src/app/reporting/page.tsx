@@ -14,6 +14,7 @@ import {
   getLatestComplianceRun,
   runCompliancePrecheck
 } from "@/lib/compliance-runs";
+import { syncComplianceFindings } from "@/lib/compliance-findings";
 import {
   generateMonthlyRepDraft,
   getLatestMonthlyRepReport,
@@ -28,6 +29,7 @@ export const dynamic = "force-dynamic";
 async function runPrecheckAction() {
   "use server";
 
+  await syncComplianceFindings("recycla-os");
   await runCompliancePrecheck("recycla-os");
   revalidatePath("/reporting");
   revalidatePath("/audit");
