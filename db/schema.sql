@@ -251,3 +251,22 @@ create table audit_findings (
   created_at timestamptz not null default now(),
   resolved_at timestamptz
 );
+
+
+create table external_source_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  source_id text not null,
+  source_url text not null,
+  subject_type text not null,
+  subject_id uuid,
+  external_identifier text,
+  status text not null check (status in ('VERIFIED','NOT_FOUND','REVIEW_REQUIRED','UNAVAILABLE')),
+  fetched_at timestamptz not null default now(),
+  source_modified_at timestamptz,
+  normalized_payload jsonb not null default '{}'::jsonb,
+  checksum_sha256 text,
+  created_at timestamptz not null default now()
+);
+
+create index external_source_snapshots_subject_idx
+  on external_source_snapshots(subject_type, subject_id, source_id, fetched_at desc);
