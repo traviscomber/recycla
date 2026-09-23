@@ -1,101 +1,122 @@
 import { AppShell } from "@/components/app-shell";
+import { listEvidenceDocuments, listRepLedgerEntries } from "@/lib/rep-repository";
 
-const evidenceChain = [
-  { id: "RCL-4821", type: "Retiro", detail: "Origen: Cliente piloto Recycla", status: "ok" },
-  { id: "PES-1944", type: "Pesaje", detail: "8.420 kg netos", status: "ok" },
-  { id: "LOT-2318", type: "Lote", detail: "AEE / RAEE", status: "ok" },
-  { id: "PROC-772", type: "Proceso", detail: "Desarme + separación", status: "ok" },
-  { id: "VAL-551", type: "Valorización", detail: "8.120 kg valorizados", status: "warning" },
-  { id: "DOC-991", type: "Certificado", detail: "Pendiente firma final", status: "critical" }
-];
+export const dynamic = "force-dynamic";
 
-const documents = [
-  { type: "Guía / retiro", id: "DOC-981", state: "Validado" },
-  { type: "Ticket pesaje", id: "DOC-983", state: "Validado" },
-  { type: "Acta recepción", id: "DOC-985", state: "Validado" },
-  { type: "Registro proceso", id: "DOC-988", state: "Validado" },
-  { type: "Certificado valorización", id: "DOC-991", state: "Pendiente" }
-];
+export default async function EvidencePage() {
+  const [documents, ledgerEntries] = await Promise.all([
+    listEvidenceDocuments(100),
+    listRepLedgerEntries(100)
+  ]);
 
-export default function EvidencePage() {
+  const linkedDocuments = documents.filter((document) => document.linkedEntities > 0);
+  const checksummed = documents.filter((document) => Boolean(document.checksumSha256));
+  const ledgerWithEvidence = ledgerEntries.filter((entry) => entry.evidenceCount > 0);
+
   return (
-    <AppShell active="/evidence" dataMode="demo">
+    <AppShell active="/evidence">
       <header className="topbar">
         <div>
           <p className="eyebrow">Lineage verificable</p>
           <h1>Evidence Graph</h1>
           <p className="muted">Abre cada cifra hasta la operación física y el documento que la respalda.</p>
         </div>
-        <div className="period"><span>Lineage</span><strong>8.420 kg</strong></div>
+        <div className="period"><span>Documentos</span><strong>{documents.length}</strong></div>
       </header>
 
       <section className="decisionStrip" aria-label="Resumen de evidencia">
         <article>
-          <span>Estado</span>
-          <strong className="negative">Incompleto</strong>
-          <p>1 documento crítico pendiente</p>
+          <span>Documentos vinculados</span>
+          <strong>{linkedDocuments.length}</strong>
+          <p>Con relación persistida a entidades operacionales</p>
         </article>
         <article>
-          <span>Completitud</span>
-          <strong>4 / 5</strong>
-          <p>80% de evidencia requerida</p>
+          <span>Integridad hash</span>
+          <strong>{documents.length ? `${checksummed.length}/${documents.length}` : "—"}</strong>
+          <p>Documentos con checksum SHA-256</p>
         </article>
         <article>
-          <span>Cantidad afectada</span>
-          <strong>8.120 kg</strong>
-          <p>No acreditable hasta cierre</p>
+          <span>Ledger con evidencia</span>
+          <strong>{ledgerEntries.length ? `${ledgerWithEvidence.length}/${ledgerEntries.length}` : "—"}</strong>
+          <p>Entradas visibles con evidencia asociada</p>
         </article>
       </section>
 
       <section className="panel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Cadena de evidencia</p>
-            <h3>Cliente piloto Recycla · AEE / RAEE</h3>
+            <p className="eyebrow">Documentos persistidos</p>
+            <h3>Evidencia disponible y su nivel de vinculación.</h3>
           </div>
-          <button>Exportar expediente</button>
         </div>
 
-        <div className="evidenceGraph">
-          {evidenceChain.map((node, index) => (
-            <div className="evidenceNodeWrap" key={node.id}>
-              <article className={`evidenceNode node-${node.status}`}>
-                <span>{node.type}</span>
-                <strong>{node.id}</strong>
-                <p>{node.detail}</p>
-              </article>
-              {index < evidenceChain.length - 1 && <div className="connector" aria-hidden="true">→</div>}
-            </div>
-          ))}
-        </div>
+        {documents.length ? (
+          <div className="tableWrap">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>Documento</th><th>Cliente</th><th>Tipo</th><th>Emitido</th>
+                  <th>Vence</th><th>Vínculos</th><th>Checksum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documents.map((document) => (
+                  <tr key={document.id}>
+                    <td><strong>{document.fileName}</strong></td>
+                    <td>{document.client ?? "Sin organización asociada"}</td>
+                    <td>{document.documentType}</td>
+                    <td>{document.issuedAt ? new Date(document.issuedAt).toLocaleDateString("es-CL") : "—"}</td>
+                    <td>{document.expiresAt ? new Date(document.expiresAt).toLocaleDateString("es-CL") : "—"}</td>
+                    <td>{document.linkedEntities}</td>
+                    <td>{document.checksumSha256 ? document.checksumSha256.slice(0, 12) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="emptyState">
+            <strong>Sin documentos operacionales persistidos.</strong>
+            <p>Evidence Graph no mostrará expedientes hasta que existan documentos reales y vínculos verificables.</p>
+          </div>
+        )}
       </section>
 
       <section className="bottomGrid">
         <article className="panel">
           <div className="panelHead">
-            <div><p className="eyebrow">Documentos</p><h3>Qué existe y qué falta</h3></div>
-            <b>4/5</b>
+            <div><p className="eyebrow">Cobertura de lineage</p><h3>Entradas REP respaldadas por evidencia.</h3></div>
+            <b>{ledgerWithEvidence.length}</b>
           </div>
-          {documents.map((doc) => (
-            <div className="finding" key={doc.id}>
-              <i className={doc.state === "Validado" ? "info" : "critical"} />
-              <span>{doc.type}<small>{doc.id}</small></span>
-              <strong>{doc.state}</strong>
+          {ledgerWithEvidence.length ? (
+            ledgerWithEvidence.slice(0, 8).map((entry) => (
+              <div className="finding" key={entry.id}>
+                <i className="info" />
+                <span>
+                  {entry.client}
+                  <small>{entry.state.replaceAll("_", " ")} · {entry.sourceEntityType}</small>
+                </span>
+                <strong>{entry.evidenceCount}</strong>
+              </div>
+            ))
+          ) : (
+            <div className="emptyState compactEmpty">
+              <strong>Sin entradas del ledger con evidencia vinculada.</strong>
+              <p>La cobertura aparecerá al asociar documentos reales con las entidades operacionales.</p>
             </div>
-          ))}
+          )}
         </article>
 
         <article className="panel blockerPanel">
-          <p className="eyebrow">Bottleneck</p>
-          <h3>Certificado final de valorización</h3>
+          <p className="eyebrow">Regla de acreditación</p>
+          <h3>La evidencia debe ser verificable antes de acreditar.</h3>
           <p className="muted">
-            La operación física y la valorización están registradas, pero este lineage no
-            debe promoverse a acreditable hasta completar la evidencia final.
+            El sistema conserva documento, checksum y vínculo con la entidad operacional. La ausencia de respaldo no se reemplaza con supuestos.
           </p>
           <div className="notReady">
-            <span>ESTADO DEL LINEAGE</span>
-            <strong>EVIDENCIA INCOMPLETA</strong>
-            <p>8.120 kg permanecen bloqueados.</p>
+            <span>ESTADO DOCUMENTAL</span>
+            <strong>{documents.length && ledgerWithEvidence.length ? "CON EVIDENCIA" : "PENDIENTE"}</strong>
+            <p>El estado refleja únicamente información persistida.</p>
           </div>
         </article>
       </section>
