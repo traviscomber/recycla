@@ -21,6 +21,7 @@ create type rep_quantity_state as enum (
 create table organizations (
   id uuid primary key default gen_random_uuid(),
   rut text not null unique,
+  slug text not null unique,
   legal_name text not null,
   display_name text not null,
   created_at timestamptz not null default now()
