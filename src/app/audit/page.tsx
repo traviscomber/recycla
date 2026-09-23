@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { fmt } from "@/lib/rep";
 
@@ -69,6 +70,17 @@ export default function AuditPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="externalAuditCheck">
+        <div>
+          <p className="eyebrow">External verification</p>
+          <h3>Gestores y destinos pueden contrastarse contra fuentes oficiales antes de cerrar el hallazgo.</h3>
+          <p>La coincidencia externa no resuelve el hallazgo por sí sola; agrega evidencia y contexto verificable.</p>
+        </div>
+        <Link className="buttonLink" href="/state-intelligence?kind=hazardous_destination">
+          Verificar en RETC →
+        </Link>
       </section>
 
       <section className="panel ledgerRule">
