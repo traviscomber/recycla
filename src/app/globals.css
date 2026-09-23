@@ -588,3 +588,5 @@ h1{font-weight:500;letter-spacing:-.035em}
 .reconciliationIssues p{margin:3px 0 0;color:var(--text-faint);font-size:9px}
 .reconciliationIssues>b{text-align:right;font-size:11px}
 @media(max-width:700px){.reconciliationIssues article{grid-template-columns:1fr}.reconciliationIssues>b{text-align:left}}
+
+.templateLink{display:inline-block;margin-top:10px;color:var(--green);font-size:9px}
