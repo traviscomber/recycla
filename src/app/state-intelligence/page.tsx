@@ -68,7 +68,11 @@ const verificationLabels: Record<VerificationKind, string> = {
 export default async function StateIntelligencePage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string; kind?: VerificationKind }>;
+  searchParams: Promise<{
+    q?: string;
+    kind?: VerificationKind;
+    snapshot?: "saved" | "error" | "invalid";
+  }>;
 }) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
