@@ -24,12 +24,10 @@ const nav = [
 
 export function AppShell({
   active,
-  children,
-  dataMode
+  children
 }: {
   active: string;
   children: React.ReactNode;
-  dataMode?: "demo" | "live";
 }) {
   const environment = process.env.VERCEL_ENV === "production" ? "Producción" : process.env.VERCEL_ENV === "preview" ? "Preview" : "Local";
 
@@ -46,11 +44,6 @@ export function AppShell({
 
         <div className="railLabel">Operational REP Intelligence</div>
 
-        {dataMode ? (
-          <div className={`dataMode dataMode-${dataMode}`}>
-            <span>{dataMode === "demo" ? "Datos de demostración" : "Datos operacionales"}</span>
-          </div>
-        ) : null}
 
         <nav className="sideNav" aria-label="Navegación principal">
           {nav.map(([href, label, index]) => (
