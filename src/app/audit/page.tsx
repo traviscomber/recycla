@@ -19,7 +19,7 @@ const checks = [
 
 export default function AuditPage() {
   return (
-    <AppShell active="/audit">
+    <AppShell active="/audit" dataMode="demo">
       <header className="topbar">
         <div>
           <p className="eyebrow">Control previo</p>
