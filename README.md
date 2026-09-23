@@ -24,9 +24,24 @@ The platform keeps these quantities separate:
 
 No important compliance number exists without lineage back to source evidence.
 
-## Initial scope
+## Initial REP scope
 
-The first vertical is AEE + batteries, with six product surfaces:
+The MVP deliberately focuses on priority products with stronger physical traceability:
+
+1. Aparatos electricos y electronicos (AEE / RAEE)
+2. Neumaticos
+3. Baterias
+
+Out of initial scope:
+
+- Envases y embalajes
+- Textiles / ropa
+
+These are intentionally deferred because their material flows, aggregation and chain-of-custody patterns make unit/lote-level traceability materially harder for the first product version.
+
+The objective is not to cover every REP category. The objective is to prove a high-confidence REP operating model where physical material, evidence and regulatory accreditation can be reconciled end-to-end.
+
+## Product surfaces
 
 1. REP Control Tower
 2. Client REP Readiness
@@ -43,6 +58,7 @@ The first vertical is AEE + batteries, with six product surfaces:
 - Mass balance for physical material flows
 - Full traceability from KPI to document
 - SISREP/RETC readiness, not replacement
+- Product-specific rules and workflows, not one generic REP workflow
 
 ## Status
 
