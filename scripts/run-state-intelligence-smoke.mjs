@@ -1,45 +1,65 @@
+import { mkdir, writeFile } from "node:fs/promises";
+
 const token = process.env.STATE_SYNC_TOKEN;
-
-if (!token || process.env.VERCEL_GIT_COMMIT_REF !== "feat/state-intelligence") {
-  console.log("[state-smoke] prerequisites missing; skipping.");
-  process.exit(0);
-}
-
-const headers = {
-  authorization: `Bearer ${token}`,
-  "content-type": "application/json"
+const result = {
+  ranAt: new Date().toISOString(),
+  branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+  sync: null,
+  snapshot: null
 };
 
-const syncResponse = await fetch(
-  "https://recycla-cmaekw1fm-travis-projects-c14a785a.vercel.app/api/state-intelligence/sync?source=retc-priority-products",
-  { method: "POST", headers }
-);
+if (!token || process.env.VERCEL_GIT_COMMIT_REF !== "feat/state-intelligence") {
+  result.skipped = true;
+  result.reason = "prerequisites missing";
+} else {
+  const headers = {
+    authorization: `Bearer ${token}`,
+    "content-type": "application/json"
+  };
 
-const syncBody = await syncResponse.text();
-if (!syncResponse.ok) {
-  throw new Error(`State sync failed: HTTP ${syncResponse.status} ${syncBody}`);
-}
-console.log("[state-smoke] sync:", syncBody);
-
-const snapshotResponse = await fetch(
-  "https://recycla-e50pnf5q2-travis-projects-c14a785a.vercel.app/api/state-intelligence/snapshot",
-  {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      kind: "producer",
-      query: "Aparatos",
-      matchIndex: 0,
-      subjectType: "state_intelligence_smoke",
-      status: "REVIEW_REQUIRED"
-    })
+  try {
+    const syncResponse = await fetch(
+      "https://recycla-cmaekw1fm-travis-projects-c14a785a.vercel.app/api/state-intelligence/sync?source=retc-priority-products",
+      { method: "POST", headers }
+    );
+    result.sync = {
+      status: syncResponse.status,
+      body: await syncResponse.text()
+    };
+  } catch (error) {
+    result.sync = {
+      status: 0,
+      body: error instanceof Error ? error.message : "unknown error"
+    };
   }
-);
 
-const snapshotBody = await snapshotResponse.text();
-if (!snapshotResponse.ok) {
-  throw new Error(
-    `State snapshot failed: HTTP ${snapshotResponse.status} ${snapshotBody}`
-  );
+  try {
+    const snapshotResponse = await fetch(
+      "https://recycla-e50pnf5q2-travis-projects-c14a785a.vercel.app/api/state-intelligence/snapshot",
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          kind: "producer",
+          query: "Aparatos",
+          matchIndex: 0,
+          subjectType: "state_intelligence_smoke",
+          status: "REVIEW_REQUIRED"
+        })
+      }
+    );
+    result.snapshot = {
+      status: snapshotResponse.status,
+      body: await snapshotResponse.text()
+    };
+  } catch (error) {
+    result.snapshot = {
+      status: 0,
+      body: error instanceof Error ? error.message : "unknown error"
+    };
+  }
 }
-console.log("[state-smoke] snapshot:", snapshotBody);
+
+await mkdir("public", { recursive: true });
+await writeFile("public/state-smoke.json", JSON.stringify(result, null, 2));
+console.log("[state-smoke]", JSON.stringify(result));
