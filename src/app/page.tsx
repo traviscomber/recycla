@@ -1,100 +1,71 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { fmt, priorityStreams } from "@/lib/rep";
 import { getRepDatabaseStatus, listRepClients } from "@/lib/rep-repository";
 import { listComplianceFindings } from "@/lib/compliance-findings";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
+import { buildComplianceWorkbench } from "@/lib/workbench";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
-  const [stateSyncs, stateSnapshots, databaseStatus, clients, complianceFindings] = await Promise.all([
-    getStateSyncOverview(),
-    listRecentSnapshots(100),
-    getRepDatabaseStatus(),
-    listRepClients(),
-    listComplianceFindings("recycla-os", 100)
-  ]);
+function clientState(client: Awaited<ReturnType<typeof listRepClients>>[number]) {
+  const gaps = client.obligations.filter(
+    (item) => item.accreditable - item.obligation < 0
+  );
+  const evidenceGaps = client.obligations.filter(
+    (item) => item.eligible - item.evidenceComplete > 0
+  );
 
-  const priorityProducerSync = stateSyncs.find(
+  if (gaps.length) return { label: "Atención", tone: "critical", count: gaps.length };
+  if (evidenceGaps.length) return { label: "Evidencia", tone: "warning", count: evidenceGaps.length };
+  return { label: "Sin excepción", tone: "ok", count: 0 };
+}
+
+export default async function Home() {
+  const [stateSyncs, stateSnapshots, databaseStatus, clients, complianceFindings] =
+    await Promise.all([
+      getStateSyncOverview(),
+      listRecentSnapshots(100),
+      getRepDatabaseStatus(),
+      listRepClients(),
+      listComplianceFindings("recycla-os", 100)
+    ]);
+
+  const workItems = buildComplianceWorkbench({
+    clients,
+    findings: complianceFindings,
+    snapshots: stateSnapshots
+  });
+
+  const criticalItems = workItems.filter((item) => item.priority === "critical");
+  const warningItems = workItems.filter((item) => item.priority === "warning");
+  const reviewItems = workItems.filter((item) => item.priority === "review");
+  const clientStates = clients.map((client) => ({
+    client,
+    state: clientState(client)
+  }));
+  const cleanClients = clientStates.filter((item) => item.state.tone === "ok").length;
+
+  const producerSync = stateSyncs.find(
     (sync) => sync.sourceId === "retc-priority-products"
   );
   const actorSnapshots = stateSnapshots.filter((snapshot) =>
     snapshot.subjectType.startsWith("rep_actor_")
   );
-  const reviewRequiredSnapshots = actorSnapshots.filter(
-    (snapshot) => snapshot.status === "REVIEW_REQUIRED"
-  );
-
-  const obligations = clients.flatMap((client) => client.obligations);
-  const totals = obligations.reduce(
-    (acc, item) => ({
-      obligation: acc.obligation + item.obligation,
-      collected: acc.collected + item.collected,
-      valued: acc.valued + item.valued,
-      eligible: acc.eligible + item.eligible,
-      evidenceComplete: acc.evidenceComplete + item.evidenceComplete,
-      accreditable: acc.accreditable + item.accreditable
-    }),
-    {
-      obligation: 0,
-      collected: 0,
-      valued: 0,
-      eligible: 0,
-      evidenceComplete: 0,
-      accreditable: 0
-    }
-  );
-
-  const hasOperationalData = totals.obligation > 0 || obligations.length > 0;
-  const readiness = totals.obligation > 0
-    ? Math.min(100, (totals.accreditable / totals.obligation) * 100)
-    : null;
-  const gap = totals.accreditable - totals.obligation;
-  const evidenceGap = Math.max(0, totals.eligible - totals.evidenceComplete);
-
-  const stages = [
-    ["Recolectado", totals.collected],
-    ["Valorizado", totals.valued],
-    ["Elegible REP", totals.eligible],
-    ["Evidencia completa", totals.evidenceComplete],
-    ["Acreditable", totals.accreditable]
-  ] as const;
-
-  const openFindings = complianceFindings.filter((finding) => finding.status === "open");
-  const focusClient = clients[0] ?? null;
-  const focusObligation = focusClient?.obligations.reduce(
-    (sum, item) => sum + item.obligation,
-    0
-  ) ?? 0;
-  const focusAccreditable = focusClient?.obligations.reduce(
-    (sum, item) => sum + item.accreditable,
-    0
-  ) ?? 0;
-  const focusReadiness = focusObligation > 0
-    ? Math.min(100, (focusAccreditable / focusObligation) * 100)
-    : null;
-
-  const slugMap = {
-    AEE_RAEE: "aee-raee",
-    NEUMATICOS: "neumaticos",
-    BATERIAS: "baterias",
-    PILAS: "pilas",
-    ACEITES_LUBRICANTES: "aceites-lubricantes"
-  } as const;
 
   return (
     <AppShell active="/">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Operational REP Intelligence</p>
-          <h1>REP Control Tower</h1>
-          <p className="muted">Qué está acreditable, qué está bloqueado y dónde actuar primero.</p>
+          <p className="eyebrow">Compliance Workbench</p>
+          <h1>Qué resolver ahora</h1>
+          <p className="muted">
+            Excepciones reales primero. Abre el contexto completo sólo cuando lo necesitas.
+          </p>
         </div>
         <div className="period">
-          <span>Clientes REP</span>
-          <strong>{clients.length}</strong>
+          <span>Acciones abiertas</span>
+          <strong>{workItems.length}</strong>
         </div>
       </header>
 
@@ -111,162 +82,145 @@ export default async function Home() {
             </h3>
             <p>{databaseStatus.detail}</p>
           </div>
-          <span>{databaseStatus.state === "schema_missing" ? "ACCIÓN REQUERIDA" : "ESTADO TÉCNICO"}</span>
+          <span>ATENCIÓN TÉCNICA</span>
         </section>
       ) : null}
 
-      <section className="decisionStrip" aria-label="Estado REP principal">
-        <article>
-          <span>REP Readiness</span>
-          <strong>{readiness === null ? "—" : readiness.toFixed(1) + "%"}</strong>
-          <p>{readiness === null ? "Sin obligación operacional cargada" : "Sobre cantidad acreditable"}</p>
+      <section className="workbenchSignals" aria-label="Prioridad operacional">
+        <article className={criticalItems.length ? "workbenchSignal signal-critical" : "workbenchSignal"}>
+          <span>Críticas</span>
+          <strong>{criticalItems.length}</strong>
+          <p>{criticalItems.length ? "Bloquean acreditación o cierre." : "Sin bloqueos críticos detectados."}</p>
         </article>
-        <article>
-          <span>Gap actual</span>
-          <strong className={gap < 0 ? "negative" : undefined}>
-            {hasOperationalData ? fmt(gap) + " kg" : "—"}
-          </strong>
-          <p>vs. obligación vigente</p>
+        <article className={warningItems.length ? "workbenchSignal signal-warning" : "workbenchSignal"}>
+          <span>Requieren acción</span>
+          <strong>{warningItems.length}</strong>
+          <p>{warningItems.length ? "Evidencia o controles pendientes." : "Sin acciones operativas pendientes."}</p>
         </article>
-        <article>
-          <span>Evidencia pendiente</span>
-          <strong className={evidenceGap > 0 ? "negative" : undefined}>
-            {hasOperationalData ? fmt(evidenceGap) + " kg" : "—"}
-          </strong>
-          <p>Elegible aún sin evidencia completa</p>
+        <article className={reviewItems.length ? "workbenchSignal signal-review" : "workbenchSignal"}>
+          <span>Revisión humana</span>
+          <strong>{reviewItems.length}</strong>
+          <p>{reviewItems.length ? "Fuentes externas por validar." : "Sin evidencia externa pendiente."}</p>
+        </article>
+        <article className="workbenchSignal">
+          <span>Clientes sin excepción</span>
+          <strong>{cleanClients}/{clients.length}</strong>
+          <p>Calculado por producto, sin mezclar kg y litros.</p>
         </article>
       </section>
 
-      <section className="streams">
-        {priorityStreams.map((stream, i) => (
-          <Link
-            href={`/productos/${slugMap[stream.id]}`}
-            key={stream.id}
-            className={i === 0 ? "stream activeStream streamLink" : "stream streamLink"}
-          >
-            <span>{String(i + 1).padStart(2, "0")}</span>
-            <strong>{stream.label}</strong>
-            <p>{stream.regulatoryMilestone} · {stream.traceability}</p>
-          </Link>
-        ))}
-      </section>
-
-      <section className="panel statePulse">
+      <section className="panel workbenchQueue">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Official data layer · Live</p>
-            <h3>RETC conectado al contexto operativo</h3>
+            <p className="eyebrow">Cola de trabajo</p>
+            <h3>Ordenada por impacto, no por módulo.</h3>
           </div>
-          <Link className="buttonLink" href="/state-intelligence">Abrir State Intelligence →</Link>
+          <span className="workbenchUpdated">Datos persistidos · vista derivada</span>
         </div>
-        <div className="decisionStrip statePulseStrip">
-          <article>
-            <span>Registros productor</span>
-            <strong>{priorityProducerSync?.rowCount?.toLocaleString("es-CL") ?? "—"}</strong>
-            <p>{priorityProducerSync?.sourceYear ? `Fuente RETC ${priorityProducerSync.sourceYear}` : "Sin sync confirmado"}</p>
-          </article>
-          <article>
-            <span>Snapshots actores</span>
-            <strong>{actorSnapshots.length}</strong>
-            <p>Evidencia externa persistida</p>
-          </article>
-          <article>
-            <span>Requieren revisión</span>
-            <strong>{reviewRequiredSnapshots.length}</strong>
-            <p>No equivalen a cumplimiento REP</p>
-          </article>
-        </div>
-      </section>
 
-      <section className="focusBand">
-        <article className="focusClient">
-          <span className="label">Cobertura operacional</span>
-          <h2>{focusClient?.name ?? "Sin cliente REP cargado"}</h2>
-          <p>
-            {focusClient
-              ? `${focusClient.period} · obligación ${fmt(focusObligation)} kg`
-              : "La Control Tower se activará con datos operacionales persistidos."}
-          </p>
-          {focusReadiness !== null ? (
-            <div className="progress"><div style={{ width: `${focusReadiness}%` }} /></div>
-          ) : null}
-        </article>
-        <article className="focusAction">
-          <span className="label">Qué importa ahora</span>
-          <h3>{evidenceGap > 0 ? "Cerrar evidencia antes de aumentar volumen acreditable." : "Mantener reconciliación y evidencia al día."}</h3>
-          <p>
-            {hasOperationalData
-              ? `${fmt(evidenceGap)} kg elegibles todavía no tienen evidencia completa.`
-              : "No se muestran cifras operacionales hasta que exista información real en el REP Ledger."}
-          </p>
-          <Link className="buttonLink" href="/evidence">Abrir Evidence Graph →</Link>
-        </article>
-      </section>
-
-      <section className="panel">
-        <div className="panelHead">
-          <div><p className="eyebrow">REP Ledger</p><h3>Estado regulatorio de la masa física</h3></div>
-          <Link className="buttonLink" href="/ledger">Ver lineage</Link>
-        </div>
-        {hasOperationalData ? (
-          <div className="stages">
-            {stages.map(([label, value], i) => (
-              <div className="stage" key={label}>
-                <span>{String(i + 1).padStart(2, "0")}</span>
-                <strong>{fmt(value)}</strong>
-                <p>{label}</p>
-              </div>
+        {workItems.length ? (
+          <div className="workbenchList">
+            {workItems.slice(0, 12).map((item) => (
+              <article className={`workbenchItem priority-${item.priority}`} key={item.id}>
+                <div className="workbenchPriority">
+                  <i />
+                  <span>{item.priority === "critical" ? "CRÍTICA" : item.priority === "warning" ? "ACCIÓN" : "REVISAR"}</span>
+                </div>
+                <div className="workbenchBody">
+                  <strong>{item.title}</strong>
+                  <p>{item.detail}</p>
+                  <small>
+                    {item.subject} · {item.context}
+                    {item.sourceAt ? ` · ${new Date(item.sourceAt).toLocaleDateString("es-CL")}` : ""}
+                  </small>
+                </div>
+                <Link className="buttonLink secondary" href={item.href}>
+                  {item.actionLabel} →
+                </Link>
+              </article>
             ))}
           </div>
         ) : (
-          <div className="emptyState compactEmpty">
-            <strong>Sin masa operacional cargada.</strong>
-            <p>El REP Ledger mostrará cantidades cuando existan registros reales persistidos.</p>
+          <div className="emptyState">
+            <strong>No hay excepciones abiertas derivadas de los datos actuales.</strong>
+            <p>
+              Esto no equivale por sí solo a cumplimiento final. El cierre regulatorio mantiene sus propios gates.
+            </p>
+            <Link className="buttonLink" href="/reporting">Abrir cierre REP →</Link>
           </div>
         )}
       </section>
 
-      <section className="bottomGrid">
+      <section className="workbenchGrid">
         <article className="panel">
           <div className="panelHead">
-            <div><p className="eyebrow">Audit Room</p><h3>Lo que impide acreditar hoy</h3></div>
-            <b>{openFindings.length}</b>
+            <div>
+              <p className="eyebrow">Cartera</p>
+              <h3>Estado por cliente</h3>
+            </div>
+            <Link className="buttonLink secondary" href="/clientes">Ver todos →</Link>
           </div>
-          {openFindings.length ? (
-            openFindings.slice(0, 5).map((finding) => (
-              <div className="finding" key={finding.id}>
-                <i className={finding.severity} />
-                <span>
-                  {finding.code.replaceAll("_", " ")}
-                  <small>{finding.detail}</small>
-                </span>
-                <strong>{finding.occurrenceCount}</strong>
-              </div>
-            ))
+          {clientStates.length ? (
+            <div className="workbenchClients">
+              {clientStates.slice(0, 8).map(({ client, state }) => (
+                <Link href={`/clientes/${client.slug}`} key={`${client.slug}-${client.period}`}>
+                  <div>
+                    <strong>{client.name}</strong>
+                    <span>{client.rut} · {client.period}</span>
+                  </div>
+                  <b className={`clientState state-${state.tone}`}>
+                    {state.label}{state.count ? ` · ${state.count}` : ""}
+                  </b>
+                </Link>
+              ))}
+            </div>
           ) : (
             <div className="emptyState compactEmpty">
-              <strong>Sin hallazgos abiertos persistidos.</strong>
-              <p>Audit Room mostrará únicamente observaciones derivadas de datos reales.</p>
+              <strong>Sin clientes REP persistidos.</strong>
+              <p>La cartera aparecerá cuando existan organizaciones con obligaciones reales.</p>
             </div>
           )}
         </article>
 
         <article className="panel">
-          <p className="eyebrow">Evidence Graph</p>
-          <h3>Cada número abre su evidencia.</h3>
-          <div className="path">
-            <span>Retiro</span><span>Pesaje</span><span>Lote</span><span>Valorización</span><span>Certificado</span>
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Pulso de fuentes</p>
+              <h3>Contexto estatal disponible</h3>
+            </div>
+            <Link className="buttonLink secondary" href="/state-intelligence">Abrir fuentes →</Link>
           </div>
-          <div className="notReady">
-            <span>REPORT READINESS</span>
-            <strong>{readiness !== null && readiness >= 100 && openFindings.length === 0 ? "LISTO" : "NO LISTO"}</strong>
-            <p>
-              {hasOperationalData
-                ? "El estado depende de masa acreditable, evidencia y hallazgos persistidos."
-                : "Sin datos operacionales no se declara un estado listo."}
-            </p>
+          <div className="workbenchPulse">
+            <div>
+              <span>Registros productor RETC</span>
+              <strong>{producerSync?.rowCount?.toLocaleString("es-CL") ?? "—"}</strong>
+              <p>{producerSync?.sourceYear ? `Fuente ${producerSync.sourceYear}` : "Sin sync confirmado"}</p>
+            </div>
+            <div>
+              <span>Snapshots actores</span>
+              <strong>{actorSnapshots.length}</strong>
+              <p>Evidencia externa persistida</p>
+            </div>
+            <div>
+              <span>Hallazgos abiertos</span>
+              <strong>{complianceFindings.filter((finding) => finding.status === "open").length}</strong>
+              <p>Desde reconciliación persistida</p>
+            </div>
           </div>
         </article>
+      </section>
+
+      <section className="panel workbenchPaths">
+        <div>
+          <p className="eyebrow">Cuando necesitas profundidad</p>
+          <h3>El Workbench decide dónde entrar.</h3>
+        </div>
+        <div className="workbenchPathLinks">
+          <Link href="/reporting"><span>Cierre REP</span><strong>Preparar y validar →</strong></Link>
+          <Link href="/audit"><span>Audit Room</span><strong>Resolver hallazgos →</strong></Link>
+          <Link href="/evidence"><span>Evidence Graph</span><strong>Completar respaldo →</strong></Link>
+          <Link href="/ledger"><span>REP Ledger</span><strong>Seguir lineage →</strong></Link>
+        </div>
       </section>
     </AppShell>
   );
