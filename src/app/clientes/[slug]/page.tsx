@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { hasDatabase } from "@/lib/db";
-import { getRepClient } from "@/lib/rep-repository";
+import { getClientCircularityOutcomes, getRepClient } from "@/lib/rep-repository";
 import { fmt } from "@/lib/rep";
+import { routeLabel } from "@/lib/circularity";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,13 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
   if (!hasDatabase()) notFound();
   const client = await getRepClient(slug);
   if (!client) notFound();
+
+  const circularity = await getClientCircularityOutcomes(slug, Number(client.period));
+  const circularityTotal = circularity.reduce((sum, item) => sum + item.quantityKg, 0);
+  const materialPriorityKg = circularity
+    .filter((item) => item.route === "PREPARATION_FOR_REUSE" || item.route === "RECYCLING")
+    .reduce((sum, item) => sum + item.quantityKg, 0);
+
   const values = client.obligations.map(readiness);
   const status = values.length > 0 && values.every((value) => value >= 100) ? "Listo" : values.length > 0 && values.every((value) => value >= 95) ? "Casi listo" : "Atención";
   const gaps = client.obligations.filter((item) => gap(item) < 0);
@@ -59,7 +67,62 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
           })}
         </div>
       </section>
-      <section className="panel ledgerRule"><p className="eyebrow">Consolidación correcta</p><h3>El estado del cliente se consolida por cumplimiento, no sumando unidades incompatibles.</h3><p className="muted">Cada obligación viene de Postgres y mantiene producto, período, unidad y ledger independientes.</p></section>
+      <section className="clientDualView">
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">REP Readiness</p>
+              <h3>¿Cuánto puede acreditar?</h3>
+            </div>
+          </div>
+          <p className="muted">
+            Se calcula por producto y unidad. No se suman kg y litros en un único porcentaje.
+          </p>
+          <div className="dualMetricList">
+            {client.obligations.map((item) => (
+              <div key={item.stream}>
+                <span>{item.label}</span>
+                <strong>{readiness(item).toFixed(1)}%</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Circularity Quality</p>
+              <h3>¿Qué ruta siguió el material?</h3>
+            </div>
+          </div>
+
+          {circularityTotal > 0 ? (
+            <>
+              <div className="circularityClientSummary">
+                <span>Rutas materiales prioritarias</span>
+                <strong>{((materialPriorityKg / circularityTotal) * 100).toFixed(1)}%</strong>
+                <p>{fmt(materialPriorityKg)} kg de {fmt(circularityTotal)} kg con outcome asignado</p>
+              </div>
+
+              <div className="dualMetricList">
+                {circularity.map((item) => (
+                  <div key={item.route}>
+                    <span>{routeLabel(item.route)}</span>
+                    <strong>{fmt(item.quantityKg)} kg</strong>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="emptyState compactEmpty">
+              <strong>Sin outcomes circulares asignados todavía.</strong>
+              <p>La métrica aparecerá cuando los outputs de valorización estén asignados explícitamente al cliente.</p>
+            </div>
+          )}
+        </article>
+      </section>
+
+      <section className="panel ledgerRule"><p className="eyebrow">Consolidación correcta</p><h3>Compliance y circularidad son dimensiones distintas.</h3><p className="muted">REP Readiness responde cuánto puede acreditar. Circularity Quality describe la ruta física del material. Ninguna reemplaza a la otra.</p></section>
     </AppShell>
   );
 }
