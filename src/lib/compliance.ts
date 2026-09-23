@@ -35,6 +35,14 @@ export const complianceSources = {
   declaration2026: {
     label: "MMA · Declaración REP 2026",
     url: "https://portalvu.mma.gob.cl/ley-rep-el-periodo-de-declaracion-2026-para-productores-de-productos-prioritarios-sera-a-partir-del-ultimo-trimestre/"
+  },
+  annualNfu2025: {
+    label: "SMA · Reporte anual 2025 NFU",
+    url: "https://portal.sma.gob.cl/wp-content/uploads/2026/03/ReporteAnualNFU.xlsx"
+  },
+  annualPackaging2025: {
+    label: "SMA · Reporte anual 2025 envases",
+    url: "https://portal.sma.gob.cl/wp-content/uploads/2026/04/ReporteAnualEnvases.xlsx"
   }
 } as const;
 
