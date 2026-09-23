@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { AppShell } from "@/components/app-shell";
+import { requireComplianceSession } from "@/lib/auth/server";
 import {
   auditScope,
   complianceSources,
@@ -29,6 +30,8 @@ export const dynamic = "force-dynamic";
 async function runPrecheckAction() {
   "use server";
 
+  await requireComplianceSession();
+
   await syncComplianceFindings("recycla-os");
   await runCompliancePrecheck("recycla-os");
   revalidatePath("/reporting");
@@ -37,6 +40,8 @@ async function runPrecheckAction() {
 
 async function generateMonthlyDraftAction() {
   "use server";
+
+  await requireComplianceSession();
 
   await generateMonthlyRepDraft("recycla-os");
   revalidatePath("/reporting");
