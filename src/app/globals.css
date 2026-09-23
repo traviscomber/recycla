@@ -249,3 +249,9 @@ h1,h2,h3,.eyebrow,.label,.period span,.period strong,.brand,.sideNav,.mobileNav,
 h1{font-weight:500;letter-spacing:-.035em}
 .eyebrow,.label,.period span{font-weight:600}
 .sideNav a strong{font-family:var(--font-body),Montserrat,sans-serif;font-weight:600}
+
+.dataMode{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid #293a30;background:#0d1d15;width:max-content}
+.dataMode::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--warning)}
+.dataMode span{font-size:8px;color:#a99a70;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.dataMode-live::before{background:var(--success)}
+.dataMode-live span{color:#8fc7a4}
