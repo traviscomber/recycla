@@ -105,6 +105,10 @@ export default async function ReportingIntakePage({
             <button type="submit">Validar e importar</button>
           </form>
 
+          <a className="templateLink" href="/templates/rep-market-introductions.csv" download>
+            Descargar plantilla CSV →
+          </a>
+
           <div className="intakeFields">
             <span>fecha</span>
             <span>producto prioritario</span>
@@ -135,6 +139,10 @@ export default async function ReportingIntakePage({
             </label>
             <button type="submit">Validar e importar</button>
           </form>
+
+          <a className="templateLink" href="/templates/rep-waste-operations.csv" download>
+            Descargar plantilla CSV →
+          </a>
 
           <div className="intakeFields">
             <span>fecha</span>
