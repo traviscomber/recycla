@@ -771,3 +771,84 @@ h1{font-weight:500;letter-spacing:-.035em}
     grid-template-columns: 1fr;
   }
 }
+
+
+.ficha360Decision {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ficha360Products {
+  border-top: 1px solid var(--line);
+}
+
+.ficha360Product {
+  border-bottom: 1px solid var(--line);
+}
+
+.ficha360Product summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 15px 0;
+  cursor: pointer;
+}
+
+.ficha360Product summary::-webkit-details-marker {
+  display: none;
+}
+
+.ficha360Product summary div {
+  display: grid;
+  gap: 3px;
+}
+
+.ficha360Product summary span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.ficha360ProductDetail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+}
+
+.ficha360ProductDetail > div {
+  background: var(--panel);
+  padding: 12px 14px;
+}
+
+.ficha360ProductDetail span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-bottom: 4px;
+}
+
+.ficha360Disclosure {
+  margin-top: 14px;
+}
+
+.ficha360Disclosure > summary {
+  cursor: pointer;
+  padding: 14px 0;
+  font-weight: 600;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.ficha360Disclosure[open] > summary {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 900px) {
+  .ficha360Decision,
+  .ficha360ProductDetail {
+    grid-template-columns: 1fr;
+  }
+}
