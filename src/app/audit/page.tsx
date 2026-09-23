@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { fmt } from "@/lib/rep";
 import { auditScope, complianceSources } from "@/lib/compliance";
 import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
 import { getLatestComplianceRun } from "@/lib/compliance-runs";
@@ -8,13 +7,6 @@ import { listComplianceFindings } from "@/lib/compliance-findings";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
 export const dynamic = "force-dynamic";
-
-const findings = [
-  { id: "AUD-001", severity: "critical", type: "Evidencia", entity: "VAL-551", affected: 18240, detail: "Valorización sin certificado final.", mode: "DEMO" },
-  { id: "AUD-002", severity: "warning", type: "Mass balance", entity: "LOT-2291", affected: 7310, detail: "Entrada y salidas del lote no reconcilian dentro del umbral esperado.", mode: "DEMO" },
-  { id: "AUD-003", severity: "warning", type: "Pesaje", entity: "PES-1938", affected: 3120, detail: "Diferencia entre peso declarado y peso de recepción.", mode: "DEMO" },
-  { id: "AUD-004", severity: "info", type: "Clasificación", entity: "RCL-4799", affected: 890, detail: "Categoría REP aún no confirmada.", mode: "DEMO" }
-];
 
 export default async function AuditPage() {
   const [snapshots, compliance, latestRun, liveFindings] = await Promise.all([
@@ -66,8 +58,8 @@ export default async function AuditPage() {
       <section className="decisionStrip auditDecisionStrip" aria-label="Resumen de auditoría">
         <article>
           <span>Hallazgos críticos</span>
-          <strong className="negative">1</strong>
-          <p>Demo · bloquea acreditación</p>
+          <strong className="negative">{liveFindings.filter((finding) => finding.status === "open" && finding.severity === "critical").length}</strong>
+          <p>Live · reconciliación persistida</p>
         </article>
         <article>
           <span>Snapshots oficiales</span>
@@ -152,39 +144,6 @@ export default async function AuditPage() {
             <p>Ejecuta el compliance pre-check para sincronizar la reconciliación con Audit Room.</p>
           </div>
         )}
-      </section>
-
-      <section className="panel">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Hallazgos operacionales</p>
-            <h3>Qué bloquea o debilita la acreditación.</h3>
-          </div>
-          <Link className="buttonLink" href="/reporting">Ver cierre →</Link>
-        </div>
-
-        <div className="tableWrap">
-          <table className="dataTable">
-            <thead>
-              <tr>
-                <th>ID</th><th>Severidad</th><th>Tipo</th><th>Entidad</th><th>Cantidad</th><th>Detalle</th><th>Fuente</th>
-              </tr>
-            </thead>
-            <tbody>
-              {findings.map((f) => (
-                <tr key={f.id}>
-                  <td><strong>{f.id}</strong></td>
-                  <td><span className={"auditTag audit-" + f.severity}>{f.severity}</span></td>
-                  <td>{f.type}</td>
-                  <td>{f.entity}</td>
-                  <td>{fmt(f.affected)} kg</td>
-                  <td>{f.detail}</td>
-                  <td><span className="auditTag">{f.mode}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </section>
 
       <section className="panel auditExternalEvidence">
