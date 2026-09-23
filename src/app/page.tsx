@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { fmt, priorityStreams } from "@/lib/rep";
-import { listRepClients } from "@/lib/rep-repository";
+import { getRepDatabaseStatus, listRepClients } from "@/lib/rep-repository";
 import { listComplianceFindings } from "@/lib/compliance-findings";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
@@ -9,9 +9,10 @@ import { listRecentSnapshots } from "@/lib/state-snapshots";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [stateSyncs, stateSnapshots, clients, complianceFindings] = await Promise.all([
+  const [stateSyncs, stateSnapshots, databaseStatus, clients, complianceFindings] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
+    getRepDatabaseStatus(),
     listRepClients(),
     listComplianceFindings("recycla-os", 100)
   ]);
@@ -96,6 +97,23 @@ export default async function Home() {
           <strong>{clients.length}</strong>
         </div>
       </header>
+
+      {databaseStatus.state !== "ready" ? (
+        <section className={`systemNotice notice-${databaseStatus.state}`}>
+          <div>
+            <p className="eyebrow">Core operacional REP</p>
+            <h3>
+              {databaseStatus.state === "schema_missing"
+                ? "Esquema operativo incompleto"
+                : databaseStatus.state === "unavailable"
+                  ? "Base operacional temporalmente no disponible"
+                  : "Persistencia operacional no configurada"}
+            </h3>
+            <p>{databaseStatus.detail}</p>
+          </div>
+          <span>{databaseStatus.state === "schema_missing" ? "ACCIÓN REQUERIDA" : "ESTADO TÉCNICO"}</span>
+        </section>
+      ) : null}
 
       <section className="decisionStrip" aria-label="Estado REP principal">
         <article>
