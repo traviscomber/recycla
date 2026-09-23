@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { auditFindings, demo, fmt, priorityStreams } from "@/lib/rep";
 
@@ -27,13 +28,26 @@ export default function Home() {
       </header>
 
       <section className="streams">
-        {priorityStreams.map((s, i) => (
-          <article key={s.id} className={i === 0 ? "stream activeStream" : "stream"}>
-            <span>{String(i + 1).padStart(2, "0")}</span>
-            <strong>{s.label}</strong>
-            <p>{s.traceability}</p>
-          </article>
-        ))}
+        {priorityStreams.map((s, i) => {
+          const slugMap = {
+            AEE_RAEE: "aee-raee",
+            NEUMATICOS: "neumaticos",
+            BATERIAS: "baterias",
+            PILAS: "pilas",
+            ACEITES_LUBRICANTES: "aceites-lubricantes"
+          } as const;
+          return (
+            <Link
+              href={`/productos/${slugMap[s.id]}`}
+              key={s.id}
+              className={i === 0 ? "stream activeStream streamLink" : "stream streamLink"}
+            >
+              <span>{String(i + 1).padStart(2, "0")}</span>
+              <strong>{s.label}</strong>
+              <p>{s.traceability}</p>
+            </Link>
+          );
+        })}
       </section>
 
       <section className="heroGrid">
