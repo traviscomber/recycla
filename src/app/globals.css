@@ -580,3 +580,11 @@ h1{font-weight:500;letter-spacing:-.035em}
 .intakeFields{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .intakeFields span{border:1px solid var(--line);background:var(--surface-3);padding:6px 8px;font-size:8px;color:var(--text-faint)}
 @media(max-width:700px){.intakeFeedback{align-items:flex-start;flex-direction:column}}
+
+.reconciliationPanel{margin-bottom:18px}
+.reconciliationIssues{display:grid;border-top:1px solid var(--line)}
+.reconciliationIssues article{display:grid;grid-template-columns:130px minmax(0,1fr) 50px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.reconciliationIssues strong{display:block;font-size:10px}
+.reconciliationIssues p{margin:3px 0 0;color:var(--text-faint);font-size:9px}
+.reconciliationIssues>b{text-align:right;font-size:11px}
+@media(max-width:700px){.reconciliationIssues article{grid-template-columns:1fr}.reconciliationIssues>b{text-align:left}}
