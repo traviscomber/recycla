@@ -201,8 +201,10 @@ export type StateSnapshotSummary = {
   sourceId: string;
   subjectType: string;
   subjectId: string | null;
+  subjectLabel: string | null;
   externalIdentifier: string | null;
   status: SnapshotStatus;
+  sourceYear: number | null;
   fetchedAt: string;
   sourceModifiedAt: string | null;
 };
@@ -224,8 +226,10 @@ export async function listRecentSnapshots(limit = 20): Promise<StateSnapshotSumm
         source_id as "sourceId",
         subject_type as "subjectType",
         subject_id as "subjectId",
+        normalized_payload->>'query' as "subjectLabel",
         external_identifier as "externalIdentifier",
         status,
+        nullif(normalized_payload->>'sourceYear', '')::int as "sourceYear",
         fetched_at::text as "fetchedAt",
         source_modified_at::text as "sourceModifiedAt"
       from external_source_snapshots
