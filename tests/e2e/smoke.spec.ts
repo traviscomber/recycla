@@ -1,24 +1,31 @@
 import { expect, test } from "@playwright/test";
 
-const routes = [
-  ["/", "REP Control Tower"],
-  ["/clientes", "Clientes REP"],
-  ["/ledger", "REP Ledger"],
-  ["/evidence", "Evidence Graph"],
-  ["/audit", "Audit Room"],
-  ["/reporting", "Report Readiness"],
-  ["/reporting/intake", "Reporting Intake"],
-  ["/state-intelligence", "State Intelligence"]
+const protectedRoutes = [
+  "/",
+  "/clientes",
+  "/ledger",
+  "/evidence",
+  "/audit",
+  "/reporting",
+  "/reporting/intake",
+  "/state-intelligence"
 ] as const;
 
-for (const [path, heading] of routes) {
-  test(`${path} renders without framework failure`, async ({ page }) => {
+for (const path of protectedRoutes) {
+  test(`${path} redirects anonymous users to sign-in`, async ({ page }) => {
     const response = await page.goto(path);
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/sign-in/);
+    await expect(page.getByRole("heading", { name: "Acceso operacional" })).toBeVisible();
     await expect(page.locator("[data-nextjs-dialog]")).toHaveCount(0);
   });
 }
+
+test("auth entry remains public", async ({ page }) => {
+  const response = await page.goto("/auth/sign-in");
+  expect(response?.status()).toBeLessThan(500);
+  await expect(page.getByRole("heading", { name: "Acceso operacional" })).toBeVisible();
+});
 
 test("machine sync rejects unauthenticated mutation", async ({ request }) => {
   const response = await request.post("/api/state-intelligence/sync?source=retc-priority-products");
