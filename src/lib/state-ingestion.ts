@@ -62,16 +62,13 @@ function canonicalName(record: Record<string, string | number | null>) {
       "Razon Social",
       "Nombre Establecimiento",
       "Nombre Destinatario",
-      "Destinatario",
-      "Nombre",
-      "Establecimiento"
+      "Destinatario"
     ]) ??
     firstMatchingValue(record, [
       /razon.*social/,
       /nombre.*establecimiento/,
       /nombre.*destinatario/,
-      /^destinatario$/,
-      /^establecimiento$/
+      /^destinatario$/
     ])
   );
 }
