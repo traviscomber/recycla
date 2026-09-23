@@ -24,10 +24,28 @@ export default function EvidencePage() {
         <div>
           <p className="eyebrow">Lineage verificable</p>
           <h1>Evidence Graph</h1>
-          <p className="muted">Desde el KPI hasta la operación física y el documento que lo respalda.</p>
+          <p className="muted">Abre cada cifra hasta la operación física y el documento que la respalda.</p>
         </div>
         <div className="period"><span>Lineage</span><strong>8.420 kg</strong></div>
       </header>
+
+      <section className="decisionStrip" aria-label="Resumen de evidencia">
+        <article>
+          <span>Estado</span>
+          <strong className="negative">Incompleto</strong>
+          <p>1 documento crítico pendiente</p>
+        </article>
+        <article>
+          <span>Completitud</span>
+          <strong>4 / 5</strong>
+          <p>80% de evidencia requerida</p>
+        </article>
+        <article>
+          <span>Cantidad afectada</span>
+          <strong>8.120 kg</strong>
+          <p>No acreditable hasta cierre</p>
+        </article>
+      </section>
 
       <section className="panel">
         <div className="panelHead">
@@ -46,7 +64,7 @@ export default function EvidencePage() {
                 <strong>{node.id}</strong>
                 <p>{node.detail}</p>
               </article>
-              {index < evidenceChain.length - 1 && <div className="connector">→</div>}
+              {index < evidenceChain.length - 1 && <div className="connector" aria-hidden="true">→</div>}
             </div>
           ))}
         </div>
@@ -55,13 +73,9 @@ export default function EvidencePage() {
       <section className="bottomGrid">
         <article className="panel">
           <div className="panelHead">
-            <div>
-              <p className="eyebrow">Documentos</p>
-              <h3>Evidence completeness</h3>
-            </div>
+            <div><p className="eyebrow">Documentos</p><h3>Qué existe y qué falta</h3></div>
             <b>4/5</b>
           </div>
-
           {documents.map((doc) => (
             <div className="finding" key={doc.id}>
               <i className={doc.state === "Validado" ? "info" : "critical"} />
@@ -71,17 +85,17 @@ export default function EvidencePage() {
           ))}
         </article>
 
-        <article className="panel">
-          <p className="eyebrow">Resultado</p>
-          <h3>La operación existe, pero aún no es acreditable.</h3>
+        <article className="panel blockerPanel">
+          <p className="eyebrow">Bottleneck</p>
+          <h3>Certificado final de valorización</h3>
           <p className="muted">
-            Falta cerrar el certificado final de valorización. El ledger puede mantener
-            el estado físico y elegible, pero no promover esta cantidad a acreditable.
+            La operación física y la valorización están registradas, pero este lineage no
+            debe promoverse a acreditable hasta completar la evidencia final.
           </p>
           <div className="notReady">
-            <span>STATUS</span>
+            <span>ESTADO DEL LINEAGE</span>
             <strong>EVIDENCIA INCOMPLETA</strong>
-            <p>8.120 kg quedan temporalmente fuera del cumplimiento acreditable.</p>
+            <p>8.120 kg permanecen bloqueados.</p>
           </div>
         </article>
       </section>
