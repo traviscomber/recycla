@@ -1,4 +1,4 @@
-# Recycla REP OS - MVP Architecture
+# Recycla REP OS - Operational Architecture
 
 ## Scope
 
