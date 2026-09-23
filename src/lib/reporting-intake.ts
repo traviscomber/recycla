@@ -78,10 +78,7 @@ function numberValue(value: string | null) {
       normalized = parts.join("") + "." + decimal;
     } else {
       const [left, right = ""] = parts;
-      normalized =
-        right.length === 3 && left.replace("-", "").length <= 3
-          ? left + right
-          : left + "." + right;
+      normalized = left + "." + right;
     }
   } else if (dot >= 0) {
     const parts = normalized.split(".");
