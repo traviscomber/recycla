@@ -59,19 +59,14 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
 
       <section className="ficha360Decision">
         <article className={gaps.length ? "ficha360Signal signal-attention" : "ficha360Signal signal-ok"}>
-          <span>Estado actual</span>
+          <span>Próxima acción</span>
           <strong>{status}</strong>
-          <p>{gaps.length ? `${gaps.length} producto(s) requieren acción antes del cierre.` : "Sin gaps REP detectados en el período."}</p>
+          <p>{gaps.length ? `Resolver ${gaps.length} gap(s) REP antes del cierre.` : ficha?.reporting.latestCheck?.status === "PASS" ? "Continuar al cierre regulatorio." : "Ejecutar pre-check de cumplimiento."}</p>
         </article>
         <article className="ficha360Signal">
           <span>Evidencia</span>
           <strong>{ficha?.documentCount ?? 0}</strong>
           <p>{ficha?.expiringDocumentCount ? `${ficha.expiringDocumentCount} documento(s) vencen dentro de 60 días.` : "Sin vencimientos próximos detectados."}</p>
-        </article>
-        <article className="ficha360Signal">
-          <span>Actividad ledger</span>
-          <strong>{ficha?.ledgerEventCount ?? 0}</strong>
-          <p>{ficha?.lastLedgerAt ? `Último evento ${new Date(ficha.lastLedgerAt).toLocaleDateString("es-CL")}.` : "Sin movimientos enlazados."}</p>
         </article>
         <article className={ficha?.reporting.criticalFindings ? "ficha360Signal signal-attention" : "ficha360Signal"}>
           <span>Hallazgos abiertos</span>
@@ -98,55 +93,46 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
         </div>
       </section>
 
-      <section className="clientSummary">
-        <article className="card"><span className="label">Productos REP</span><div className="big">{client.obligations.length}</div><p className="muted">Cada producto conserva su propia unidad y meta.</p></article>
-        <article className="card"><span className="label">Productos sin gap</span><div className="big">{client.obligations.length - gaps.length}</div><p className="muted">Readiness ≥ 100%.</p></article>
-        <article className={gaps.length ? "card risk" : "card"}><span className="label">Productos con gap</span><div className={gaps.length ? "gap" : "big"}>{gaps.length}</div><p className="muted">Requieren acción antes del cierre.</p></article>
-      </section>
-      <section className="panel">
-        <div className="panelHead"><div><p className="eyebrow">Readiness por producto</p><h3>No se mezclan kg y litros en una sola cifra.</h3></div><Link className="buttonLink" href="/clientes">Volver a clientes</Link></div>
-        <div className="obligationGrid">
+      <section className="panel ficha360Core">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Productos REP</p>
+            <h3>Qué está cubierto y dónde intervenir.</h3>
+          </div>
+          <Link className="buttonLink secondary" href="/clientes">Volver a clientes</Link>
+        </div>
+        <div className="ficha360Products">
           {client.obligations.map((item) => {
             const pct = readiness(item);
             const currentGap = gap(item);
             return (
-              <article className="obligationCard" key={item.stream}>
-                <div className="obligationHead"><div><span>{item.label}</span><strong>{pct.toFixed(1)}%</strong></div><b className={currentGap < 0 ? "negative" : "positive"}>{currentGap < 0 ? "" : "+"}{fmt(currentGap)} {item.unit}</b></div>
-                <div className="miniProgress large"><div style={{ width: `${pct}%` }} /></div>
-                <dl className="metricList">
-                  <div><dt>Obligación</dt><dd>{fmt(item.obligation)} {item.unit}</dd></div>
-                  <div><dt>Recolectado</dt><dd>{fmt(item.collected)} {item.unit}</dd></div>
-                  <div><dt>Valorizado</dt><dd>{fmt(item.valued)} {item.unit}</dd></div>
-                  <div><dt>Elegible</dt><dd>{fmt(item.eligible)} {item.unit}</dd></div>
-                  <div><dt>Evidencia completa</dt><dd>{fmt(item.evidenceComplete)} {item.unit}</dd></div>
-                  <div><dt>Acreditable</dt><dd>{fmt(item.accreditable)} {item.unit}</dd></div>
-                </dl>
-              </article>
+              <details key={item.stream} className="ficha360Product">
+                <summary>
+                  <div>
+                    <strong>{item.label}</strong>
+                    <span>{pct.toFixed(1)}% readiness</span>
+                  </div>
+                  <b className={currentGap < 0 ? "negative" : "positive"}>
+                    {currentGap < 0 ? "" : "+"}{fmt(currentGap)} {item.unit}
+                  </b>
+                </summary>
+                <div className="ficha360ProductDetail">
+                  <div><span>Obligación</span><strong>{fmt(item.obligation)} {item.unit}</strong></div>
+                  <div><span>Recolectado</span><strong>{fmt(item.collected)} {item.unit}</strong></div>
+                  <div><span>Valorizado</span><strong>{fmt(item.valued)} {item.unit}</strong></div>
+                  <div><span>Elegible</span><strong>{fmt(item.eligible)} {item.unit}</strong></div>
+                  <div><span>Evidencia completa</span><strong>{fmt(item.evidenceComplete)} {item.unit}</strong></div>
+                  <div><span>Acreditable</span><strong>{fmt(item.accreditable)} {item.unit}</strong></div>
+                </div>
+              </details>
             );
           })}
         </div>
       </section>
-      <section className="clientDualView">
-        <article className="panel">
-          <div className="panelHead">
-            <div>
-              <p className="eyebrow">REP Readiness</p>
-              <h3>¿Cuánto puede acreditar?</h3>
-            </div>
-          </div>
-          <p className="muted">
-            Se calcula por producto y unidad. No se suman kg y litros en un único porcentaje.
-          </p>
-          <div className="dualMetricList">
-            {client.obligations.map((item) => (
-              <div key={item.stream}>
-                <span>{item.label}</span>
-                <strong>{readiness(item).toFixed(1)}%</strong>
-              </div>
-            ))}
-          </div>
-        </article>
 
+      <details className="ficha360Disclosure">
+        <summary>Ver circularidad y detalle operacional</summary>
+        <section className="clientDualView">
         <article className="panel">
           <div className="panelHead">
             <div>
@@ -180,6 +166,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
           )}
         </article>
       </section>
+      </details>
 
       <section className="ficha360Lower">
         <article className="panel">
@@ -247,7 +234,6 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
         </article>
       </section>
 
-      <section className="panel ledgerRule"><p className="eyebrow">Consolidación correcta</p><h3>Compliance y circularidad son dimensiones distintas.</h3><p className="muted">REP Readiness responde cuánto puede acreditar. Circularity Quality describe la ruta física del material. Ninguna reemplaza a la otra.</p></section>
     </AppShell>
   );
 }
