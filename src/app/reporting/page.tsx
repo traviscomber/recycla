@@ -398,7 +398,7 @@ export default async function ReportingPage() {
           ) : (
             <div className="emptyState compactEmpty">
               <strong>Sin bloqueadores persistidos para el período.</strong>
-              <p>Los bloqueadores aparecerán aquí desde la reconciliación real, no desde datos demo.</p>
+              <p>Los bloqueadores aparecerán aquí únicamente desde la reconciliación operacional persistida.</p>
             </div>
           )}
         </article>
