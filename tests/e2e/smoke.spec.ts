@@ -16,7 +16,7 @@ for (const path of protectedRoutes) {
     const response = await page.goto(path);
     expect(response?.status()).toBeLessThan(500);
     await expect(page).toHaveURL(/\/auth\/sign-in/);
-    await expect(page.getByRole("heading", { name: "Acceso operacional" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ingresar" })).toBeVisible();
     await expect(page.locator("[data-nextjs-dialog]")).toHaveCount(0);
   });
 }
@@ -24,7 +24,7 @@ for (const path of protectedRoutes) {
 test("auth entry remains public", async ({ page }) => {
   const response = await page.goto("/auth/sign-in");
   expect(response?.status()).toBeLessThan(500);
-  await expect(page.getByRole("heading", { name: "Acceso operacional" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ingresar" })).toBeVisible();
 });
 
 test("machine sync rejects unauthenticated mutation", async ({ request }) => {
