@@ -148,6 +148,7 @@ export type StateMatch = {
   resourceId: string;
   resourceName: string;
   sourceYear?: number;
+  isHistorical: boolean;
   status: "VERIFIED" | "REVIEW_REQUIRED";
   matchBasis: "OFFICIAL_DATASET_TEXT_MATCH";
   record: Record<string, string | number | null>;
@@ -286,6 +287,7 @@ export async function verifyOfficialEntity(
           resourceId: resource.id as string,
           resourceName: resource.name ?? "Recurso RETC",
           sourceYear: resource.year,
+          isHistorical: resource.year ? resource.year < new Date().getFullYear() - 2 : true,
           status: "REVIEW_REQUIRED",
           matchBasis: "OFFICIAL_DATASET_TEXT_MATCH",
           record
