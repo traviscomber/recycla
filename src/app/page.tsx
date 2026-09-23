@@ -25,7 +25,7 @@ export default function Home() {
   } as const;
 
   return (
-    <AppShell active="/">
+    <AppShell active="/" dataMode="demo">
       <header className="topbar">
         <div>
           <p className="eyebrow">Operational REP Intelligence</p>
