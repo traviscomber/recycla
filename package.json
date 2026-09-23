@@ -12,7 +12,8 @@
     "postgres": "^3.4.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "@neondatabase/auth": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
