@@ -18,6 +18,13 @@ create type rep_quantity_state as enum (
   'SUSPENDED'
 );
 
+create type circularity_route as enum (
+  'PREPARATION_FOR_REUSE',
+  'RECYCLING',
+  'ENERGY_RECOVERY',
+  'DISPOSAL'
+);
+
 create table organizations (
   id uuid primary key default gen_random_uuid(),
   rut text not null unique,
@@ -124,6 +131,7 @@ create table valuation_outputs (
   lot_id uuid not null references lots(id),
   material_code text not null,
   quantity_kg numeric(18,3) not null check (quantity_kg >= 0),
+  circularity_route circularity_route not null,
   destination_name text,
   valued_at timestamptz,
   created_at timestamptz not null default now()
