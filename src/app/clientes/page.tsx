@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { hasDatabase } from "@/lib/db";
-import { listRepClients } from "@/lib/rep-repository";
+import { getRepDatabaseStatus, listRepClients } from "@/lib/rep-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,8 @@ function clientStatus(client: { obligations: Array<{ obligation: number; accredi
 
 export default async function ClientesPage() {
   const configured = hasDatabase();
-  const clients = configured ? await listRepClients() : [];
+  const databaseStatus = await getRepDatabaseStatus();
+  const clients = databaseStatus.state === "ready" ? await listRepClients() : [];
   const clientsWithGap = clients.filter((client) => client.obligations.some((item) => gap(item) < 0)).length;
   const activeObligations = clients.reduce((sum, client) => sum + client.obligations.length, 0);
   const products = new Set(clients.flatMap((client) => client.obligations.map((item) => item.stream))).size;
@@ -39,11 +40,14 @@ export default async function ClientesPage() {
         <div className="period"><span>Clientes</span><strong>{clients.length}</strong></div>
       </header>
 
-      {!configured ? (
-        <section className="panel ledgerRule">
-          <p className="eyebrow">Persistencia pendiente</p>
-          <h3>DATABASE_URL aún no está configurada en este entorno.</h3>
-          <p className="muted">La interfaz ya usa el repositorio Postgres real. Al conectar la base, esta vista dejará de depender de datos locales.</p>
+      {databaseStatus.state !== "ready" ? (
+        <section className={`systemNotice notice-${databaseStatus.state}`}>
+          <div>
+            <p className="eyebrow">Estado de datos</p>
+            <h3>{databaseStatus.state === "schema_missing" ? "Base conectada · esquema REP pendiente" : databaseStatus.state === "unavailable" ? "Base temporalmente no disponible" : "Persistencia pendiente"}</h3>
+            <p>{databaseStatus.detail}</p>
+          </div>
+          <span>{configured ? "CONEXIÓN DETECTADA" : "SIN CONEXIÓN"}</span>
         </section>
       ) : null}
 
