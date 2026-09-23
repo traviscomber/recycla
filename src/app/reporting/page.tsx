@@ -21,6 +21,7 @@ import {
   latestReportableMonth
 } from "@/lib/monthly-reporting";
 import { reconcileMonthlyReporting } from "@/lib/reporting-reconciliation";
+import { reconcileHistoricalYear } from "@/lib/historical-reconciliation";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
@@ -57,13 +58,14 @@ function gateTone(status: ComplianceGateStatus) {
 
 export default async function ReportingPage() {
   const suggestedMonth = latestReportableMonth();
-  const [syncs, snapshots, compliance, latestRun, latestMonthly, reconciliation] = await Promise.all([
+  const [syncs, snapshots, compliance, latestRun, latestMonthly, reconciliation, historical2025] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
     evaluateComplianceReadiness(),
     getLatestComplianceRun("recycla-os"),
     getLatestMonthlyRepReport("recycla-os"),
-    reconcileMonthlyReporting("recycla-os", suggestedMonth)
+    reconcileMonthlyReporting("recycla-os", suggestedMonth),
+    reconcileHistoricalYear("recycla-os", 2025)
   ]);
 
   const producerSync = syncs.find((sync) => sync.sourceId === "retc-priority-products");
@@ -174,6 +176,65 @@ export default async function ReportingPage() {
             <p>Referencia visual · no afecta el estado live</p>
           </article>
         </div>
+      </section>
+
+      <section className="panel historicalBackfillPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Historical backfill · 2025</p>
+            <h3>Reconciliar operación histórica contra el benchmark anual publicado por Recycla.</h3>
+          </div>
+          <b className={historical2025?.status === "MATCH" ? "positive" : historical2025?.status === "PARTIAL" ? "warningText" : "negative"}>
+            {historical2025?.status ?? "SIN REFERENCIA"}
+          </b>
+        </div>
+
+        <div className="complianceRunSummary">
+          <article>
+            <span>Referencia pública</span>
+            <strong>{historical2025?.referenceTotalTonnes?.toLocaleString("es-CL") ?? "—"} t</strong>
+            <p>Reporte de Sostenibilidad Recycla 2025</p>
+          </article>
+          <article>
+            <span>Operación cargada</span>
+            <strong>{historical2025?.operationalTotalTonnes?.toLocaleString("es-CL") ?? "0"} t</strong>
+            <p>Waste operations normalizadas del año 2025</p>
+          </article>
+          <article>
+            <span>Categorías conciliadas</span>
+            <strong>{historical2025?.matchedCategories ?? 0}/9</strong>
+            <p>Sin inventar distribución mensual</p>
+          </article>
+        </div>
+
+        {historical2025 ? (
+          <div className="historicalRows">
+            {historical2025.categories.map((item) => (
+              <article key={item.category}>
+                <div>
+                  <strong>{item.category}</strong>
+                  <p>Referencia: {item.referenceTonnes.toLocaleString("es-CL")} t</p>
+                </div>
+                <div>
+                  <span>Operación</span>
+                  <strong>{item.operationalTonnes === null ? "SIN DATOS" : item.operationalTonnes.toLocaleString("es-CL") + " t"}</strong>
+                </div>
+                <div>
+                  <span>Δ</span>
+                  <strong>
+                    {item.deltaTonnes === null
+                      ? "—"
+                      : item.deltaTonnes.toLocaleString("es-CL", { maximumFractionDigits: 3 }) + " t"}
+                  </strong>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        <p className="historicalCaveat">
+          Esta referencia anual proviene del sitio público de Recycla y sirve para QA/backfill. No reemplaza registros operacionales, respaldos ni reportabilidad REP.
+        </p>
       </section>
 
       <section className="panel monthlyClosePanel">
