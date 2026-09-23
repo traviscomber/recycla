@@ -21,8 +21,34 @@ jobs:
       - name: Install
         run: npm install
 
+      - name: Product language guard
+        run: npm run check:product-language
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Production dependency audit
         run: node scripts/security-audit.mjs
 
       - name: Build
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser E2E
+        run: npm run test:e2e
