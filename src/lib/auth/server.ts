@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { createNeonAuth } from "@neondatabase/auth/next/server";
 
 export type RecyclaRole = "viewer" | "operator" | "compliance" | "admin";
@@ -7,23 +8,40 @@ export type RecyclaRole = "viewer" | "operator" | "compliance" | "admin";
 const writeRoles = new Set<RecyclaRole>(["operator", "compliance", "admin"]);
 const complianceRoles = new Set<RecyclaRole>(["compliance", "admin"]);
 
+const DEFAULT_NEON_AUTH_BASE_URL =
+  "https://ep-raspy-truth-aueadgwt.neonauth.c-10.us-east-1.aws.neon.tech/neondb/auth";
+
+function resolveCookieSecret() {
+  const explicit = process.env.NEON_AUTH_COOKIE_SECRET;
+  if (explicit && explicit.length >= 32) return explicit;
+
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) return null;
+
+  return createHash("sha256")
+    .update("recycla-neon-auth-cookie-v1\0")
+    .update(databaseUrl)
+    .digest("base64url");
+}
+
 export function isAuthConfigured() {
   return Boolean(
-    process.env.NEON_AUTH_BASE_URL &&
-      process.env.NEON_AUTH_COOKIE_SECRET &&
-      process.env.NEON_AUTH_COOKIE_SECRET.length >= 32
+    (process.env.NEON_AUTH_BASE_URL || DEFAULT_NEON_AUTH_BASE_URL) &&
+      resolveCookieSecret()
   );
 }
 
 function createAuth() {
-  if (!isAuthConfigured()) {
+  const secret = resolveCookieSecret();
+
+  if (!secret) {
     throw new Error("AUTH_NOT_CONFIGURED");
   }
 
   return createNeonAuth({
-    baseUrl: process.env.NEON_AUTH_BASE_URL!,
+    baseUrl: process.env.NEON_AUTH_BASE_URL || DEFAULT_NEON_AUTH_BASE_URL,
     cookies: {
-      secret: process.env.NEON_AUTH_COOKIE_SECRET!
+      secret
     }
   });
 }
