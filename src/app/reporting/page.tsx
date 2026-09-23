@@ -384,13 +384,23 @@ export default async function ReportingPage() {
             </div>
             <Link className="buttonLink" href="/audit">Abrir Audit Room →</Link>
           </div>
-          {blockers.map((item) => (
-            <div className="finding" key={item.label}>
-              <i className="warning" />
-              <span>{item.label}<small>{item.count} operaciones · demo</small></span>
-              <strong>{fmt(item.quantity)} kg</strong>
+          {reconciliation?.issues.length ? (
+            reconciliation.issues.slice(0, 5).map((issue) => (
+              <div className="finding" key={issue.code + issue.detail}>
+                <i className="warning" />
+                <span>
+                  {issue.code.replaceAll("_", " ")}
+                  <small>{issue.severity} · reconciliación live</small>
+                </span>
+                <strong>{issue.severity}</strong>
+              </div>
+            ))
+          ) : (
+            <div className="emptyState compactEmpty">
+              <strong>Sin bloqueadores persistidos para el período.</strong>
+              <p>Los bloqueadores aparecerán aquí desde la reconciliación real, no desde datos demo.</p>
             </div>
-          ))}
+          )}
         </article>
 
         <article className="panel">
