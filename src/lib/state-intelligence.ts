@@ -428,26 +428,45 @@ export async function fetchLatestRows(resource: LatestResourceInfo) {
     }
 
     const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
-    const firstSheet = workbook.SheetNames[0];
-    if (!firstSheet) return [];
 
-    const sheet = workbook.Sheets[firstSheet];
-    const preview = XLSX.utils.sheet_to_json<Array<string | number | null>>(sheet, {
-      header: 1,
-      defval: null,
-      raw: false,
-      blankrows: false
-    });
+    const candidates = workbook.SheetNames.map((sheetName) => {
+      const sheet = workbook.Sheets[sheetName];
+      const preview = XLSX.utils.sheet_to_json<Array<string | number | null>>(sheet, {
+        header: 1,
+        defval: null,
+        raw: false,
+        blankrows: false
+      });
 
-    const headerIndex = preview
-      .slice(0, 20)
-      .findIndex((row) => row.filter((value) => value !== null && String(value).trim() !== "").length >= 3);
+      const headerIndex = preview
+        .slice(0, 30)
+        .findIndex((row) => {
+          const populated = row.filter(
+            (value) => value !== null && String(value).trim() !== ""
+          );
+          return populated.length >= 3;
+        });
 
-    return XLSX.utils.sheet_to_json<Record<string, string | number | null>>(sheet, {
-      defval: null,
-      raw: false,
-      range: headerIndex >= 0 ? headerIndex : 0
-    });
+      const rows = XLSX.utils.sheet_to_json<Record<string, string | number | null>>(
+        sheet,
+        {
+          defval: null,
+          raw: false,
+          range: headerIndex >= 0 ? headerIndex : 0
+        }
+      );
+
+      return {
+        sheetName,
+        rows: rows.filter((row) =>
+          Object.values(row).some(
+            (value) => value !== null && String(value).trim() !== ""
+          )
+        )
+      };
+    }).sort((a, b) => b.rows.length - a.rows.length);
+
+    return candidates[0]?.rows ?? [];
   } finally {
     clearTimeout(timeout);
   }
