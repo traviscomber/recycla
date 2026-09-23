@@ -18,6 +18,28 @@ create type rep_quantity_state as enum (
   'SUSPENDED'
 );
 
+create type circularity_route as enum (
+  'PREPARATION_FOR_REUSE',
+  'RECYCLING',
+  'ENERGY_RECOVERY',
+  'DISPOSAL'
+);
+
+create type rep_actor_role as enum (
+  'PRODUCER_IMPORTER',
+  'MANAGEMENT_SYSTEM',
+  'WASTE_MANAGER',
+  'CONSUMER',
+  'MUNICIPALITY'
+);
+
+create type rep_relationship_type as enum (
+  'FINANCES_SYSTEM',
+  'CONTRACTS_MANAGER',
+  'DELIVERS_WASTE',
+  'PUTS_PRODUCT_ON_MARKET'
+);
+
 create table organizations (
   id uuid primary key default gen_random_uuid(),
   rut text not null unique,
@@ -36,6 +58,32 @@ create table sites (
   commune text,
   created_at timestamptz not null default now()
 );
+
+create table organization_rep_roles (
+  organization_id uuid not null references organizations(id),
+  role rep_actor_role not null,
+  valid_from date,
+  valid_to date,
+  metadata jsonb not null default '{}'::jsonb,
+  primary key (organization_id, role)
+);
+
+create table rep_relationships (
+  id uuid primary key default gen_random_uuid(),
+  from_organization_id uuid not null references organizations(id),
+  to_organization_id uuid not null references organizations(id),
+  relationship_type rep_relationship_type not null,
+  valid_from date,
+  valid_to date,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index rep_relationships_from_idx
+  on rep_relationships(from_organization_id, relationship_type);
+
+create index rep_relationships_to_idx
+  on rep_relationships(to_organization_id, relationship_type);
 
 create table reporting_periods (
   id uuid primary key default gen_random_uuid(),
@@ -124,6 +172,7 @@ create table valuation_outputs (
   lot_id uuid not null references lots(id),
   material_code text not null,
   quantity_kg numeric(18,3) not null check (quantity_kg >= 0),
+  circularity_route circularity_route not null,
   destination_name text,
   valued_at timestamptz,
   created_at timestamptz not null default now()
@@ -140,6 +189,20 @@ create table documents (
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+create table valuation_allocations (
+  id uuid primary key default gen_random_uuid(),
+  valuation_output_id uuid not null references valuation_outputs(id),
+  organization_id uuid not null references organizations(id),
+  collection_id uuid references collections(id),
+  quantity_kg numeric(18,3) not null check (quantity_kg >= 0),
+  allocation_method text not null check (allocation_method in ('DIRECT','MASS_SHARE','MANUAL')),
+  evidence_document_id uuid references documents(id),
+  created_at timestamptz not null default now()
+);
+
+create index valuation_allocations_org_idx
+  on valuation_allocations(organization_id, valuation_output_id);
 
 alter table weighings
   add constraint weighings_evidence_document_fk
@@ -187,4 +250,55 @@ create table audit_findings (
   detail text not null,
   created_at timestamptz not null default now(),
   resolved_at timestamptz
+);
+
+
+create table external_source_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  source_id text not null,
+  source_url text not null,
+  subject_type text not null,
+  subject_id uuid,
+  external_identifier text,
+  status text not null check (status in ('VERIFIED','NOT_FOUND','REVIEW_REQUIRED','UNAVAILABLE')),
+  fetched_at timestamptz not null default now(),
+  source_modified_at timestamptz,
+  normalized_payload jsonb not null default '{}'::jsonb,
+  checksum_sha256 text,
+  created_at timestamptz not null default now()
+);
+
+create index external_source_snapshots_subject_idx
+  on external_source_snapshots(subject_type, subject_id, source_id, fetched_at desc);
+
+
+create table external_source_records (
+  id uuid primary key default gen_random_uuid(),
+  source_id text not null,
+  resource_id text not null,
+  resource_name text not null,
+  source_year int,
+  external_identifier text,
+  canonical_name text,
+  normalized_payload jsonb not null,
+  record_sha256 text not null,
+  source_url text not null,
+  ingested_at timestamptz not null default now(),
+  unique(source_id, resource_id, record_sha256)
+);
+
+create index external_source_records_lookup_idx
+  on external_source_records(source_id, canonical_name);
+
+create table external_source_sync_runs (
+  id uuid primary key default gen_random_uuid(),
+  source_id text not null,
+  resource_id text,
+  resource_name text,
+  source_year int,
+  status text not null check (status in ('RUNNING','SUCCESS','FAILED','SKIPPED')),
+  row_count int not null default 0,
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  detail text
 );

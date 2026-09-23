@@ -1,81 +1,225 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { fmt } from "@/lib/rep";
+import { auditScope, complianceSources } from "@/lib/compliance";
+import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
+import { getLatestComplianceRun } from "@/lib/compliance-runs";
+import { listComplianceFindings } from "@/lib/compliance-findings";
+import { listRecentSnapshots } from "@/lib/state-snapshots";
 
-const findings = [
-  { id: "AUD-001", severity: "critical", type: "Evidencia", entity: "VAL-551", affected: 18240, detail: "Valorización sin certificado final." },
-  { id: "AUD-002", severity: "warning", type: "Mass balance", entity: "LOT-2291", affected: 7310, detail: "Entrada y salidas del lote no reconcilian dentro del umbral esperado." },
-  { id: "AUD-003", severity: "warning", type: "Pesaje", entity: "PES-1938", affected: 3120, detail: "Diferencia entre peso declarado y peso de recepción." },
-  { id: "AUD-004", severity: "info", type: "Clasificación", entity: "RCL-4799", affected: 890, detail: "Categoría REP aún no confirmada." }
-];
+export const dynamic = "force-dynamic";
 
-const checks = [
-  ["Doble imputación", "PASS"],
-  ["Gestor / destino", "PASS"],
-  ["Cadena de custodia", "PASS"],
-  ["Mass balance", "2 observaciones"],
-  ["Evidencia documental", "1 crítica"],
-  ["Clasificación REP", "1 pendiente"]
-];
+export default async function AuditPage() {
+  const [snapshots, compliance, latestRun, liveFindings] = await Promise.all([
+    listRecentSnapshots(100),
+    evaluateComplianceReadiness(),
+    getLatestComplianceRun("recycla-os"),
+    listComplianceFindings("recycla-os", 100)
+  ]);
+  const externalActorEvidence = snapshots.filter(
+    (snapshot) =>
+      snapshot.subjectType.startsWith("rep_actor_") &&
+      snapshot.status !== "UNAVAILABLE"
+  );
+  const reviewRequired = externalActorEvidence.filter(
+    (snapshot) => snapshot.status === "REVIEW_REQUIRED"
+  );
 
-export default function AuditPage() {
   return (
     <AppShell active="/audit">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Pre-fiscalización</p>
+          <p className="eyebrow">Compliance assurance</p>
           <h1>Audit Room</h1>
-          <p className="muted">Detecta inconsistencias antes de convertir operación física en cumplimiento reportable.</p>
+          <p className="muted">
+            Probar consistencia, trazabilidad y respaldo antes de que el período llegue al informe de cumplimiento.
+          </p>
         </div>
-        <div className="period"><span>Hallazgos abiertos</span><strong>{findings.length}</strong></div>
+        <div className="period">
+          <span>Evidencia externa</span>
+          <strong>{externalActorEvidence.length}</strong>
+        </div>
       </header>
 
-      <section className="auditSummary">
-        {checks.map(([label, value]) => (
-          <article className="stream" key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-          </article>
-        ))}
+      <section className="panel auditRunStatus">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Último compliance pre-check</p>
+            <h3>{latestRun?.status ?? "SIN EJECUTAR"}</h3>
+          </div>
+          <Link className="buttonLink" href="/reporting">Ejecutar desde Report Readiness →</Link>
+        </div>
+        <p className="muted">
+          {latestRun?.finishedAt
+            ? "Última corrida persistida: " + new Date(latestRun.finishedAt).toLocaleString("es-CL")
+            : "Aún no existe una corrida persistida de los gates de compliance."}
+        </p>
+      </section>
+
+      <section className="decisionStrip auditDecisionStrip" aria-label="Resumen de auditoría">
+        <article>
+          <span>Hallazgos críticos</span>
+          <strong className="negative">{liveFindings.filter((finding) => finding.status === "open" && finding.severity === "critical").length}</strong>
+          <p>Live · reconciliación persistida</p>
+        </article>
+        <article>
+          <span>Snapshots oficiales</span>
+          <strong>{externalActorEvidence.length}</strong>
+          <p>Persistidos en State Intelligence</p>
+        </article>
+        <article>
+          <span>Requieren revisión</span>
+          <strong>{reviewRequired.length}</strong>
+          <p>No equivalen a cumplimiento</p>
+        </article>
       </section>
 
       <section className="panel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Hallazgos</p>
-            <h3>Qué bloquea o debilita la acreditación</h3>
+            <p className="eyebrow">Alcance regulatorio de auditoría</p>
+            <h3>Qué debe poder verificar un auditor sobre los datos REP.</h3>
           </div>
-          <button>Ejecutar auditoría</button>
+          <a className="buttonLink" href={complianceSources.res2084.url} target="_blank" rel="noreferrer">
+            Res. 2084 ↗
+          </a>
         </div>
 
-        <div className="tableWrap">
-          <table className="dataTable">
-            <thead>
-              <tr>
-                <th>ID</th><th>Severidad</th><th>Tipo</th><th>Entidad</th><th>Cantidad</th><th>Detalle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {findings.map((f) => (
-                <tr key={f.id}>
-                  <td><strong>{f.id}</strong></td>
-                  <td><span className={`auditTag audit-${f.severity}`}>{f.severity}</span></td>
-                  <td>{f.type}</td>
-                  <td>{f.entity}</td>
-                  <td>{fmt(f.affected)} kg</td>
-                  <td>{f.detail}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="auditScopeGrid">
+          {auditScope.map((item, index) => {
+            const result = compliance.find((gate) => gate.id === item.id);
+            return (
+              <article key={item.id}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <strong>{item.label}</strong>
+                  <p>{result?.detail ?? item.requirement}</p>
+                  <small>
+                    {item.legalBasis}
+                    {result?.evidenceCount ? " · " + result.evidenceCount + " evidencias" : ""}
+                  </small>
+                </div>
+                <b className={"auditGateStatus auditGate-" + (result?.status ?? "NOT_CONNECTED").toLowerCase()}>
+                  {(result?.status ?? "NOT_CONNECTED").replaceAll("_", " ")}
+                </b>
+              </article>
+            );
+          })}
         </div>
+      </section>
+
+      <section className="panel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Hallazgos live · reconciliación</p>
+            <h3>Brechas detectadas automáticamente en los datos reportables.</h3>
+          </div>
+          <b>{liveFindings.filter((finding) => finding.status === "open").length}</b>
+        </div>
+
+        {liveFindings.length ? (
+          <div className="tableWrap">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>Severidad</th><th>Estado</th><th>Período</th><th>Código</th><th>Detalle</th><th>Casos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liveFindings.map((finding) => (
+                  <tr key={finding.id}>
+                    <td><span className={"auditTag audit-" + finding.severity}>{finding.severity}</span></td>
+                    <td>{finding.status}</td>
+                    <td>{finding.reportingMonth}</td>
+                    <td><strong>{finding.code}</strong></td>
+                    <td>{finding.detail}</td>
+                    <td>{finding.occurrenceCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin hallazgos live persistidos.</strong>
+            <p>Ejecuta el compliance pre-check para sincronizar la reconciliación con Audit Room.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="panel auditExternalEvidence">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Official external evidence · Live</p>
+            <h3>Snapshots oficiales disponibles para revisión.</h3>
+          </div>
+          <b>{externalActorEvidence.length}</b>
+        </div>
+
+        {externalActorEvidence.length ? (
+          <div className="auditExternalRows">
+            {externalActorEvidence.slice(0, 10).map((snapshot) => (
+              <article key={snapshot.id}>
+                <span className={"snapshotStatus snapshot-" + snapshot.status.toLowerCase()}>
+                  {snapshot.status}
+                </span>
+                <div>
+                  <strong>{snapshot.subjectLabel ?? snapshot.externalIdentifier ?? "Actor externo"}</strong>
+                  <p>
+                    {snapshot.sourceId}
+                    {snapshot.sourceYear ? " · fuente " + snapshot.sourceYear : ""}
+                    {snapshot.externalIdentifier ? " · ID " + snapshot.externalIdentifier : ""}
+                  </p>
+                </div>
+                <time>{new Date(snapshot.fetchedAt).toLocaleString("es-CL")}</time>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin evidencia externa asociada a actores.</strong>
+            <p>Las verificaciones persistidas aparecerán aquí sin convertirlas automáticamente en PASS.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="bottomGrid">
+        <article className="panel">
+          <p className="eyebrow">Auditor externo</p>
+          <h3>Preparar evidencia como si la muestra fuese solicitada mañana.</h3>
+          <p className="muted">
+            La revisión debe poder reconstruir clasificación, equivalencias, cifras mensuales y transacciones comerciales sin depender de conocimiento informal.
+          </p>
+          <div className="sourceLinks">
+            <a href={complianceSources.law20920.url} target="_blank" rel="noreferrer">Ley 20.920 ↗</a>
+            <a href={complianceSources.res2084.url} target="_blank" rel="noreferrer">Res. 2084 ↗</a>
+          </div>
+        </article>
+
+        <article className="panel">
+          <p className="eyebrow">Archivo regulatorio</p>
+          <h3>Seis años de respaldo documental.</h3>
+          <p className="muted">
+            El diseño de Evidence Graph debe permitir conservar y recuperar la documentación que respalda cada dato reportado durante ese período.
+          </p>
+        </article>
+      </section>
+
+      <section className="externalAuditCheck">
+        <div>
+          <p className="eyebrow">External verification</p>
+          <h3>Gestores y destinos deben poder contrastarse con fuentes oficiales antes del cierre.</h3>
+          <p>La coincidencia externa agrega contexto verificable, pero no resuelve por sí sola una observación REP.</p>
+        </div>
+        <Link className="buttonLink" href="/state-intelligence?kind=hazardous_destination">
+          Verificar en RETC →
+        </Link>
       </section>
 
       <section className="panel ledgerRule">
         <p className="eyebrow">Audit principle</p>
-        <h3>El sistema no “arregla” silenciosamente una inconsistencia.</h3>
+        <h3>Una inconsistencia se resuelve y queda trazada; nunca se borra del historial.</h3>
         <p className="muted">
-          Cada corrección conserva el hallazgo, la resolución, quién la realizó y qué entrada
-          del ledger fue reemplazada o suspendida.
+          El hallazgo original, su evidencia, la resolución aplicada y el estado final deben quedar vinculados al dato reportado.
         </p>
       </section>
     </AppShell>
