@@ -467,3 +467,15 @@ h1{font-weight:500;letter-spacing:-.035em}
   .snapshotRows article{grid-template-columns:1fr}
   .snapshotRows time{text-align:left}
 }
+
+.networkEvidenceRegistry{margin-bottom:18px}
+.networkEvidenceRows{display:grid}
+.networkEvidenceRows article{display:grid;grid-template-columns:130px minmax(0,1fr) 100px;gap:16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.networkEvidenceRows article:first-child{border-top:0}
+.networkEvidenceRows strong{display:block;font-size:11px}
+.networkEvidenceRows p{margin:3px 0 0;color:var(--text-faint);font-size:9px}
+.networkEvidenceRows time{color:var(--text-faint);font-size:9px;text-align:right}
+@media(max-width:640px){
+  .networkEvidenceRows article{grid-template-columns:1fr}
+  .networkEvidenceRows time{text-align:left}
+}
