@@ -21,5 +21,11 @@ jobs:
       - name: Install
         run: npm install
 
+      - name: Product language guard
+        run: npm run check:product-language
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npm run build
