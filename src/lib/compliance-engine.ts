@@ -51,6 +51,8 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
         "evidence_links",
         "rep_ledger_entries",
         "audit_findings",
+        "market_introductions",
+        "waste_management_operations",
         "monthly_rep_reports",
         "external_source_snapshots"
       ].map(async (name) => [name, await tableExists(name)])
@@ -108,20 +110,40 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
     set("equivalence", "NOT_CONNECTED", "Obligaciones y asignaciones de valorización aún no están conectadas.");
   }
 
-  set(
-    "market-transactions",
-    "NOT_CONNECTED",
-    "Falta el registro normalizado de introducción al mercado y transacciones comerciales exigidas para la reconciliación mensual."
-  );
+  if (exists.market_introductions) {
+    set(
+      "market-transactions",
+      counts.market_introductions > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      counts.market_introductions > 0
+        ? "Hay introducciones al mercado normalizadas; falta reconciliar categorías, consumidor y transacciones con el cierre mensual."
+        : "El registro de introducciones al mercado está instalado, pero aún no contiene transacciones reportables.",
+      counts.market_introductions
+    );
+  } else {
+    set(
+      "market-transactions",
+      "NOT_CONNECTED",
+      "Falta el registro normalizado de introducción al mercado y transacciones comerciales exigidas para la reconciliación mensual."
+    );
+  }
 
-  if (exists.collections && exists.valuation_outputs) {
+  if (exists.waste_management_operations) {
+    set(
+      "waste-operations",
+      counts.waste_management_operations > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
+      counts.waste_management_operations > 0
+        ? "Hay operaciones de gestión normalizadas; falta reconciliar tipo, contraparte, cantidad, costo y respaldo tributario."
+        : "El registro de operaciones de gestión está instalado, pero aún no contiene operaciones reportables.",
+      counts.waste_management_operations
+    );
+  } else if (exists.collections && exists.valuation_outputs) {
     const total = counts.collections + counts.valuation_outputs;
     set(
       "waste-operations",
       total > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
       total > 0
-        ? "Existen operaciones físicas; falta validar contraparte, cantidad, costo y respaldo tributario."
-        : "Las tablas existen, pero todavía no hay operaciones físicas suficientes para auditar.",
+        ? "Existen operaciones físicas; falta normalizarlas al formato mensual de compliance."
+        : "Las tablas operacionales existen, pero todavía no hay datos suficientes para auditar.",
       total
     );
   } else {
