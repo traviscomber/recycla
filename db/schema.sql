@@ -25,6 +25,21 @@ create type circularity_route as enum (
   'DISPOSAL'
 );
 
+create type rep_actor_role as enum (
+  'PRODUCER_IMPORTER',
+  'MANAGEMENT_SYSTEM',
+  'WASTE_MANAGER',
+  'CONSUMER',
+  'MUNICIPALITY'
+);
+
+create type rep_relationship_type as enum (
+  'FINANCES_SYSTEM',
+  'CONTRACTS_MANAGER',
+  'DELIVERS_WASTE',
+  'PUTS_PRODUCT_ON_MARKET'
+);
+
 create table organizations (
   id uuid primary key default gen_random_uuid(),
   rut text not null unique,
@@ -43,6 +58,32 @@ create table sites (
   commune text,
   created_at timestamptz not null default now()
 );
+
+create table organization_rep_roles (
+  organization_id uuid not null references organizations(id),
+  role rep_actor_role not null,
+  valid_from date,
+  valid_to date,
+  metadata jsonb not null default '{}'::jsonb,
+  primary key (organization_id, role)
+);
+
+create table rep_relationships (
+  id uuid primary key default gen_random_uuid(),
+  from_organization_id uuid not null references organizations(id),
+  to_organization_id uuid not null references organizations(id),
+  relationship_type rep_relationship_type not null,
+  valid_from date,
+  valid_to date,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index rep_relationships_from_idx
+  on rep_relationships(from_organization_id, relationship_type);
+
+create index rep_relationships_to_idx
+  on rep_relationships(to_organization_id, relationship_type);
 
 create table reporting_periods (
   id uuid primary key default gen_random_uuid(),
