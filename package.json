@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/apply-state-intelligence-migration.mjs && node scripts/run-state-intelligence-smoke.mjs && next build",
+    "build": "next build",
     "start": "next start"
   },
   "dependencies": {
