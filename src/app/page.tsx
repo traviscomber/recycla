@@ -1,8 +1,26 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { auditFindings, demo, fmt, priorityStreams } from "@/lib/rep";
+import { getStateSyncOverview } from "@/lib/state-ingestion";
+import { listRecentSnapshots } from "@/lib/state-snapshots";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [stateSyncs, stateSnapshots] = await Promise.all([
+    getStateSyncOverview(),
+    listRecentSnapshots(100)
+  ]);
+  const priorityProducerSync = stateSyncs.find(
+    (sync) => sync.sourceId === "retc-priority-products"
+  );
+  const actorSnapshots = stateSnapshots.filter((snapshot) =>
+    snapshot.subjectType.startsWith("rep_actor_")
+  );
+  const reviewRequiredSnapshots = actorSnapshots.filter(
+    (snapshot) => snapshot.status === "REVIEW_REQUIRED"
+  );
+
   const readiness = Math.min(100, (demo.accreditable / demo.obligation) * 100);
   const gap = demo.accreditable - demo.obligation;
   const projectedGap = demo.projectedAccreditable - demo.obligation;
@@ -65,6 +83,33 @@ export default function Home() {
             <p>{s.regulatoryMilestone} · {s.traceability}</p>
           </Link>
         ))}
+      </section>
+
+      <section className="panel statePulse">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Official data layer · Live</p>
+            <h3>RETC conectado al contexto operativo</h3>
+          </div>
+          <Link className="buttonLink" href="/state-intelligence">Abrir State Intelligence →</Link>
+        </div>
+        <div className="decisionStrip statePulseStrip">
+          <article>
+            <span>Registros productor</span>
+            <strong>{priorityProducerSync?.rowCount?.toLocaleString("es-CL") ?? "—"}</strong>
+            <p>{priorityProducerSync?.sourceYear ? `Fuente RETC ${priorityProducerSync.sourceYear}` : "Sin sync confirmado"}</p>
+          </article>
+          <article>
+            <span>Snapshots actores</span>
+            <strong>{actorSnapshots.length}</strong>
+            <p>Evidencia externa persistida</p>
+          </article>
+          <article>
+            <span>Requieren revisión</span>
+            <strong>{reviewRequiredSnapshots.length}</strong>
+            <p>No equivalen a cumplimiento REP</p>
+          </article>
+        </div>
       </section>
 
       <section className="focusBand">
