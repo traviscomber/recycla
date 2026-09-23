@@ -188,9 +188,8 @@ export async function reconcileMonthlyReporting(
       });
     }
 
-    const status = issues.some((issue) => issue.severity === "BLOCKING")
-      ? "HOLD"
-      : issues.length
+    const status: MonthlyReconciliation["status"] =
+      issues.some((issue) => issue.severity === "BLOCKING") || issues.length
         ? "HOLD"
         : "READY";
 
