@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { listRecentSnapshots } from "@/lib/state-snapshots";
 import {
   getStateSourceMetadata,
   stateSources,
@@ -27,9 +28,10 @@ export default async function StateIntelligencePage({
       ? params.kind
       : "producer";
 
-  const [metadata, verification] = await Promise.all([
+  const [metadata, verification, snapshots] = await Promise.all([
     Promise.all(stateSources.map(getStateSourceMetadata)),
-    query ? searchLatestOfficialResource(kind, query) : Promise.resolve(null)
+    query ? searchLatestOfficialResource(kind, query) : Promise.resolve(null),
+    listRecentSnapshots(8)
   ]);
 
   const metaById = new Map(metadata.map((item) => [item.id, item]));
@@ -189,6 +191,38 @@ export default async function StateIntelligencePage({
             </article>
           );
         })}
+      </section>
+
+      <section className="panel snapshotRegistry">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">State Snapshot Registry</p>
+            <h3>Qué evidencia externa quedó congelada para decisiones operacionales.</h3>
+          </div>
+          <b>{snapshots.length}</b>
+        </div>
+
+        {snapshots.length ? (
+          <div className="snapshotRows">
+            {snapshots.map((snapshot) => (
+              <article key={snapshot.id}>
+                <span className={`snapshotStatus snapshot-${snapshot.status.toLowerCase()}`}>
+                  {snapshot.status}
+                </span>
+                <div>
+                  <strong>{snapshot.externalIdentifier ?? "Sin identificador externo"}</strong>
+                  <p>{snapshot.sourceId} · {snapshot.subjectType}</p>
+                </div>
+                <time>{new Date(snapshot.fetchedAt).toLocaleString("es-CL")}</time>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Aún no hay snapshots persistidos.</strong>
+            <p>El registro se poblará cuando una verificación oficial se congele como evidencia del expediente.</p>
+          </div>
+        )}
       </section>
 
       <section className="bottomGrid">
