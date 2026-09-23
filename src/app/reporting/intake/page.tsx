@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { requireWriteSession } from "@/lib/auth/server";
 import {
   importReportingFile,
   listRecentReportingImports
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 async function importFileAction(formData: FormData) {
   "use server";
+
+  await requireWriteSession();
 
   const file = formData.get("file");
   const rawType = String(formData.get("type") ?? "");
