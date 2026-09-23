@@ -10,7 +10,7 @@ const entries = [
 
 export default function LedgerPage() {
   return (
-    <AppShell active="/ledger">
+    <AppShell active="/ledger" dataMode="demo">
       <header className="topbar">
         <div>
           <p className="eyebrow">System of record</p>
