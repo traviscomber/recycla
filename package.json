@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "check:product-language": "node scripts/check-product-language.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "next": "^16.0.0",
@@ -21,6 +24,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "@playwright/test": "^1.55.0"
   }
 }
