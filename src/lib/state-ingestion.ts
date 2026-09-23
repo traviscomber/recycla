@@ -187,6 +187,12 @@ export async function syncOfficialSource(sourceId: string): Promise<StateSyncRes
         source_url: resource.url
       }));
 
+      await sql`
+        delete from external_source_records
+        where source_id = ${sourceId}
+          and resource_id = ${resource.id}
+      `;
+
       if (normalized.length) {
         for (let index = 0; index < normalized.length; index += 500) {
           const chunk = normalized.slice(index, index + 500);
