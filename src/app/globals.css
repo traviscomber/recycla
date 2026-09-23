@@ -479,3 +479,15 @@ h1{font-weight:500;letter-spacing:-.035em}
   .networkEvidenceRows article{grid-template-columns:1fr}
   .networkEvidenceRows time{text-align:left}
 }
+
+.auditExternalEvidence{margin-bottom:18px}
+.auditExternalRows{display:grid}
+.auditExternalRows article{display:grid;grid-template-columns:130px minmax(0,1fr) 150px;gap:16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.auditExternalRows article:first-child{border-top:0}
+.auditExternalRows strong{display:block;font-size:11px}
+.auditExternalRows p{margin:3px 0 0;color:var(--text-faint);font-size:9px}
+.auditExternalRows time{color:var(--text-faint);font-size:9px;text-align:right}
+@media(max-width:640px){
+  .auditExternalRows article{grid-template-columns:1fr}
+  .auditExternalRows time{text-align:left}
+}
