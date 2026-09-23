@@ -553,3 +553,14 @@ h1{font-weight:500;letter-spacing:-.035em}
   .complianceRunSummary article{border-right:0;border-bottom:1px solid var(--line)}
   .complianceRunSummary article:last-child{border-bottom:0}
 }
+
+.auditRunStatus{margin-bottom:18px}
+.auditScopeGrid article{grid-template-columns:36px minmax(0,1fr) 135px}
+.auditGateStatus{font-size:8px;letter-spacing:.08em;text-align:right}
+.auditGate-ready,.auditGate-live{color:var(--success)}
+.auditGate-review_required{color:var(--warning)}
+.auditGate-blocked,.auditGate-not_connected{color:var(--danger)}
+@media(max-width:760px){
+  .auditScopeGrid article{grid-template-columns:32px 1fr}
+  .auditGateStatus{grid-column:2;text-align:left}
+}
