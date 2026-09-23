@@ -19,7 +19,7 @@ const documents = [
 
 export default function EvidencePage() {
   return (
-    <AppShell active="/evidence">
+    <AppShell active="/evidence" dataMode="demo">
       <header className="topbar">
         <div>
           <p className="eyebrow">Lineage verificable</p>
