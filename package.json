@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/finalize-real-actor-snapshot.mjs && next build",
     "start": "next start"
   },
   "dependencies": {
