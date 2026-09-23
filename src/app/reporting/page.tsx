@@ -19,6 +19,7 @@ import {
   getLatestMonthlyRepReport,
   latestReportableMonth
 } from "@/lib/monthly-reporting";
+import { reconcileMonthlyReporting } from "@/lib/reporting-reconciliation";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
@@ -53,12 +54,14 @@ function gateTone(status: ComplianceGateStatus) {
 }
 
 export default async function ReportingPage() {
-  const [syncs, snapshots, compliance, latestRun, latestMonthly] = await Promise.all([
+  const suggestedMonth = latestReportableMonth();
+  const [syncs, snapshots, compliance, latestRun, latestMonthly, reconciliation] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
     evaluateComplianceReadiness(),
     getLatestComplianceRun("recycla-os"),
-    getLatestMonthlyRepReport("recycla-os")
+    getLatestMonthlyRepReport("recycla-os"),
+    reconcileMonthlyReporting("recycla-os", suggestedMonth)
   ]);
 
   const producerSync = syncs.find((sync) => sync.sourceId === "retc-priority-products");
@@ -188,7 +191,7 @@ export default async function ReportingPage() {
         <div className="complianceRunSummary">
           <article>
             <span>Mes fuente sugerido</span>
-            <strong>{latestReportableMonth()}</strong>
+            <strong>{suggestedMonth}</strong>
             <p>Se calcula como mes -2 para la ventana operativa actual.</p>
           </article>
           <article>
@@ -206,6 +209,58 @@ export default async function ReportingPage() {
             <p>{latestMonthly?.checksumSha256?.slice(0, 16) ?? "Se genera al persistir"}</p>
           </article>
         </div>
+      </section>
+
+      <section className="panel reconciliationPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Reconciliación del período</p>
+            <h3>Datos mínimos que deben cerrar antes de avanzar.</h3>
+          </div>
+          <b className={reconciliation?.status === "READY" ? "positive" : "negative"}>
+            {reconciliation?.status ?? "SIN DATOS"}
+          </b>
+        </div>
+
+        <div className="complianceRunSummary">
+          <article>
+            <span>Filas mercado</span>
+            <strong>{reconciliation?.marketRows ?? 0}</strong>
+            <p>Introducciones / transacciones del período</p>
+          </article>
+          <article>
+            <span>Operaciones gestión</span>
+            <strong>{reconciliation?.wasteRows ?? 0}</strong>
+            <p>Operaciones físicas normalizadas</p>
+          </article>
+          <article>
+            <span>Observaciones</span>
+            <strong>{reconciliation?.issues.length ?? 0}</strong>
+            <p>Bloqueantes + revisión requerida</p>
+          </article>
+        </div>
+
+        {reconciliation?.issues.length ? (
+          <div className="reconciliationIssues">
+            {reconciliation.issues.map((issue) => (
+              <article key={issue.code + issue.detail}>
+                <span className={"auditTag audit-" + (issue.severity === "BLOCKING" ? "critical" : "warning")}>
+                  {issue.severity}
+                </span>
+                <div>
+                  <strong>{issue.code.replaceAll("_", " ")}</strong>
+                  <p>{issue.detail}</p>
+                </div>
+                <b>{issue.count}</b>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin observaciones del reconciliador.</strong>
+            <p>Esto sólo significa que los controles implementados para este período no encontraron brechas.</p>
+          </div>
+        )}
       </section>
 
       <section className="panel monthlyReportingPanel">
