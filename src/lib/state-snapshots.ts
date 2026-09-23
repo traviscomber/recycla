@@ -127,6 +127,34 @@ export async function persistOfficialSnapshot(
             : "retc-storage-sites";
 
       const source = stateSources.find((item) => item.id === sourceId);
+      const notFoundPayload = {
+        query: input.query,
+        resourceId: verification.resource.id,
+        resourceName: verification.resource.name,
+        sourceYear: verification.resource.year ?? null,
+        note: "No match in latest official resource at snapshot time."
+      };
+      const notFoundChecksum = checksum(notFoundPayload);
+
+      const [existing] = await sql<Array<{ id: string }>>`
+        select id
+        from external_source_snapshots
+        where source_id = ${sourceId}
+          and subject_type = ${input.subjectType}
+          and external_identifier = ${input.query}
+          and checksum_sha256 = ${notFoundChecksum}
+        order by fetched_at desc
+        limit 1
+      `;
+
+      if (existing) {
+        return {
+          ok: true,
+          snapshotId: existing.id,
+          status: "NOT_FOUND",
+          detail: "Snapshot oficial idéntico ya estaba persistido."
+        };
+      }
 
       const [row] = await sql<Array<{ id: string }>>`
         insert into external_source_snapshots (
@@ -147,19 +175,8 @@ export async function persistOfficialSnapshot(
           ${input.query},
           'NOT_FOUND',
           ${verification.resource.lastModified ?? null},
-          ${sql.json({
-            query: input.query,
-            resourceId: verification.resource.id,
-            resourceName: verification.resource.name,
-            sourceYear: verification.resource.year ?? null,
-            note: "No match in latest official resource at snapshot time."
-          })},
-          ${checksum({
-            query: input.query,
-            resourceId: verification.resource.id,
-            sourceYear: verification.resource.year ?? null,
-            status: "NOT_FOUND"
-          })}
+          ${sql.json(notFoundPayload)},
+          ${notFoundChecksum}
         )
         returning id
       `;
@@ -190,6 +207,27 @@ export async function persistOfficialSnapshot(
       sourceYear: match.sourceYear ?? null,
       record: match.record
     };
+    const payloadChecksum = checksum(normalizedPayload);
+
+    const [existing] = await sql<Array<{ id: string }>>`
+      select id
+      from external_source_snapshots
+      where source_id = ${match.sourceId}
+        and subject_type = ${input.subjectType}
+        and external_identifier = ${externalIdentifier}
+        and checksum_sha256 = ${payloadChecksum}
+      order by fetched_at desc
+      limit 1
+    `;
+
+    if (existing) {
+      return {
+        ok: true,
+        snapshotId: existing.id,
+        status: snapshotStatus,
+        detail: "Snapshot oficial idéntico ya estaba persistido."
+      };
+    }
 
     const [row] = await sql<Array<{ id: string }>>`
       insert into external_source_snapshots (
@@ -211,7 +249,7 @@ export async function persistOfficialSnapshot(
         ${snapshotStatus},
         ${verification.resource.lastModified ?? null},
         ${sql.json(normalizedPayload)},
-        ${checksum(normalizedPayload)}
+        ${payloadChecksum}
       )
       returning id
     `;
@@ -261,16 +299,41 @@ export async function listRecentSnapshots(limit = 20): Promise<StateSnapshotSumm
     return await sql<StateSnapshotSummary[]>`
       select
         id,
-        source_id as "sourceId",
-        subject_type as "subjectType",
-        subject_id as "subjectId",
-        normalized_payload->>'query' as "subjectLabel",
-        external_identifier as "externalIdentifier",
+        "sourceId",
+        "subjectType",
+        "subjectId",
+        "subjectLabel",
+        "externalIdentifier",
         status,
-        nullif(normalized_payload->>'sourceYear', '')::int as "sourceYear",
-        fetched_at::text as "fetchedAt",
-        source_modified_at::text as "sourceModifiedAt"
-      from external_source_snapshots
+        "sourceYear",
+        "fetchedAt",
+        "sourceModifiedAt"
+      from (
+        select distinct on (
+          source_id,
+          subject_type,
+          external_identifier,
+          checksum_sha256
+        )
+          id,
+          source_id as "sourceId",
+          subject_type as "subjectType",
+          subject_id as "subjectId",
+          normalized_payload->>'query' as "subjectLabel",
+          external_identifier as "externalIdentifier",
+          status,
+          nullif(normalized_payload->>'sourceYear', '')::int as "sourceYear",
+          fetched_at::text as "fetchedAt",
+          source_modified_at::text as "sourceModifiedAt",
+          fetched_at
+        from external_source_snapshots
+        order by
+          source_id,
+          subject_type,
+          external_identifier,
+          checksum_sha256,
+          fetched_at desc
+      ) deduped
       order by fetched_at desc
       limit ${safeLimit}
     `;
