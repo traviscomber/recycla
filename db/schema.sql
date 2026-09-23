@@ -137,6 +137,20 @@ create table valuation_outputs (
   created_at timestamptz not null default now()
 );
 
+create table valuation_allocations (
+  id uuid primary key default gen_random_uuid(),
+  valuation_output_id uuid not null references valuation_outputs(id),
+  organization_id uuid not null references organizations(id),
+  collection_id uuid references collections(id),
+  quantity_kg numeric(18,3) not null check (quantity_kg >= 0),
+  allocation_method text not null check (allocation_method in ('DIRECT','MASS_SHARE','MANUAL')),
+  evidence_document_id uuid references documents(id),
+  created_at timestamptz not null default now()
+);
+
+create index valuation_allocations_org_idx
+  on valuation_allocations(organization_id, valuation_output_id);
+
 create table documents (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid references organizations(id),
