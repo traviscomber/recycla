@@ -153,6 +153,11 @@ export async function listRepClients(): Promise<PersistedClient[]> {
       on le.organization_id = o.id
       and le.reporting_period_id = rp.id
       and le.stream = ro.stream
+      and not exists (
+        select 1
+        from rep_ledger_entries newer
+        where newer.supersedes_entry_id = le.id
+      )
     group by
       o.slug, o.display_name, o.rut, rp.year,
       ro.stream, ro.unit, ro.quantity
