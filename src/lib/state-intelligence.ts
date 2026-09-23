@@ -336,7 +336,14 @@ export function summarizeOfficialRecord(
     }
   }
 
-  return selected.slice(0, 8);
+  if (selected.length) return selected.slice(0, 8);
+
+  return Object.entries(record)
+    .filter(([key, value]) => {
+      const cleanKey = key.trim();
+      return cleanKey && !cleanKey.startsWith("__EMPTY") && value !== null && value !== undefined && String(value).trim() !== "";
+    })
+    .slice(0, 8) as Array<[string, string | number]>;
 }
 
 
@@ -424,10 +431,23 @@ export async function fetchLatestRows(resource: LatestResourceInfo) {
     const firstSheet = workbook.SheetNames[0];
     if (!firstSheet) return [];
 
-    return XLSX.utils.sheet_to_json<Record<string, string | number | null>>(
-      workbook.Sheets[firstSheet],
-      { defval: null, raw: false }
-    );
+    const sheet = workbook.Sheets[firstSheet];
+    const preview = XLSX.utils.sheet_to_json<Array<string | number | null>>(sheet, {
+      header: 1,
+      defval: null,
+      raw: false,
+      blankrows: false
+    });
+
+    const headerIndex = preview
+      .slice(0, 20)
+      .findIndex((row) => row.filter((value) => value !== null && String(value).trim() !== "").length >= 3);
+
+    return XLSX.utils.sheet_to_json<Record<string, string | number | null>>(sheet, {
+      defval: null,
+      raw: false,
+      range: headerIndex >= 0 ? headerIndex : 0
+    });
   } finally {
     clearTimeout(timeout);
   }
