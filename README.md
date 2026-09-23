@@ -26,7 +26,7 @@ No important compliance number exists without lineage back to source evidence.
 
 ## Initial REP scope
 
-The MVP deliberately focuses on priority products with stronger physical traceability:
+The operational scope focuses on priority products with stronger physical traceability:
 
 1. Aparatos electricos y electronicos (AEE / RAEE)
 2. Neumaticos
