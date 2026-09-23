@@ -399,7 +399,7 @@ function rowText(record: Record<string, unknown>) {
     .join(" ");
 }
 
-async function fetchLatestRows(resource: LatestResourceInfo) {
+export async function fetchLatestRows(resource: LatestResourceInfo) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
 
