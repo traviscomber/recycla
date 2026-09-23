@@ -64,6 +64,22 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
     counts[name] = exists[name] ? await tableCount(name) : 0;
   }
 
+  let latestMonthlyStatus: "DRAFT" | "READY" | "SUBMITTED" | "REOPENED" | null = null;
+  if (exists.monthly_rep_reports && counts.monthly_rep_reports > 0) {
+    try {
+      const sql = db();
+      const rows = await sql<Array<{ status: "DRAFT" | "READY" | "SUBMITTED" | "REOPENED" }>>`
+        select status
+        from monthly_rep_reports
+        order by reporting_month desc, version desc
+        limit 1
+      `;
+      latestMonthlyStatus = rows[0]?.status ?? null;
+    } catch {
+      latestMonthlyStatus = null;
+    }
+  }
+
   const result = new Map<string, ComplianceGateResult>();
 
   const set = (
@@ -151,12 +167,23 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
   }
 
   if (exists.monthly_rep_reports) {
+    const monthlyStatus =
+      latestMonthlyStatus === "READY" || latestMonthlyStatus === "SUBMITTED"
+        ? "READY"
+        : counts.monthly_rep_reports > 0
+          ? "REVIEW_REQUIRED"
+          : "NOT_CONNECTED";
+
     set(
       "monthly-reports",
-      counts.monthly_rep_reports > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
-      counts.monthly_rep_reports > 0
-        ? "Existen cierres mensuales persistidos; deben reconciliarse antes del informe final."
-        : "El registro mensual está disponible, pero aún no tiene cierres persistidos.",
+      monthlyStatus,
+      latestMonthlyStatus === "SUBMITTED"
+        ? "El último cierre mensual está marcado como SUBMITTED."
+        : latestMonthlyStatus === "READY"
+          ? "El último cierre mensual está marcado como READY para su flujo regulatorio."
+          : counts.monthly_rep_reports > 0
+            ? "Existe un cierre mensual en borrador o reabierto; requiere reconciliación antes de quedar READY."
+            : "El registro mensual está disponible, pero aún no tiene cierres persistidos.",
       counts.monthly_rep_reports
     );
   } else {
