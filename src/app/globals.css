@@ -600,3 +600,18 @@ h1{font-weight:500;letter-spacing:-.035em}
 .historicalCaveat{margin:12px 0 0;color:var(--text-faint);font-size:9px;line-height:1.45}
 .warningText{color:var(--warning)}
 @media(max-width:700px){.historicalRows article{grid-template-columns:1fr}}
+
+
+.closeWorkflowPanel{display:grid;gap:18px}
+.closeWorkflow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.closeStep{min-width:0;border:1px solid var(--line);padding:14px;display:grid;gap:12px;align-content:start;background:var(--panel)}
+.closeStep>span{font-size:11px;letter-spacing:.12em;color:var(--muted)}
+.closeStep>div{display:grid;gap:4px}
+.closeStep strong{font-size:14px}
+.closeStep p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.closeStep b{font-size:10px;letter-spacing:.08em;font-weight:600}
+.closeStep-done b{color:var(--positive)}
+.closeStep-attention b{color:var(--warning)}
+.closeStep-pending{opacity:.72}
+@media (max-width:1100px){.closeWorkflow{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:680px){.closeWorkflow{grid-template-columns:1fr}.closeStep{grid-template-columns:36px 1fr auto;align-items:start}.closeStep>span{padding-top:2px}}
