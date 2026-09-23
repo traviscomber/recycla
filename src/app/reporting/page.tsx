@@ -80,6 +80,67 @@ export default async function ReportingPage() {
 
   const finalGate = compliance.find((gate) => gate.id === "final-report");
   const closureReady = finalGate?.status === "READY";
+  const operationalRows =
+    Number(reconciliation?.marketRows ?? 0) + Number(reconciliation?.wasteRows ?? 0);
+  const reconciliationReady = reconciliation?.status === "READY";
+  const openReconciliationIssues = reconciliation?.issues.length ?? 0;
+  const monthlyDraftReady = Boolean(latestMonthly);
+  const precheckPassed = latestRun?.status === "PASS";
+
+  const closeSteps = [
+    {
+      index: "01",
+      label: "Ingresar",
+      detail: operationalRows > 0 ? `${operationalRows.toLocaleString("es-CL")} filas operacionales` : "Faltan datos del período",
+      state: operationalRows > 0 ? "done" : "pending"
+    },
+    {
+      index: "02",
+      label: "Revisar",
+      detail: reconciliationReady ? "Reconciliación lista" : operationalRows > 0 ? "Reconciliación pendiente" : "Esperando datos",
+      state: reconciliationReady ? "done" : operationalRows > 0 ? "attention" : "pending"
+    },
+    {
+      index: "03",
+      label: "Resolver",
+      detail:
+        openReconciliationIssues === 0 && operationalRows > 0
+          ? "Sin observaciones abiertas"
+          : openReconciliationIssues > 0
+            ? `${openReconciliationIssues} observaciones`
+            : "Esperando reconciliación",
+      state:
+        openReconciliationIssues === 0 && operationalRows > 0
+          ? "done"
+          : openReconciliationIssues > 0
+            ? "attention"
+            : "pending"
+    },
+    {
+      index: "04",
+      label: "Cerrar",
+      detail: monthlyDraftReady
+        ? `${latestMonthly?.reportingMonth} · v${latestMonthly?.version}`
+        : "Cierre mensual no generado",
+      state: monthlyDraftReady ? "done" : "pending"
+    },
+    {
+      index: "05",
+      label: "Validar",
+      detail: precheckPassed
+        ? "Pre-check PASS"
+        : latestRun
+          ? `Pre-check ${latestRun.status}`
+          : "Pre-check pendiente",
+      state: precheckPassed ? "done" : latestRun ? "attention" : "pending"
+    },
+    {
+      index: "06",
+      label: "Pack",
+      detail: closureReady ? "Disponible para exportación" : "Bloqueado hasta cierre válido",
+      state: closureReady ? "done" : "pending"
+    }
+  ] as const;
 
   return (
     <AppShell active="/reporting">
@@ -110,6 +171,31 @@ export default async function ReportingPage() {
         <a className="buttonLink" href={complianceSources.declaration2026.url} target="_blank" rel="noreferrer">
           Fuente MMA ↗
         </a>
+      </section>
+
+      <section className="panel closeWorkflowPanel" aria-label="Flujo de cierre mensual REP">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Flujo operativo</p>
+            <h3>Ingresar → revisar → resolver → cerrar → validar → exportar.</h3>
+          </div>
+          <Link className="buttonLink" href="/reporting/intake">Ingresar datos →</Link>
+        </div>
+
+        <div className="closeWorkflow">
+          {closeSteps.map((step) => (
+            <article className={`closeStep closeStep-${step.state}`} key={step.index}>
+              <span>{step.index}</span>
+              <div>
+                <strong>{step.label}</strong>
+                <p>{step.detail}</p>
+              </div>
+              <b>
+                {step.state === "done" ? "LISTO" : step.state === "attention" ? "REVISAR" : "PENDIENTE"}
+              </b>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="panel complianceRunPanel">
