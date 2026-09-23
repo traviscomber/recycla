@@ -540,3 +540,16 @@ h1{font-weight:500;letter-spacing:-.035em}
   .auditScopeGrid{grid-template-columns:1fr}
   .auditScopeGrid article:nth-child(2){border-top:1px solid var(--line)}
 }
+
+.complianceRunPanel{margin-bottom:18px}
+.complianceRunSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line)}
+.complianceRunSummary article{padding:14px 16px;border-right:1px solid var(--line)}
+.complianceRunSummary article:last-child{border-right:0}
+.complianceRunSummary span{display:block;color:var(--text-faint);font-size:8px;text-transform:uppercase;letter-spacing:.09em}
+.complianceRunSummary strong{display:block;margin:5px 0;font-size:13px}
+.complianceRunSummary p{margin:0;color:var(--text-soft);font-size:9px}
+@media(max-width:700px){
+  .complianceRunSummary{grid-template-columns:1fr}
+  .complianceRunSummary article{border-right:0;border-bottom:1px solid var(--line)}
+  .complianceRunSummary article:last-child{border-bottom:0}
+}
