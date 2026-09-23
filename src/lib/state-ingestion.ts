@@ -175,17 +175,36 @@ export async function syncOfficialSource(sourceId: string): Promise<StateSyncRes
     try {
       const rows = await fetchLatestRows(resource);
 
-      const normalized = rows.map((record) => ({
-        source_id: sourceId,
-        resource_id: resource.id,
-        resource_name: resource.name,
-        source_year: resource.year ?? null,
-        external_identifier: externalIdentifier(record),
-        canonical_name: canonicalName(record),
-        normalized_payload: record,
-        record_sha256: stableHash(record),
-        source_url: resource.url
-      }));
+      const normalizedByHash = new Map<string, {
+        source_id: string;
+        resource_id: string;
+        resource_name: string;
+        source_year: number | null;
+        external_identifier: string | null;
+        canonical_name: string | null;
+        normalized_payload: Record<string, string | number | null>;
+        record_sha256: string;
+        source_url: string;
+      }>();
+
+      for (const record of rows) {
+        const recordSha = stableHash(record);
+        if (normalizedByHash.has(recordSha)) continue;
+
+        normalizedByHash.set(recordSha, {
+          source_id: sourceId,
+          resource_id: resource.id,
+          resource_name: resource.name,
+          source_year: resource.year ?? null,
+          external_identifier: externalIdentifier(record),
+          canonical_name: canonicalName(record),
+          normalized_payload: record,
+          record_sha256: recordSha,
+          source_url: resource.url
+        });
+      }
+
+      const normalized = Array.from(normalizedByHash.values());
 
       await sql`
         delete from external_source_records
