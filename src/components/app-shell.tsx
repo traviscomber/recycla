@@ -15,7 +15,8 @@ const nav = [
   ["/ledger", "REP Ledger", "03"],
   ["/evidence", "Evidence Graph", "04"],
   ["/audit", "Audit Room", "05"],
-  ["/reporting", "Report Readiness", "06"]
+  ["/reporting", "Report Readiness", "06"],
+  ["/regulatory", "Regulatory Radar", "07"]
 ] as const;
 
 export function AppShell({
