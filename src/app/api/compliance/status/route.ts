@@ -45,7 +45,8 @@ export async function GET() {
         id: gate.id,
         status: gate.status,
         blocking: gate.blocking,
-        evidenceCount: gate.evidenceCount
+        evidenceCount: gate.evidenceCount,
+        detail: gate.detail
       })),
       latestRun
     });
