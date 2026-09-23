@@ -1,62 +1,43 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { fmt } from "@/lib/rep";
-
-const clients = [
-  {
-    name: "Cliente piloto Recycla",
-    rut: "76.000.000-0",
-    streams: "AEE / RAEE · Baterías",
-    obligation: 128000,
-    accreditable: 98440,
-    readiness: 76.9,
-    status: "Atención"
-  },
-  {
-    name: "Industria Norte",
-    rut: "77.100.000-1",
-    streams: "Neumáticos",
-    obligation: 84200,
-    accreditable: 79990,
-    readiness: 95.0,
-    status: "Casi listo"
-  },
-  {
-    name: "Operador Industrial Sur",
-    rut: "78.200.000-2",
-    streams: "Aceites lubricantes",
-    obligation: 61200,
-    accreditable: 61200,
-    readiness: 100,
-    status: "Listo"
-  }
-];
+import { clientStatus, gap, readiness, repClients } from "@/lib/clients";
 
 export default function ClientesPage() {
+  const clientsWithGap = repClients.filter((client) =>
+    client.obligations.some((item) => gap(item) < 0)
+  ).length;
+
+  const activeObligations = repClients.reduce(
+    (sum, client) => sum + client.obligations.length,
+    0
+  );
+
   return (
     <AppShell active="/clientes">
       <header className="topbar">
         <div>
           <p className="eyebrow">Cartera REP</p>
           <h1>Clientes REP</h1>
-          <p className="muted">Quién está listo, quién tiene gap y dónde intervenir primero.</p>
+          <p className="muted">Quién está listo, quién tiene gap y en qué producto intervenir.</p>
         </div>
-        <div className="period"><span>Clientes</span><strong>{clients.length}</strong></div>
+        <div className="period"><span>Clientes</span><strong>{repClients.length}</strong></div>
       </header>
 
       <section className="clientSummary">
         <article className="card">
-          <span className="label">Obligación total</span>
-          <div className="big">{fmt(clients.reduce((a, c) => a + c.obligation, 0))} kg</div>
+          <span className="label">Obligaciones activas</span>
+          <div className="big">{activeObligations}</div>
+          <p className="muted">Separadas por producto prioritario.</p>
         </article>
         <article className="card">
-          <span className="label">Acreditable hoy</span>
-          <div className="big">{fmt(clients.reduce((a, c) => a + c.accreditable, 0))} kg</div>
+          <span className="label">Productos cubiertos</span>
+          <div className="big">5</div>
+          <p className="muted">AEE, neumáticos, baterías, pilas y aceites.</p>
         </article>
         <article className="card risk">
-          <span className="label">Gap cartera</span>
-          <div className="gap">
-            {fmt(clients.reduce((a, c) => a + c.accreditable - c.obligation, 0))} kg
-          </div>
+          <span className="label">Clientes con gap</span>
+          <div className="gap">{clientsWithGap}</div>
+          <p className="muted">Requieren intervención antes del cierre.</p>
         </article>
       </section>
 
@@ -64,44 +45,49 @@ export default function ClientesPage() {
         <div className="panelHead">
           <div>
             <p className="eyebrow">Readiness por cliente</p>
-            <h3>Prioriza la intervención por evidencia y brecha</h3>
+            <h3>Consolidado sin mezclar unidades incompatibles.</h3>
           </div>
           <button>Agregar cliente</button>
         </div>
 
-        <div className="tableWrap">
-          <table className="dataTable">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Productos</th>
-                <th>Obligación</th>
-                <th>Acreditable</th>
-                <th>Readiness</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map((client) => (
-                <tr key={client.rut}>
-                  <td>
+        <div className="clientCards">
+          {repClients.map((client) => {
+            const status = clientStatus(client);
+            return (
+              <Link className="clientCard" href={`/clientes/${client.slug}`} key={client.rut}>
+                <div className="clientCardHead">
+                  <div>
                     <strong>{client.name}</strong>
                     <span>{client.rut}</span>
-                  </td>
-                  <td>{client.streams}</td>
-                  <td>{fmt(client.obligation)} kg</td>
-                  <td>{fmt(client.accreditable)} kg</td>
-                  <td>
-                    <strong>{client.readiness.toFixed(1)}%</strong>
-                    <div className="miniProgress">
-                      <div style={{ width: `${client.readiness}%` }} />
-                    </div>
-                  </td>
-                  <td><span className={`status status-${client.status.toLowerCase().replace(" ", "-")}`}>{client.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <span className={`status status-${status.toLowerCase().replace(" ", "-")}`}>{status}</span>
+                </div>
+
+                <div className="productRows">
+                  {client.obligations.map((item) => {
+                    const pct = readiness(item);
+                    const currentGap = gap(item);
+                    return (
+                      <div className="productRow" key={item.stream}>
+                        <div>
+                          <strong>{item.label}</strong>
+                          <span>{pct.toFixed(1)}% readiness</span>
+                        </div>
+                        <b className={currentGap < 0 ? "negative" : "positive"}>
+                          {currentGap < 0 ? "" : "+"}{Math.round(currentGap).toLocaleString("es-CL")} {item.unit}
+                        </b>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="clientCardFoot">
+                  <span>{client.obligations.length} obligaciones</span>
+                  <strong>Ver detalle →</strong>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
     </AppShell>
