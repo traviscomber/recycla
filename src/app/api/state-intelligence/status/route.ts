@@ -8,6 +8,22 @@ export async function GET() {
   const tokenConfigured = Boolean(process.env.STATE_SYNC_TOKEN);
   const databaseConfigured = hasDatabase();
 
+  let databaseProvider = "unknown";
+  try {
+    const hostname = process.env.DATABASE_URL
+      ? new URL(process.env.DATABASE_URL).hostname
+      : "";
+    databaseProvider = hostname.includes("neon.tech")
+      ? "neon"
+      : hostname.includes("supabase")
+        ? "supabase"
+        : hostname
+          ? "postgres"
+          : "unknown";
+  } catch {
+    databaseProvider = "unknown";
+  }
+
   let stateSchema = "not_configured";
 
   if (databaseConfigured) {
@@ -38,6 +54,7 @@ export async function GET() {
     ok: tokenConfigured && databaseConfigured && stateSchema === "ready",
     tokenConfigured,
     databaseConfigured,
+    databaseProvider,
     stateSchema
   });
 }
