@@ -8,13 +8,47 @@ import {
   stateSources
 } from "@/lib/state-intelligence";
 
+function normalizeKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-CL")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 function firstValue(
   record: Record<string, string | number | null>,
   keys: string[]
 ) {
-  for (const key of keys) {
-    const value = record[key];
-    if (value !== undefined && value !== null && String(value).trim()) {
+  const exact = new Set(keys.map(normalizeKey));
+
+  for (const [key, value] of Object.entries(record)) {
+    if (
+      value !== undefined &&
+      value !== null &&
+      String(value).trim() &&
+      exact.has(normalizeKey(key))
+    ) {
+      return String(value).trim();
+    }
+  }
+
+  return null;
+}
+
+function firstMatchingValue(
+  record: Record<string, string | number | null>,
+  patterns: RegExp[]
+) {
+  for (const [key, value] of Object.entries(record)) {
+    const normalized = normalizeKey(key);
+    if (
+      value !== undefined &&
+      value !== null &&
+      String(value).trim() &&
+      patterns.some((pattern) => pattern.test(normalized))
+    ) {
       return String(value).trim();
     }
   }
@@ -22,26 +56,43 @@ function firstValue(
 }
 
 function canonicalName(record: Record<string, string | number | null>) {
-  return firstValue(record, [
-    "Razón Social",
-    "Razon Social",
-    "Nombre Establecimiento",
-    "Nombre Destinatario",
-    "Destinatario",
-    "Nombre",
-    "Establecimiento"
-  ]);
+  return (
+    firstValue(record, [
+      "Razón Social",
+      "Razon Social",
+      "Nombre Establecimiento",
+      "Nombre Destinatario",
+      "Destinatario",
+      "Nombre",
+      "Establecimiento"
+    ]) ??
+    firstMatchingValue(record, [
+      /razon.*social/,
+      /nombre.*establecimiento/,
+      /nombre.*destinatario/,
+      /^destinatario$/,
+      /^establecimiento$/
+    ])
+  );
 }
 
 function externalIdentifier(record: Record<string, string | number | null>) {
-  return firstValue(record, [
-    "ID Establecimiento VU",
-    "ID Establecimiento",
-    "RUT",
-    "Rut",
-    "RUT Destinatario",
-    "Identificador"
-  ]);
+  return (
+    firstValue(record, [
+      "ID Establecimiento VU",
+      "ID Establecimiento",
+      "RUT",
+      "Rut",
+      "RUT Destinatario",
+      "Identificador"
+    ]) ??
+    firstMatchingValue(record, [
+      /id.*establecimiento/,
+      /^rut$/,
+      /rut.*destinatario/,
+      /identificador/
+    ])
+  );
 }
 
 function stableHash(record: Record<string, string | number | null>) {
