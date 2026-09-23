@@ -60,7 +60,7 @@ export default async function ClientesPage() {
       <section className="panel">
         <div className="panelHead"><div><p className="eyebrow">Readiness por cliente</p><h3>Consolidado sin mezclar unidades incompatibles.</h3></div></div>
         {clients.length === 0 ? (
-          <div className="emptyState"><strong>No hay clientes REP persistidos todavía.</strong><p>Aplica db/schema.sql y carga obligaciones reales. db/seed.sql sirve solo para un entorno de prueba.</p></div>
+          <div className="emptyState"><strong>No hay clientes REP persistidos todavía.</strong><p>Aplica db/schema.sql y carga obligaciones reales desde las fuentes operacionales autorizadas.</p></div>
         ) : (
           <div className="clientCards">
             {clients.map((client) => {
