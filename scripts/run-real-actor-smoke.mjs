@@ -108,3 +108,5 @@ if (!token || !databaseUrl || process.env.VERCEL_GIT_COMMIT_REF !== "feat/state-
 await mkdir("public", { recursive: true });
 await writeFile("public/state-actor-smoke.json", JSON.stringify(result, null, 2));
 console.log("[state-actor-smoke]", JSON.stringify(result));
+
+// rerun after RETC deduplication fix
