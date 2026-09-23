@@ -29,6 +29,48 @@ function checksum(payload: unknown) {
     .digest("hex");
 }
 
+function normalizeRecordKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-CL")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function officialIdentifier(
+  record: Record<string, string | number | null>,
+  fallback: string
+) {
+  const priorities = [
+    "id_vu",
+    "ID Establecimiento VU",
+    "ID Establecimiento",
+    "RUT",
+    "Rut",
+    "RUT Destinatario",
+    "Identificador"
+  ].map(normalizeRecordKey);
+
+  const entries = Object.entries(record).map(([key, value]) => ({
+    key: normalizeRecordKey(key),
+    value
+  }));
+
+  for (const desired of priorities) {
+    const match = entries.find(
+      (entry) =>
+        entry.key === desired &&
+        entry.value !== null &&
+        entry.value !== undefined &&
+        String(entry.value).trim()
+    );
+    if (match) return String(match.value).trim();
+  }
+
+  return fallback;
+}
+
 export async function persistOfficialSnapshot(
   input: PersistSnapshotInput
 ): Promise<{
@@ -133,14 +175,10 @@ export async function persistOfficialSnapshot(
     const snapshotStatus: SnapshotStatus =
       input.status === "VERIFIED" ? "VERIFIED" : "REVIEW_REQUIRED";
 
-    const externalIdentifier =
-      String(
-        match.record["ID Establecimiento VU"] ??
-        match.record["ID Establecimiento"] ??
-        match.record["RUT"] ??
-        match.record["Rut"] ??
-        input.query
-      );
+    const externalIdentifier = officialIdentifier(
+      match.record,
+      input.query
+    );
 
     const source = stateSources.find((item) => item.id === match.sourceId);
 
