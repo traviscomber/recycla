@@ -8,6 +8,7 @@ import {
   monthlyReportingRule,
   type ComplianceGateStatus
 } from "@/lib/compliance";
+import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 
@@ -26,9 +27,10 @@ function gateTone(status: ComplianceGateStatus) {
 }
 
 export default async function ReportingPage() {
-  const [syncs, snapshots] = await Promise.all([
+  const [syncs, snapshots, compliance] = await Promise.all([
     getStateSyncOverview(),
-    listRecentSnapshots(100)
+    listRecentSnapshots(100),
+    evaluateComplianceReadiness()
   ]);
 
   const producerSync = syncs.find((sync) => sync.sourceId === "retc-priority-products");
@@ -41,16 +43,9 @@ export default async function ReportingPage() {
 
   const blocked = blockers.reduce((sum, item) => sum + item.quantity, 0);
 
-  const gateStatus = new Map<string, ComplianceGateStatus>([
-    ["classification", "REVIEW_REQUIRED"],
-    ["equivalence", "NOT_CONNECTED"],
-    ["market-transactions", "NOT_CONNECTED"],
-    ["waste-operations", "NOT_CONNECTED"],
-    ["monthly-reports", "NOT_CONNECTED"],
-    ["archive", "REVIEW_REQUIRED"],
-    ["final-report", "BLOCKED"],
-    ["external-audit", reviewSnapshots.length ? "REVIEW_REQUIRED" : "NOT_CONNECTED"]
-  ]);
+  const gateStatus = new Map(
+    compliance.map((gate) => [gate.id, gate.status])
+  );
 
   const readyCount = auditScope.filter((gate) => {
     const status = gateStatus.get(gate.id);
@@ -158,14 +153,15 @@ export default async function ReportingPage() {
 
         <div className="complianceGateList">
           {auditScope.map((gate, index) => {
-            const status = gateStatus.get(gate.id) ?? "NOT_CONNECTED";
+            const result = compliance.find((item) => item.id === gate.id);
+            const status = result?.status ?? "NOT_CONNECTED";
             return (
               <article className={"complianceGate complianceGate-" + gateTone(status)} key={gate.id}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <div>
                   <strong>{gate.label}</strong>
-                  <p>{gate.requirement}</p>
-                  <small>{gate.legalBasis}</small>
+                  <p>{result?.detail ?? gate.requirement}</p>
+                  <small>{gate.legalBasis}{result?.evidenceCount ? " · " + result.evidenceCount + " evidencias" : ""}</small>
                 </div>
                 <b>{status.replaceAll("_", " ")}</b>
               </article>
