@@ -1,16 +1,22 @@
 import { AppShell } from "@/components/app-shell";
 import { fmt } from "@/lib/rep";
+import { listRepLedgerEntries } from "@/lib/rep-repository";
 
-const entries = [
-  { id: "REP-000184", date: "2027-04-02", client: "Cliente piloto Recycla", stream: "AEE / RAEE", source: "Retiro RCL-4821", kg: 8420, state: "Acreditable", evidence: "Completa" },
-  { id: "REP-000183", date: "2027-04-02", client: "Cliente piloto Recycla", stream: "AEE / RAEE", source: "Lote LOT-2318", kg: 3120, state: "Revisión", evidence: "Diferencia peso" },
-  { id: "REP-000182", date: "2027-04-01", client: "Industria Norte", stream: "Neumáticos", source: "Retiro RCL-4819", kg: 12880, state: "Acreditable", evidence: "Completa" },
-  { id: "REP-000181", date: "2027-04-01", client: "Operador Industrial Sur", stream: "Aceites lubricantes", source: "Retiro RCL-4818", kg: 9620, state: "Elegible", evidence: "Certificado pendiente" }
-];
+export const dynamic = "force-dynamic";
 
-export default function LedgerPage() {
+const streamLabel: Record<string, string> = {
+  AEE_RAEE: "AEE / RAEE",
+  NEUMATICOS: "Neumáticos",
+  BATERIAS: "Baterías",
+  PILAS: "Pilas",
+  ACEITES_LUBRICANTES: "Aceites lubricantes"
+};
+
+export default async function LedgerPage() {
+  const entries = await listRepLedgerEntries(100);
+
   return (
-    <AppShell active="/ledger" dataMode="demo">
+    <AppShell active="/ledger">
       <header className="topbar">
         <div>
           <p className="eyebrow">System of record</p>
@@ -29,7 +35,7 @@ export default function LedgerPage() {
         <article className="card">
           <span className="label">Estados</span>
           <div className="stateList">
-            <span>Recolectado</span><span>Procesado</span><span>Valorizado</span>
+            <span>Recolectado</span><span>Valorizado</span>
             <span>Elegible</span><span>Evidencia completa</span><span>Acreditable</span>
           </div>
         </article>
@@ -41,33 +47,40 @@ export default function LedgerPage() {
             <p className="eyebrow">Ledger entries</p>
             <h3>Trazabilidad regulatoria por operación</h3>
           </div>
-          <button>Exportar período</button>
         </div>
 
-        <div className="tableWrap">
-          <table className="dataTable">
-            <thead>
-              <tr>
-                <th>ID</th><th>Fecha</th><th>Cliente</th><th>Producto</th>
-                <th>Origen</th><th>Cantidad</th><th>Estado</th><th>Evidencia</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e.id}>
-                  <td><strong>{e.id}</strong></td>
-                  <td>{e.date}</td>
-                  <td>{e.client}</td>
-                  <td>{e.stream}</td>
-                  <td>{e.source}</td>
-                  <td>{fmt(e.kg)} kg</td>
-                  <td><span className="status">{e.state}</span></td>
-                  <td>{e.evidence}</td>
+        {entries.length ? (
+          <div className="tableWrap">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Fecha</th><th>Cliente</th><th>Período</th><th>Producto</th>
+                  <th>Origen</th><th>Cantidad</th><th>Estado</th><th>Evidencias</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {entries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td><strong>{entry.id.slice(0, 8)}</strong></td>
+                    <td>{new Date(entry.createdAt).toLocaleDateString("es-CL")}</td>
+                    <td>{entry.client}</td>
+                    <td>{entry.period}</td>
+                    <td>{streamLabel[entry.stream] ?? entry.stream}</td>
+                    <td>{entry.sourceEntityType} · {entry.sourceEntityId.slice(0, 8)}</td>
+                    <td>{fmt(entry.quantity)} {entry.unit}</td>
+                    <td><span className="status">{entry.state.replaceAll("_", " ")}</span></td>
+                    <td>{entry.evidenceCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="emptyState">
+            <strong>Sin entradas operacionales persistidas.</strong>
+            <p>El ledger se poblará únicamente desde movimientos reales y sus transiciones regulatorias.</p>
+          </div>
+        )}
       </section>
 
       <section className="panel ledgerRule">
