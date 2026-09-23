@@ -177,9 +177,12 @@ export default async function ReportingPage() {
             <p className="eyebrow">Cierre mensual REP</p>
             <h3>Generar un borrador versionado desde los datos normalizados.</h3>
           </div>
-          <form action={generateMonthlyDraftAction}>
-            <button type="submit">Generar cierre mensual</button>
-          </form>
+          <div className="panelActions">
+            <Link className="buttonLink" href="/reporting/intake">Ingresar datos reales →</Link>
+            <form action={generateMonthlyDraftAction}>
+              <button type="submit">Generar cierre mensual</button>
+            </form>
+          </div>
         </div>
 
         <div className="complianceRunSummary">
