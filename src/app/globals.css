@@ -352,3 +352,33 @@ h1{font-weight:500;letter-spacing:-.035em}
 .circularityClientSummary>p{margin:0;color:var(--text-soft);font-size:10px}
 .compactEmpty{padding:18px 0}
 @media(max-width:1100px){.clientDualView{grid-template-columns:1fr}}
+
+.networkRoles{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin-bottom:18px;background:var(--surface)}
+.networkRoles article{padding:18px;border-right:1px solid var(--line)}
+.networkRoles article:last-child{border-right:0}
+.networkRoles span{display:block;color:var(--green);font-size:8px;font-weight:800}
+.networkRoles strong{display:block;font-size:12px;margin:8px 0 6px}
+.networkRoles p{margin:0;color:var(--text-soft);font-size:10px;line-height:1.45}
+.networkFlowPanel{display:grid;gap:14px;margin-bottom:18px}
+.flowLane{display:grid;grid-template-columns:minmax(240px,.7fr) minmax(0,1.3fr);gap:18px;align-items:center;border:1px solid var(--line);padding:18px 20px;background:var(--surface)}
+.flowLaneLabel span,.flowLaneLabel strong{display:block}
+.flowLaneLabel span{color:var(--text-faint);font-size:8px;letter-spacing:.11em;text-transform:uppercase}
+.flowLaneLabel strong{font-size:13px;margin-top:6px}
+.materialLane{box-shadow:inset 2px 0 0 var(--green)}
+.financeLane{box-shadow:inset 2px 0 0 var(--warning)}
+.flowNodes{display:grid;grid-template-columns:1fr 24px 1fr 24px 1fr;align-items:center}
+.flowNodes article{border:1px solid var(--line);padding:14px;background:var(--surface-3)}
+.flowNodes article span{display:block;color:var(--text-faint);font-size:8px;margin-bottom:5px}
+.flowNodes article strong{font-size:11px}
+.flowNodes i{text-align:center;color:var(--text-faint);font-style:normal}
+@media(max-width:1100px){
+  .networkRoles{grid-template-columns:repeat(2,1fr)}
+  .networkRoles article{border-bottom:1px solid var(--line)}
+  .flowLane{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .networkRoles{grid-template-columns:1fr}
+  .networkRoles article{border-right:0}
+  .flowNodes{grid-template-columns:1fr}
+  .flowNodes i{padding:6px 0;transform:rotate(90deg)}
+}
