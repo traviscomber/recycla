@@ -162,6 +162,63 @@ export async function listRepClients(): Promise<PersistedClient[]> {
   return groupRows(rows);
 }
 
+export type ClientCircularityOutcome = {
+  route: "PREPARATION_FOR_REUSE" | "RECYCLING" | "ENERGY_RECOVERY" | "DISPOSAL";
+  quantityKg: number;
+};
+
+export async function getClientCircularityOutcomes(
+  slug: string,
+  year: number
+): Promise<ClientCircularityOutcome[]> {
+  const status = await getRepDatabaseStatus();
+  if (status.state !== "ready") return [];
+
+  try {
+    const sql = db();
+    const schema = await sql<Array<{
+      allocations: string | null;
+      outputs: string | null;
+    }>>`
+      select
+        to_regclass('public.valuation_allocations')::text as allocations,
+        to_regclass('public.valuation_outputs')::text as outputs
+    `;
+
+    if (!schema[0]?.allocations || !schema[0]?.outputs) return [];
+
+    const rows = await sql<Array<{
+      route: ClientCircularityOutcome["route"];
+      quantity_kg: string | number;
+    }>>`
+      select
+        vo.circularity_route as route,
+        sum(va.quantity_kg) as quantity_kg
+      from valuation_allocations va
+      join valuation_outputs vo on vo.id = va.valuation_output_id
+      join organizations o on o.id = va.organization_id
+      where o.slug = ${slug}
+        and vo.valued_at is not null
+        and extract(year from vo.valued_at)::int = ${year}
+      group by vo.circularity_route
+      order by
+        case vo.circularity_route
+          when 'PREPARATION_FOR_REUSE' then 1
+          when 'RECYCLING' then 2
+          when 'ENERGY_RECOVERY' then 3
+          when 'DISPOSAL' then 4
+        end
+    `;
+
+    return rows.map((row) => ({
+      route: row.route,
+      quantityKg: Number(row.quantity_kg)
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getRepClient(slug: string): Promise<PersistedClient | null> {
   const clients = await listRepClients();
   return clients.find((client) => client.slug === slug) ?? null;
