@@ -17,6 +17,8 @@ export function AppShell({
   active: string;
   children: React.ReactNode;
 }) {
+  const environment = process.env.VERCEL_ENV === "production" ? "Producción" : process.env.VERCEL_ENV === "preview" ? "Preview" : "Local";
+
   return (
     <main className="shell shellV2">
       <aside className="sidebar">
@@ -47,8 +49,8 @@ export function AppShell({
         <div className="systemState">
           <i />
           <div>
-            <span>System state</span>
-            <strong>Operational</strong>
+            <span>Entorno</span>
+            <strong>{environment}</strong>
           </div>
         </div>
       </aside>
@@ -59,7 +61,7 @@ export function AppShell({
             <div className="mark">R</div>
             <div><strong>RECYCLA</strong><span>REP OS</span></div>
           </div>
-          <span className="mobileStatus"><i />Operational</span>
+          <span className="mobileStatus"><i />{environment}</span>
         </div>
 
         <nav className="mobileNav" aria-label="Navegación móvil">
