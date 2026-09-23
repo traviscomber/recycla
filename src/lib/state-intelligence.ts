@@ -135,3 +135,198 @@ export async function getStateSourceMetadata(source: StateSource): Promise<Sourc
     clearTimeout(timeout);
   }
 }
+
+
+export type VerificationKind =
+  | "producer"
+  | "hazardous_destination"
+  | "storage_site";
+
+export type StateMatch = {
+  sourceId: string;
+  sourceLabel: string;
+  resourceId: string;
+  resourceName: string;
+  sourceYear?: number;
+  status: "VERIFIED" | "REVIEW_REQUIRED";
+  matchBasis: "OFFICIAL_DATASET_TEXT_MATCH";
+  record: Record<string, string | number | null>;
+};
+
+type CkanResource = {
+  id?: string;
+  name?: string;
+  format?: string;
+  datastore_active?: boolean;
+};
+
+type CkanPackageFull = {
+  success?: boolean;
+  result?: {
+    resources?: CkanResource[];
+  };
+};
+
+type DatastorePayload = {
+  success?: boolean;
+  result?: {
+    records?: Array<Record<string, string | number | null>>;
+  };
+};
+
+const verificationSourceMap: Record<VerificationKind, string> = {
+  producer: "retc-priority-products",
+  hazardous_destination: "retc-hazardous-destinations",
+  storage_site: "retc-storage-sites"
+};
+
+function extractYear(value?: string) {
+  const years = value?.match(/20\d{2}/g)?.map(Number) ?? [];
+  return years.length ? Math.max(...years) : undefined;
+}
+
+async function getLatestQueryableResource(source: StateSource) {
+  if (!source.datasetSlug) return null;
+
+  const response = await fetch(
+    `${CKAN_BASE}?id=${encodeURIComponent(source.datasetSlug)}`,
+    {
+      next: { revalidate: 21600 },
+      headers: { Accept: "application/json" }
+    }
+  );
+
+  if (!response.ok) return null;
+  const payload = (await response.json()) as CkanPackageFull;
+  const resources = payload.result?.resources ?? [];
+
+  const queryable = resources
+    .filter((resource) => resource.datastore_active && resource.id)
+    .map((resource) => ({
+      ...resource,
+      year: extractYear(resource.name)
+    }))
+    .sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+
+  return queryable[0] ?? null;
+}
+
+export async function verifyOfficialEntity(
+  kind: VerificationKind,
+  query: string
+): Promise<{
+  status: "ok" | "invalid" | "unavailable";
+  detail: string;
+  queryableYear?: number;
+  matches: StateMatch[];
+}> {
+  const cleanQuery = query.trim();
+  if (cleanQuery.length < 3) {
+    return {
+      status: "invalid",
+      detail: "Ingresa al menos 3 caracteres.",
+      matches: []
+    };
+  }
+
+  const sourceId = verificationSourceMap[kind];
+  const source = stateSources.find((item) => item.id === sourceId);
+  if (!source) {
+    return {
+      status: "unavailable",
+      detail: "La fuente oficial no está configurada.",
+      matches: []
+    };
+  }
+
+  try {
+    const resource = await getLatestQueryableResource(source);
+    if (!resource?.id) {
+      return {
+        status: "unavailable",
+        detail: "La fuente existe, pero no expone actualmente un recurso consultable por CKAN DataStore.",
+        matches: []
+      };
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    try {
+      const response = await fetch(
+        `https://datosretc.mma.gob.cl/api/3/action/datastore_search?resource_id=${encodeURIComponent(resource.id)}&q=${encodeURIComponent(cleanQuery)}&limit=20`,
+        {
+          cache: "no-store",
+          signal: controller.signal,
+          headers: { Accept: "application/json" }
+        }
+      );
+
+      if (!response.ok) {
+        return {
+          status: "unavailable",
+          detail: `RETC respondió HTTP ${response.status} al buscar.`,
+          queryableYear: resource.year,
+          matches: []
+        };
+      }
+
+      const payload = (await response.json()) as DatastorePayload;
+      const records = payload.result?.records ?? [];
+
+      return {
+        status: "ok",
+        detail: records.length
+          ? "Coincidencias encontradas en un recurso oficial RETC consultable."
+          : "No se encontraron coincidencias en el recurso oficial RETC consultable.",
+        queryableYear: resource.year,
+        matches: records.map((record) => ({
+          sourceId: source.id,
+          sourceLabel: source.label,
+          resourceId: resource.id as string,
+          resourceName: resource.name ?? "Recurso RETC",
+          sourceYear: resource.year,
+          status: "REVIEW_REQUIRED",
+          matchBasis: "OFFICIAL_DATASET_TEXT_MATCH",
+          record
+        }))
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch {
+    return {
+      status: "unavailable",
+      detail: "No fue posible consultar el recurso oficial en esta ejecución.",
+      matches: []
+    };
+  }
+}
+
+export function summarizeOfficialRecord(
+  record: Record<string, string | number | null>
+) {
+  const preferred = [
+    "Razón Social",
+    "Nombre Establecimiento",
+    "ID Establecimiento VU",
+    "Producto Prioritario",
+    "Producto Prioritario (PP)",
+    "Categoría PP",
+    "Subcategoría PP",
+    "Región",
+    "Provincia",
+    "Comuna",
+    "Tipo"
+  ];
+
+  const selected: Array<[string, string | number]> = [];
+  for (const key of preferred) {
+    const value = record[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      selected.push([key, value]);
+    }
+  }
+
+  return selected.slice(0, 8);
+}
