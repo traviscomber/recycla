@@ -73,20 +73,20 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
       legal_name: string;
       rut: string;
       created_at: string;
-    }>>\`
+    }>>`
       select id::text as id, slug, display_name, legal_name, rut,
         created_at::text as created_at
       from organizations
-      where slug = \${slug}
+      where slug = ${slug}
       limit 1
-    \`;
+    `;
 
     const organization = organizations[0];
     if (!organization) return null;
 
     const [documents, documentStats, ledgerEvents, ledgerStats, reportingRows] =
       await Promise.all([
-        sql<Client360Document[]>\`
+        sql<Client360Document[]>`
           select id::text as id,
             document_type as "documentType",
             file_name as "fileName",
@@ -94,11 +94,11 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
             expires_at::text as "expiresAt",
             created_at::text as "createdAt"
           from documents
-          where organization_id = \${organization.id}::uuid
+          where organization_id = ${organization.id}::uuid
           order by coalesce(issued_at::timestamptz, created_at) desc
           limit 8
-        \`,
-        sql<Array<{ total: number; expiring: number }>>\`
+        `,
+        sql<Array<{ total: number; expiring: number }>>`
           select count(*)::int as total,
             count(*) filter (
               where expires_at is not null
@@ -106,9 +106,9 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
                 and expires_at >= current_date
             )::int as expiring
           from documents
-          where organization_id = \${organization.id}::uuid
-        \`,
-        sql<Client360LedgerEvent[]>\`
+          where organization_id = ${organization.id}::uuid
+        `,
+        sql<Client360LedgerEvent[]>`
           select le.id::text as id,
             le.created_at::text as "createdAt",
             le.stream,
@@ -120,7 +120,7 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
           left join evidence_links el
             on el.entity_type = le.source_entity_type
             and el.entity_id = le.source_entity_id
-          where le.organization_id = \${organization.id}::uuid
+          where le.organization_id = ${organization.id}::uuid
             and not exists (
               select 1 from rep_ledger_entries newer
               where newer.supersedes_entry_id = le.id
@@ -128,16 +128,16 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
           group by le.id
           order by le.created_at desc
           limit 8
-        \`,
-        sql<Array<{ total: number; last_at: string | null }>>\`
+        `,
+        sql<Array<{ total: number; last_at: string | null }>>`
           select count(*)::int as total, max(created_at)::text as last_at
           from rep_ledger_entries le
-          where le.organization_id = \${organization.id}::uuid
+          where le.organization_id = ${organization.id}::uuid
             and not exists (
               select 1 from rep_ledger_entries newer
               where newer.supersedes_entry_id = le.id
             )
-        \`,
+        `,
         sql<Array<{
           latest_report_month: string | null;
           latest_report_status: string | null;
@@ -153,23 +153,23 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
           waste_rows: number;
           last_market_event_at: string | null;
           last_waste_event_at: string | null;
-        }>>\`
+        }>>`
           select
-            (select reporting_month::text from monthly_rep_reports where subject_ref = \${slug} order by reporting_month desc, version desc limit 1) as latest_report_month,
-            (select status from monthly_rep_reports where subject_ref = \${slug} order by reporting_month desc, version desc limit 1) as latest_report_status,
-            (select version from monthly_rep_reports where subject_ref = \${slug} order by reporting_month desc, version desc limit 1) as latest_report_version,
-            (select generated_at::text from monthly_rep_reports where subject_ref = \${slug} order by reporting_month desc, version desc limit 1) as latest_report_generated_at,
-            (select finalized_at::text from monthly_rep_reports where subject_ref = \${slug} order by reporting_month desc, version desc limit 1) as latest_report_finalized_at,
-            (select status from compliance_check_runs where subject_ref = \${slug} order by started_at desc limit 1) as latest_check_status,
-            (select started_at::text from compliance_check_runs where subject_ref = \${slug} order by started_at desc limit 1) as latest_check_started_at,
-            (select finished_at::text from compliance_check_runs where subject_ref = \${slug} order by started_at desc limit 1) as latest_check_finished_at,
-            (select count(*)::int from compliance_findings where subject_ref = \${slug} and status = 'open') as open_findings,
-            (select count(*)::int from compliance_findings where subject_ref = \${slug} and status = 'open' and severity = 'critical') as critical_findings,
-            (select count(*)::int from market_introductions where subject_ref = \${slug}) as market_rows,
-            (select count(*)::int from waste_management_operations where subject_ref = \${slug}) as waste_rows,
-            (select max(occurred_at)::text from market_introductions where subject_ref = \${slug}) as last_market_event_at,
-            (select max(occurred_at)::text from waste_management_operations where subject_ref = \${slug}) as last_waste_event_at
-        \`
+            (select reporting_month::text from monthly_rep_reports where subject_ref = ${slug} order by reporting_month desc, version desc limit 1) as latest_report_month,
+            (select status from monthly_rep_reports where subject_ref = ${slug} order by reporting_month desc, version desc limit 1) as latest_report_status,
+            (select version from monthly_rep_reports where subject_ref = ${slug} order by reporting_month desc, version desc limit 1) as latest_report_version,
+            (select generated_at::text from monthly_rep_reports where subject_ref = ${slug} order by reporting_month desc, version desc limit 1) as latest_report_generated_at,
+            (select finalized_at::text from monthly_rep_reports where subject_ref = ${slug} order by reporting_month desc, version desc limit 1) as latest_report_finalized_at,
+            (select status from compliance_check_runs where subject_ref = ${slug} order by started_at desc limit 1) as latest_check_status,
+            (select started_at::text from compliance_check_runs where subject_ref = ${slug} order by started_at desc limit 1) as latest_check_started_at,
+            (select finished_at::text from compliance_check_runs where subject_ref = ${slug} order by started_at desc limit 1) as latest_check_finished_at,
+            (select count(*)::int from compliance_findings where subject_ref = ${slug} and status = 'open') as open_findings,
+            (select count(*)::int from compliance_findings where subject_ref = ${slug} and status = 'open' and severity = 'critical') as critical_findings,
+            (select count(*)::int from market_introductions where subject_ref = ${slug}) as market_rows,
+            (select count(*)::int from waste_management_operations where subject_ref = ${slug}) as waste_rows,
+            (select max(occurred_at)::text from market_introductions where subject_ref = ${slug}) as last_market_event_at,
+            (select max(occurred_at)::text from waste_management_operations where subject_ref = ${slug}) as last_waste_event_at
+        `
       ]);
 
     const reporting = reportingRows[0];
