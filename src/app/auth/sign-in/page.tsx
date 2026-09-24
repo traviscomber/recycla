@@ -37,44 +37,70 @@ export default async function SignInPage({
 
   const message =
     params.error === "invalid"
-      ? "Credenciales inválidas."
+      ? "No fue posible ingresar. Si es tu primer acceso o aún no tienes contraseña, define una ahora."
       : params.error === "missing"
-        ? "Email y contraseña son requeridos."
+        ? "Ingresa correo y contraseña."
         : params.error === "not-configured"
-          ? "Autenticación todavía no está provisionada en este entorno."
+          ? "La autenticación no está disponible en este entorno."
           : null;
 
   return (
     <main className="authPage">
-      <section className="authCard">
-        <p className="eyebrow">RECYCLA REP OS</p>
-        <h1>Acceso operacional</h1>
-        <p className="muted">
-          El acceso y las acciones regulatorias se controlan mediante sesión y rol.
-        </p>
-
-        {!configured ? (
-          <div className="systemNotice notice-schema_missing">
-            <div>
-              <strong>Auth no configurado</strong>
-              <p>Este entorno requiere NEON_AUTH_BASE_URL y NEON_AUTH_COOKIE_SECRET.</p>
-            </div>
+      <section className="authShell">
+        <div className="authBrandBlock">
+          <p className="eyebrow">RECYCLA REP OS</p>
+          <h1>Acceso operacional</h1>
+          <p>
+            Ingresa al Workbench REP con tu cuenta autorizada.
+          </p>
+          <div className="authTrust">
+            <span>Compliance</span>
+            <span>Evidencia</span>
+            <span>Trazabilidad</span>
           </div>
-        ) : (
-          <form action={signInAction} className="authForm">
-            <label>
-              Email
-              <input name="email" type="email" autoComplete="email" required />
-            </label>
-            <label>
-              Contraseña
-              <input name="password" type="password" autoComplete="current-password" required />
-            </label>
-            {message ? <p className="authError">{message}</p> : null}
-            <button type="submit">Ingresar</button>
-            <Link className="authSecondaryLink" href="/auth/forgot-password">Olvidé mi contraseña</Link>
-          </form>
-        )}
+        </div>
+
+        <section className="authCard authCardPrimary">
+          <div className="authCardHead">
+            <span>Cuenta autorizada</span>
+            <h2>Ingresar</h2>
+            <p>Usa tu correo corporativo y contraseña.</p>
+          </div>
+
+          {!configured ? (
+            <div className="systemNotice notice-schema_missing">
+              <div>
+                <strong>Acceso temporalmente no disponible</strong>
+                <p>La configuración de autenticación requiere revisión.</p>
+              </div>
+            </div>
+          ) : (
+            <form action={signInAction} className="authForm">
+              <label>
+                <span>Correo</span>
+                <input name="email" type="email" autoComplete="email" placeholder="nombre@empresa.cl" required />
+              </label>
+              <label>
+                <span>Contraseña</span>
+                <input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required />
+              </label>
+
+              {message ? (
+                <div className="authErrorBox">
+                  <strong>Acceso no completado</strong>
+                  <p>{message}</p>
+                </div>
+              ) : null}
+
+              <button type="submit">Ingresar al Workbench</button>
+            </form>
+          )}
+
+          <div className="authRecovery">
+            <span>¿Primer acceso o contraseña olvidada?</span>
+            <Link href="/auth/forgot-password">Definir o recuperar contraseña →</Link>
+          </div>
+        </section>
       </section>
     </main>
   );
