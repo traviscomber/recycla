@@ -1,6 +1,7 @@
 import type { ComplianceGateResult } from "@/lib/compliance-engine";
 import type { ComplianceFinding } from "@/lib/compliance-findings";
 import type { EvidenceChain } from "@/lib/evidence-chain";
+import type { GestorIntelligenceRow } from "@/lib/gestor-intelligence";
 
 export type AutopilotAction = {
   id: string;
@@ -79,6 +80,7 @@ export function buildComplianceAutopilot(args: {
   findings: ComplianceFinding[];
   chains: EvidenceChain[];
   gates: ComplianceGateResult[];
+  gestores: GestorIntelligenceRow[];
 }): AutopilotAction[] {
   const actions: AutopilotAction[] = [];
 
@@ -99,6 +101,48 @@ export function buildComplianceAutopilot(args: {
       href: config.href,
       actionLabel: config.actionLabel,
       source: "EVIDENCE_CHAIN"
+    });
+  }
+
+  const missingGestorIdentity = args.gestores.filter((item) => item.status === "MISSING_IDENTITY").length;
+  if (missingGestorIdentity) {
+    actions.push({
+      id: "gestor:missing-identity",
+      priority: "BLOCKER",
+      title: "Identificar gestores sin referencia",
+      detail: "Hay operaciones de gestión cuya contraparte no tiene identificador ni nombre suficiente para contrastarla con fuentes oficiales.",
+      affected: missingGestorIdentity,
+      href: "/state-intelligence",
+      actionLabel: "Revisar gestores",
+      source: "COMPLIANCE_GATE"
+    });
+  }
+
+  const gestorNotFound = args.gestores.filter((item) => item.status === "NOT_FOUND").length;
+  if (gestorNotFound) {
+    actions.push({
+      id: "gestor:not-found",
+      priority: "ACTION",
+      title: "Investigar gestores sin match oficial",
+      detail: "Hay contrapartes operacionales sin coincidencia exacta en los datasets RETC actualmente ingeridos.",
+      affected: gestorNotFound,
+      href: "/state-intelligence",
+      actionLabel: "Abrir Gestor Intelligence",
+      source: "COMPLIANCE_GATE"
+    });
+  }
+
+  const gestorNameReview = args.gestores.filter((item) => item.status === "REVIEW_NAME_MATCH").length;
+  if (gestorNameReview) {
+    actions.push({
+      id: "gestor:name-review",
+      priority: "REVIEW",
+      title: "Confirmar identidad de gestores",
+      detail: "Hay coincidencias por nombre sin referencia oficial exacta; requieren revisión humana antes de usarlas como soporte.",
+      affected: gestorNameReview,
+      href: "/state-intelligence",
+      actionLabel: "Confirmar identidad",
+      source: "COMPLIANCE_GATE"
     });
   }
 
