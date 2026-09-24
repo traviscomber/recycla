@@ -153,24 +153,6 @@ export default async function StateIntelligencePage({
         </article>
       </section>
 
-      <section className="decisionStrip">
-        <article>
-          <span>Uso</span>
-          <strong>Verificación externa</strong>
-          <p>Sirve para respaldar identidad y contexto.</p>
-        </article>
-        <article>
-          <span>Fuentes activas</span>
-          <strong>{ready}/{stateSources.length}</strong>
-          <p>Disponibilidad actual de las fuentes conectadas.</p>
-        </article>
-        <article>
-          <span>Referencias guardadas</span>
-          <strong>{snapshots.length}</strong>
-          <p>Contexto oficial preservado para revisión posterior.</p>
-        </article>
-      </section>
-
       <section className="panel stateVerifier">
         <div className="panelHead">
           <div>
@@ -211,8 +193,8 @@ export default async function StateIntelligencePage({
             {snapshotFeedback === "saved"
               ? "Referencia oficial guardada. Quedó disponible en Red REP y Auditoría."
               : snapshotFeedback === "invalid"
-                ? "La solicitud de snapshot no era válida."
-                : "No fue posible persistir el snapshot oficial."}
+                ? "La solicitud de referencia no era válida."
+                : "No fue posible guardar la referencia oficial."}
           </div>
         ) : null}
 
@@ -367,7 +349,7 @@ export default async function StateIntelligencePage({
               <div className="stateSourceHead">
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <b className={`sourceStatus source-${meta?.status ?? "unavailable"}`}>
-                  {meta?.status === "ready" ? "DISPONIBLE" : meta?.status === "not_applicable" ? "EXTERNA" : "UNAVAILABLE"}
+                  {meta?.status === "ready" ? "DISPONIBLE" : meta?.status === "not_applicable" ? "EXTERNA" : "NO DISPONIBLE"}
                 </b>
               </div>
 
@@ -377,17 +359,17 @@ export default async function StateIntelligencePage({
               <dl>
                 <div><dt>Agencia</dt><dd>{source.agency}</dd></div>
                 <div><dt>Uso</dt><dd>{source.productUse.join(" · ")}</dd></div>
-                {meta?.lastModified ? <div><dt>Metadata</dt><dd>{new Date(meta.lastModified).toLocaleDateString("es-CL")}</dd></div> : null}
+                {meta?.lastModified ? <div><dt>Actualización fuente</dt><dd>{new Date(meta.lastModified).toLocaleDateString("es-CL")}</dd></div> : null}
                 {typeof meta?.resources === "number" ? <div><dt>Recursos</dt><dd>{meta.resources}</dd></div> : null}
                 {sync ? (
                   <div>
-                    <dt>Ingesta</dt>
+                    <dt>Datos cargados</dt>
                     <dd>{sync.rowCount.toLocaleString("es-CL")} filas · {sync.status}</dd>
                   </div>
                 ) : null}
                 {sync?.finishedAt ? (
                   <div>
-                    <dt>Último sync</dt>
+                    <dt>Última sincronización</dt>
                     <dd>{new Date(sync.finishedAt).toLocaleString("es-CL")}</dd>
                   </div>
                 ) : null}
@@ -437,7 +419,7 @@ export default async function StateIntelligencePage({
       <section className="bottomGrid">
         <article className="panel">
           <p className="eyebrow">Flujo de verificación</p>
-          <h3>Actor / destino → búsqueda oficial → match → evidencia → auditoría.</h3>
+          <h3>Actor / destino → búsqueda oficial → revisión → evidencia → auditoría.</h3>
           <p className="muted">
             El resultado operativo debe evolucionar de “requiere revisión” a “verificado” sólo cuando identidad, fuente y contexto coincidan de forma suficiente.
           </p>
@@ -456,7 +438,7 @@ export default async function StateIntelligencePage({
         <p className="eyebrow">Límite de uso</p>
         <h3>“Aparece en RETC/SNIFA” no significa “cumple REP”.</h3>
         <p className="muted">
-          State Intelligence aporta contexto verificable. La elegibilidad y acreditación siguen dependiendo de reglas versionadas, operación y evidencia.
+          Fuentes oficiales aporta contexto verificable. La elegibilidad y acreditación siguen dependiendo de reglas versionadas, operación y evidencia.
         </p>
       </section>
       </details>
