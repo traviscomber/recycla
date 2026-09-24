@@ -69,7 +69,7 @@ export async function GET() {
     blockers.push("La reconciliación mensual mantiene observaciones o no está READY.");
   }
 
-  if (blockers.length) {
+  if (blockers.length || !finalGate || !monthlyReport) {
     return NextResponse.json(
       {
         error: "COMPLIANCE_PACK_HOLD",
