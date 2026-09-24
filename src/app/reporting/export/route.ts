@@ -5,7 +5,7 @@ import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
 import { getLatestComplianceRun } from "@/lib/compliance-runs";
 import { listComplianceFindings } from "@/lib/compliance-findings";
 import {
-  getLatestMonthlyRepReport,
+  getMonthlyRepReport,
   latestReportableMonth
 } from "@/lib/monthly-reporting";
 import { reconcileMonthlyReporting } from "@/lib/reporting-reconciliation";
@@ -44,7 +44,7 @@ export async function GET() {
   ] = await Promise.all([
     evaluateComplianceReadiness(),
     getLatestComplianceRun(subjectRef),
-    getLatestMonthlyRepReport(subjectRef),
+    getMonthlyRepReport(subjectRef, reportingMonth),
     reconcileMonthlyReporting(subjectRef, reportingMonth),
     listComplianceFindings(subjectRef, 200),
     listRecentSnapshots(200),
@@ -54,14 +54,44 @@ export async function GET() {
   ]);
 
   const finalGate = gates.find((gate) => gate.id === "final-report");
+  const blockers: string[] = [];
 
-  const payload = {
-    schemaVersion: "recycla-compliance-pack-v1",
-    generatedAt: new Date().toISOString(),
+  if (finalGate?.status !== "READY") {
+    blockers.push("El gate final de cumplimiento no está READY.");
+  }
+  if (latestRun?.status !== "PASS") {
+    blockers.push("El último compliance pre-check no está en PASS.");
+  }
+  if (!monthlyReport || !["READY", "SUBMITTED"].includes(monthlyReport.status)) {
+    blockers.push("El cierre mensual exacto del período no está READY/SUBMITTED.");
+  }
+  if (!reconciliation || reconciliation.status !== "READY" || reconciliation.issues.length > 0) {
+    blockers.push("La reconciliación mensual mantiene observaciones o no está READY.");
+  }
+
+  if (blockers.length || !finalGate || !monthlyReport) {
+    return NextResponse.json(
+      {
+        error: "COMPLIANCE_PACK_HOLD",
+        reportingMonth,
+        blockers
+      },
+      {
+        status: 409,
+        headers: {
+          "Cache-Control": "private, no-store",
+          "X-Recycla-Pack-Status": "HOLD"
+        }
+      }
+    );
+  }
+
+  const content = {
+    schemaVersion: "recycla-compliance-pack-v2",
     subjectRef,
     reportingMonth,
     readiness: {
-      finalStatus: finalGate?.status ?? "NOT_CONNECTED",
+      finalStatus: finalGate.status,
       gates,
       latestRun
     },
@@ -74,16 +104,26 @@ export async function GET() {
       officialSnapshots: snapshots,
       gestorIntelligence: gestores
     },
+    manifest: {
+      monthlyReportChecksumSha256: monthlyReport.checksumSha256,
+      reconciliationChecksumSha256: checksum(reconciliation),
+      findingsChecksumSha256: checksum(findings),
+      documentsChecksumSha256: checksum(documents),
+      ledgerChecksumSha256: checksum(ledgerEntries),
+      officialSnapshotsChecksumSha256: checksum(snapshots),
+      gestorIntelligenceChecksumSha256: checksum(gestores)
+    },
     boundary: {
       statement:
         "Este pack consolida evidencia y estado de preparación. No sustituye la presentación oficial ante SISREP/RETC ni convierte coincidencias externas en autorización o cumplimiento."
     }
   };
 
-  const packChecksumSha256 = checksum(payload);
+  const contentChecksumSha256 = checksum(content);
   const body = {
-    ...payload,
-    packChecksumSha256
+    generatedAt: new Date().toISOString(),
+    ...content,
+    contentChecksumSha256
   };
 
   const safeMonth = reportingMonth.slice(0, 7);
@@ -93,7 +133,8 @@ export async function GET() {
     `attachment; filename="recycla-compliance-pack-${safeMonth}.json"`
   );
   response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("X-Recycla-Pack-SHA256", packChecksumSha256);
+  response.headers.set("X-Recycla-Pack-SHA256", contentChecksumSha256);
+  response.headers.set("X-Recycla-Pack-Status", "READY");
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }
