@@ -9,20 +9,20 @@ export default function ForgotPasswordPage() {
       <section className="authShell">
         <div className="authBrandBlock">
           <p className="eyebrow">RECYCLA REP OS</p>
-          <h1>Recuperar acceso</h1>
-          <p>Ingresa tu correo para recibir el enlace seguro de recuperación.</p>
+          <h1>Recuperar contraseña</h1>
+          <p>Te enviaremos un enlace para definir una nueva contraseña.</p>
         </div>
         <section className="authCard authCardPrimary">
           <div className="authCardHead">
-            <span>Cuenta autorizada</span>
-            <h2>Recuperar contraseña</h2>
-            <p>El enlace volverá a Recycla para definir una nueva contraseña.</p>
+            <span>Recuperación</span>
+            <h2>Ingresa tu correo</h2>
+            <p>Usa el correo asociado a tu acceso interno.</p>
           </div>
 
           <PasswordRecoveryForm />
 
           <div className="authRecovery">
-            <Link href="/auth/sign-in">← Volver a ingresar</Link>
+            <Link href="/auth/sign-in">← Volver al acceso</Link>
           </div>
         </section>
       </section>
