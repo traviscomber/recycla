@@ -17,6 +17,7 @@ type OrganizationOption = {
 type SiteOption = {
   id: string;
   organizationId: string;
+  organizationName: string;
   name: string;
 };
 
@@ -37,11 +38,13 @@ async function listPlanningOptions() {
 
   const sites = await sql<SiteOption[]>`
     select
-      id::text as id,
-      organization_id::text as "organizationId",
-      name
-    from sites
-    order by name asc
+      s.id::text as id,
+      s.organization_id::text as "organizationId",
+      o.display_name as "organizationName",
+      s.name
+    from sites s
+    join organizations o on o.id = s.organization_id
+    order by o.display_name asc, s.name asc
   `;
 
   return { organizations, sites };
@@ -79,8 +82,8 @@ async function createPlanAction(formData: FormData) {
     redirect("/planning/new?result=invalid");
   }
 
-  const start = new Date(plannedStart);
-  const end = plannedEnd ? new Date(plannedEnd) : null;
+  const start = new Date(`${plannedStart}T12:00:00Z`);
+  const end = plannedEnd ? new Date(`${plannedEnd}T12:00:00Z`) : null;
   if (Number.isNaN(start.getTime()) || (end && (Number.isNaN(end.getTime()) || end < start))) {
     redirect("/planning/new?result=invalid");
   }
@@ -216,7 +219,7 @@ export default async function NewPlanningPage({
                   <option value="">Sin sitio asignado</option>
                   {sites.map((site) => (
                     <option value={site.id} key={site.id}>
-                      {site.name}
+                      {site.organizationName} · {site.name}
                     </option>
                   ))}
                 </select>
@@ -237,11 +240,11 @@ export default async function NewPlanningPage({
               <div className="bottomGrid">
                 <label>
                   <span>Inicio</span>
-                  <input name="plannedStart" type="datetime-local" required />
+                  <input name="plannedStart" type="date" required />
                 </label>
                 <label>
                   <span>Fin estimado</span>
-                  <input name="plannedEnd" type="datetime-local" />
+                  <input name="plannedEnd" type="date" />
                 </label>
               </div>
 
@@ -291,7 +294,7 @@ export default async function NewPlanningPage({
             Esta entrada reserva una operación futura. No crea evidencia, no altera un cierre REP y no se contabiliza como retiro ejecutado hasta que exista la operación real.
           </p>
           <div className="intakeFields">
-            <span>PLANIFIED</span>
+            <span>PLANNED</span>
             <span>sin evidencia todavía</span>
             <span>sin impacto contable REP</span>
             <span>editable antes de ejecutar</span>
