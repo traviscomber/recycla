@@ -213,7 +213,7 @@ export default async function NetworkPage() {
         <p className="eyebrow">Regla de arquitectura</p>
         <h3>No convertir el flujo financiero en toneladas.</h3>
         <p className="muted">
-          Recycla OS relaciona ambos mundos, pero mantiene separación entre material, compliance y relaciones económicas.
+          Recycla OS relaciona ambos mundos, pero mantiene separación entre material, cumplimiento y relaciones económicas.
         </p>
       </section></details>
     </AppShell>
