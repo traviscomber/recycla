@@ -522,8 +522,18 @@ export default async function ReportingPage() {
         </article>
 
         <article className="panel">
-          <p className="eyebrow">Final compliance pack</p>
-          <h3>Paquete de salida defendible.</h3>
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Final compliance pack</p>
+              <h3>Paquete de salida defendible.</h3>
+            </div>
+            <a className="buttonLink secondary" href="/reporting/export">
+              Descargar pack JSON →
+            </a>
+          </div>
+          <p className="muted">
+            El pack incluye estado de gates, cierre mensual, reconciliación, hallazgos, evidencia, ledger, snapshots oficiales y checksum propio.
+          </p>
           <div className="compliancePack">
             <span>01 Dataset consolidado por categoría / subcategoría</span>
             <span>02 Operaciones de gestión asociadas</span>
