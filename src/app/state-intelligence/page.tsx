@@ -6,6 +6,7 @@ import {
   persistOfficialSnapshot
 } from "@/lib/state-snapshots";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
+import { listGestorIntelligence } from "@/lib/gestor-intelligence";
 import {
   getStateSourceMetadata,
   stateSources,
@@ -83,16 +84,20 @@ export default async function StateIntelligencePage({
       ? params.kind
       : "producer";
 
-  const [metadata, verification, snapshots, syncOverview] = await Promise.all([
+  const [metadata, verification, snapshots, syncOverview, gestorRows] = await Promise.all([
     Promise.all(stateSources.map(getStateSourceMetadata)),
     query ? searchLatestOfficialResource(kind, query) : Promise.resolve(null),
     listRecentSnapshots(8),
-    getStateSyncOverview()
+    getStateSyncOverview(),
+    listGestorIntelligence("recycla-os", 100)
   ]);
 
   const metaById = new Map(metadata.map((item) => [item.id, item]));
   const syncById = new Map(syncOverview.map((item) => [item.sourceId, item]));
   const ready = metadata.filter((item) => item.status === "ready").length;
+  const gestoresVerified = gestorRows.filter((item) => item.status === "VERIFIED_REFERENCE");
+  const gestoresReview = gestorRows.filter((item) => item.status === "REVIEW_NAME_MATCH");
+  const gestoresNotFound = gestorRows.filter((item) => item.status === "NOT_FOUND" || item.status === "MISSING_IDENTITY");
 
   return (
     <AppShell active="/state-intelligence">
@@ -238,6 +243,76 @@ export default async function StateIntelligencePage({
             )}
           </div>
         ) : null}
+      </section>
+
+      <section className="panel gestorIntelligencePanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Gestor Intelligence</p>
+            <h3>Contrapartes operacionales contrastadas contra registros oficiales RETC.</h3>
+          </div>
+          <span className="workbenchUpdated">Match exacto por identificador o nombre · no equivale a autorización vigente</span>
+        </div>
+
+        <section className="decisionStrip">
+          <article>
+            <span>Referencia oficial</span>
+            <strong>{gestoresVerified.length}</strong>
+            <p>Coincidencia exacta por identificador.</p>
+          </article>
+          <article>
+            <span>Revisar identidad</span>
+            <strong>{gestoresReview.length}</strong>
+            <p>Coincidencia exacta sólo por nombre.</p>
+          </article>
+          <article>
+            <span>Sin match / identidad</span>
+            <strong>{gestoresNotFound.length}</strong>
+            <p>Requiere investigación antes del cierre.</p>
+          </article>
+        </section>
+
+        {gestorRows.length ? (
+          <div className="tableWrap">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>Contraparte</th><th>Referencia</th><th>Operaciones</th><th>Última operación</th>
+                  <th>Estado</th><th>Fuente</th><th>Año</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gestorRows.slice(0, 30).map((row, index) => (
+                  <tr key={(row.counterpartyRef ?? row.counterpartyName ?? "sin-id") + "-" + index}>
+                    <td><strong>{row.counterpartyName ?? "Sin nombre"}</strong></td>
+                    <td>{row.counterpartyRef ?? "—"}</td>
+                    <td>{row.operationCount}</td>
+                    <td>{new Date(row.lastSeenAt).toLocaleDateString("es-CL")}</td>
+                    <td>
+                      <span className={"gestorStatus gestor-" + row.status.toLowerCase()}>
+                        {row.status.replaceAll("_", " ")}
+                      </span>
+                    </td>
+                    <td>{row.sourceId ?? "—"}</td>
+                    <td>{row.sourceYear ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin contrapartes reportables para contrastar.</strong>
+            <p>Gestor Intelligence se activa cuando existen operaciones de gestión con contraparte persistida.</p>
+          </div>
+        )}
+
+        <div className="stateGuardrail">
+          <strong>Guardrail</strong>
+          <p>
+            Una coincidencia RETC demuestra presencia en el dataset consultado, no vigencia de permisos ni cumplimiento REP. SNIFA permanece como capa de contexto de fiscalización y sancionatorios.
+          </p>
+        </div>
       </section>
 
       <section className="stateSourceGrid">
