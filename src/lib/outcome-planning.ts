@@ -19,6 +19,8 @@ export type OutcomeCalendarEvent = {
   evidenceCount: number;
   actualRecoveryPct: number | null;
   forecastRecoveryPct: number | null;
+  bestComparablePct: number | null;
+  worstComparablePct: number | null;
   comparableCases: number;
   forecastConfidence: "LOW" | "MEDIUM" | "HIGH" | null;
 };
@@ -28,6 +30,8 @@ type HistoricalBaseline = {
   stream: PriorityStream;
   comparableCases: number;
   avgRecoveryPct: number | null;
+  bestRecoveryPct: number | null;
+  worstRecoveryPct: number | null;
 };
 
 function clampPct(value: number | null) {
@@ -179,7 +183,9 @@ export async function listOutcomeCalendarEvents(input: {
           organization_id::text as "organizationId",
           stream,
           count(*)::int as "comparableCases",
-          avg((recovered_kg / nullif(total_kg, 0)) * 100)::float8 as "avgRecoveryPct"
+          avg((recovered_kg / nullif(total_kg, 0)) * 100)::float8 as "avgRecoveryPct",
+          max((recovered_kg / nullif(total_kg, 0)) * 100)::float8 as "bestRecoveryPct",
+          min((recovered_kg / nullif(total_kg, 0)) * 100)::float8 as "worstRecoveryPct"
         from outcomes
         group by organization_id, stream
       `;
@@ -209,6 +215,8 @@ export async function listOutcomeCalendarEvents(input: {
         evidenceCount: evidenceByCollection.get(row.id) ?? 0,
         actualRecoveryPct,
         forecastRecoveryPct: null,
+        bestComparablePct: null,
+        worstComparablePct: null,
         comparableCases: 0,
         forecastConfidence: null
       };
@@ -273,6 +281,10 @@ export async function listOutcomeCalendarEvents(input: {
           evidenceCount: 0,
           actualRecoveryPct: null,
           forecastRecoveryPct,
+          bestComparablePct:
+            comparableCases >= 3 ? clampPct(baseline?.bestRecoveryPct ?? null) : null,
+          worstComparablePct:
+            comparableCases >= 3 ? clampPct(baseline?.worstRecoveryPct ?? null) : null,
           comparableCases,
           forecastConfidence: confidenceForCases(comparableCases)
         });
