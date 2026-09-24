@@ -49,6 +49,8 @@ export default async function NetworkPage() {
       snapshot.status !== "NOT_FOUND" &&
       snapshot.status !== "UNAVAILABLE"
   );
+  const actorsVerified = actorSnapshots.filter((snapshot) => snapshot.status === "VERIFIED").length;
+  const actorsToReview = actorSnapshots.filter((snapshot) => snapshot.status === "REVIEW_REQUIRED").length;
 
   return (
     <AppShell active="/network">
@@ -58,7 +60,26 @@ export default async function NetworkPage() {
           <h1>Quién participa y qué rol cumple</h1>
           <p className="muted">Ubica productores, sistemas de gestión, gestores y puntos de recepción antes de asociarlos a una operación.</p>
         </div>
+        <div className="period"><span>Referencias oficiales</span><strong>{actorSnapshots.length}</strong></div>
       </header>
+
+      <section className="decisionStrip" aria-label="Estado de la red REP">
+        <article>
+          <span>Verificados</span>
+          <strong>{actorsVerified}</strong>
+          <p>Actores con referencia oficial confirmada.</p>
+        </article>
+        <article>
+          <span>Por revisar</span>
+          <strong>{actorsToReview}</strong>
+          <p>Coincidencias que todavía requieren validación humana.</p>
+        </article>
+        <article>
+          <span>Siguiente acción</span>
+          <strong>{actorsToReview ? "Revisar" : "Verificar"}</strong>
+          <p>{actorsToReview ? "Resuelve primero las identidades pendientes." : "Verifica una contraparte cuando entre a una operación."}</p>
+        </article>
+      </section>
 
       <section className="pageGuide">
         <article>
@@ -95,7 +116,7 @@ export default async function NetworkPage() {
         <div className="panelHead">
           <div>
             <p className="eyebrow">Actores verificados</p>
-            <h3>Qué contrapartes ya tienen referencia oficial guardada</h3>
+            <h3>Contrapartes con contexto oficial disponible</h3>
           </div>
           <b>{actorSnapshots.length}</b>
         </div>
