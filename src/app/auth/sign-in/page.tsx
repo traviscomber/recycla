@@ -27,7 +27,12 @@ async function signInAction(formData: FormData) {
         : "status" in error && error.status
           ? String(error.status)
           : "unknown";
-    const source = process.env.NEON_AUTH_BASE_URL ? "env" : "fallback";
+    const source =
+      process.env.VERCEL_ENV === "preview"
+        ? "canonical-preview"
+        : process.env.NEON_AUTH_BASE_URL
+          ? "env"
+          : "fallback";
     redirect(`/auth/sign-in?error=invalid&authCode=${encodeURIComponent(code)}&authSource=${source}`);
   }
 
