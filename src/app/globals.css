@@ -1621,3 +1621,77 @@ h1{font-weight:500;letter-spacing:-.035em}
     justify-self: start;
   }
 }
+
+
+/* Client directory */
+.clientDirectory {
+  margin-top: 18px;
+}
+
+.clientFilters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.7fr) repeat(3, minmax(140px, .7fr)) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.clientFilters label {
+  display: grid;
+  gap: 6px;
+}
+
+.clientFilters label > span {
+  color: var(--text-faint);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.clientFilters input,
+.clientFilters select,
+.clientFilters button {
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: var(--surface-3);
+  color: var(--text);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.clientFilters input:focus,
+.clientFilters select:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+.clientFilters button {
+  cursor: pointer;
+  border-color: var(--green);
+  background: var(--green);
+  color: #07120e;
+  font-weight: 700;
+  padding-inline: 18px;
+}
+
+@media (max-width: 960px) {
+  .clientFilters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .clientSearch {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .clientFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .clientSearch {
+    grid-column: auto;
+  }
+}
