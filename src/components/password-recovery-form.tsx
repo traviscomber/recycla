@@ -16,7 +16,7 @@ export function PasswordRecoveryForm() {
     try {
       const result = await authClient.requestPasswordReset({
         email: email.trim(),
-        redirectTo: "/auth/reset-password"
+        redirectTo: `${window.location.origin}/auth/reset-password`
       });
 
       if (result?.error) {
