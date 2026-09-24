@@ -57,7 +57,7 @@ export function AppShell({
           ))}
         </nav>
 
-        <details className="secondaryNavGroup">
+        <details className="secondaryNavGroup" open={secondaryNav.some(([href]) => href === active)}>
           <summary>Más herramientas</summary>
           <nav aria-label="Herramientas avanzadas">
             {secondaryNav.map(([href, label]) => (
@@ -68,7 +68,7 @@ export function AppShell({
           </nav>
         </details>
 
-        <details className="secondaryNavGroup scope">
+        <details className="secondaryNavGroup scope" open={active.startsWith("/productos/")}>
           <summary>Productos REP</summary>
           <div>
             {priorityStreams.map((s) => (
