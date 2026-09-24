@@ -115,6 +115,7 @@ export default async function PlanningPage({
     range?: string;
     q?: string;
     layer?: string;
+    created?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -195,6 +196,13 @@ export default async function PlanningPage({
         </div>
       </header>
 
+      {params.created === "1" ? (
+        <section className="intakeFeedback intakeFeedback-imported">
+          <strong>PLANIFICACIÓN GUARDADA</strong>
+          <span>La operación ya está disponible en el calendario.</span>
+        </section>
+      ) : null}
+
       <section className="planningToolbar" aria-label="Controles del calendario">
         <div className="planningToolbarGroup">
           <Link className="calendarButton" href={querySuffix(addDays(start, -range))} aria-label="Período anterior">
@@ -236,8 +244,8 @@ export default async function PlanningPage({
           })}
         </div>
 
-        <Link className="buttonLink planningNewAction" href="/reporting/intake">
-          Registrar operación →
+        <Link className="buttonLink planningNewAction" href="/planning/new">
+          Nueva planificación →
         </Link>
       </section>
 
@@ -349,7 +357,7 @@ export default async function PlanningPage({
                   aparecerán aquí por cliente y sitio.
                 </p>
               </div>
-              <Link className="buttonLink" href="/reporting/intake">Cargar operación →</Link>
+              <Link className="buttonLink" href="/planning/new">Planificar retiro →</Link>
             </div>
           )}
         </div>
