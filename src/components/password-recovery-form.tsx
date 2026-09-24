@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react";
 import { authClient } from "@/lib/auth/client";
 
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://recyclachile.vercel.app").replace(/\/$/, "");
+
 export function PasswordRecoveryForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -16,7 +18,7 @@ export function PasswordRecoveryForm() {
     try {
       const result = await authClient.requestPasswordReset({
         email: email.trim(),
-        redirectTo: `${window.location.origin}/auth/reset-password`
+        redirectTo: `${APP_URL}/auth/reset-password`
       });
 
       if (result?.error) {
