@@ -4,6 +4,16 @@ import { listRecentSnapshots } from "@/lib/state-snapshots";
 
 export const dynamic = "force-dynamic";
 
+function actorStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    REVIEW_REQUIRED: "REQUIERE REVISIÓN",
+    VERIFIED: "VERIFICADO",
+    NOT_FOUND: "SIN COINCIDENCIA",
+    UNAVAILABLE: "NO DISPONIBLE"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
 const roles = [
   {
     id: "producer",
@@ -95,7 +105,7 @@ export default async function NetworkPage() {
             {actorSnapshots.slice(0, 8).map((snapshot) => (
               <article key={snapshot.id}>
                 <span className={`snapshotStatus snapshot-${snapshot.status.toLowerCase()}`}>
-                  {snapshot.status}
+                  {actorStatusLabel(snapshot.status)}
                 </span>
                 <div>
                   <strong>{snapshot.subjectLabel ?? snapshot.externalIdentifier ?? "Actor sin etiqueta"}</strong>
