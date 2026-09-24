@@ -1,0 +1,24 @@
+name: Apply Outcome Planning Schema
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/apply-outcome-planning-schema.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Apply and verify collection_plans schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error 'https://recyclachile.vercel.app/api/admin/outcome-planning-schema')"
+          echo "$response"
+          node -e 'const r=JSON.parse(process.argv[1]); if (!r.ok || !r.table || !r.statusType) process.exit(1)' "$response"
