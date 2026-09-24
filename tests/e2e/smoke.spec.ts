@@ -30,7 +30,7 @@ test("auth entry remains public", async ({ page }) => {
 test("password recovery remains public", async ({ page }) => {
   const response = await page.goto("/auth/forgot-password");
   expect(response?.status()).toBeLessThan(500);
-  await expect(page.getByRole("heading", { name: "Recuperar acceso" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recuperar contraseña" })).toBeVisible();
 });
 
 test("public sign-up surface is disabled", async ({ page }) => {
