@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { hasDatabase } from "@/lib/db";
 import { getRepDatabaseStatus, listRepClients } from "@/lib/rep-repository";
+import { listClientDirectory } from "@/lib/client-directory";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,9 @@ export default async function ClientesPage({
   const params = await searchParams;
   const configured = hasDatabase();
   const databaseStatus = await getRepDatabaseStatus();
-  const clients = databaseStatus.state === "ready" ? await listRepClients() : [];
+  const [clients, directory] = databaseStatus.state === "ready"
+    ? await Promise.all([listRepClients(), listClientDirectory()])
+    : [[], []];
 
   const query = params.q?.trim().toLocaleLowerCase("es-CL") ?? "";
   const statusFilter = params.status ?? "all";
@@ -49,6 +52,14 @@ export default async function ClientesPage({
       .flatMap((client) => client.obligations)
       .map((item) => [item.stream, item.label] as const)
   ).entries()];
+
+  const filteredDirectory = directory.filter((entry) => {
+    if (!query) return true;
+    return (
+      entry.displayName.toLocaleLowerCase("es-CL").includes(query) ||
+      (entry.rut?.toLocaleLowerCase("es-CL").includes(query) ?? false)
+    );
+  });
 
   const filteredClients = clients.filter((client) => {
     const status = clientStatus(client);
@@ -88,7 +99,7 @@ export default async function ClientesPage({
         </div>
         <div className="period">
           <span>Resultados</span>
-          <strong>{filteredClients.length}/{clients.length}</strong>
+          <strong>{filteredDirectory.length + filteredClients.length}/{directory.length + clients.length}</strong>
         </div>
       </header>
 
@@ -125,6 +136,44 @@ export default async function ClientesPage({
           <div className="gap">{clientsWithGap}</div>
           <p className="muted">Requieren intervención antes del cierre.</p>
         </article>
+      </section>
+
+      <section className="panel publishedClientDirectory">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Directorio publicado por Recycla</p>
+            <h3>Clientes identificados desde la sección oficial “Nuestros clientes”.</h3>
+          </div>
+          <span className="workbenchUpdated">Fuente: recycla.cl · sin inferir obligaciones REP</span>
+        </div>
+
+        {filteredDirectory.length ? (
+          <div className="publishedClientGrid">
+            {filteredDirectory.map((entry) => (
+              <article className="publishedClientCard" key={entry.slug}>
+                <div>
+                  <strong>{entry.displayName}</strong>
+                  <span>{entry.rut ?? "RUT aún no incorporado"}</span>
+                </div>
+                <div>
+                  <span className="publishedClientStatus">PUBLICADO</span>
+                  {entry.website ? (
+                    <a href={entry.website} target="_blank" rel="noreferrer">Sitio empresa ↗</a>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin coincidencias en el directorio publicado.</strong>
+            <p>El filtro de nombre/RUT también se aplica a esta capa.</p>
+          </div>
+        )}
+
+        <p className="ficha360Footnote">
+          Este directorio prueba que la empresa aparece publicada por Recycla como cliente; no inventa RUT, obligaciones, volúmenes ni vigencia contractual.
+        </p>
       </section>
 
       <section className="panel clientDirectory">
