@@ -129,6 +129,15 @@ export default async function ReportingPage() {
   const taxCoverageComparison = compareMonthlyMetric(reportingTrend, suggestedMonth, "wasteTaxDocCoveragePct");
   const documentReadyCount = documentReadiness.filter((item) => item.status === "READY").length;
   const documentReviewCount = documentReadiness.filter((item) => item.status === "REVIEW_REQUIRED").length;
+  const complianceGap = auditScope.length - readyCount;
+  const documentGap = documentReadiness.length - documentReadyCount;
+  const taxCoverageGap =
+    taxCoverageComparison.value === null ? null : Math.max(0, 100 - taxCoverageComparison.value);
+  const currentOperationalRows = (marketComparison.value ?? 0) + (wasteComparison.value ?? 0);
+  const operationalYoY =
+    marketComparison.yoyPct === null || wasteComparison.yoyPct === null
+      ? null
+      : Math.round(((marketComparison.yoyPct + wasteComparison.yoyPct) / 2) * 10) / 10;
 
   const closeSteps = [
     {
@@ -218,24 +227,38 @@ export default async function ReportingPage() {
         </a>
       </section>
 
-      <section className="reportingComparisonGrid" aria-label="Comparativos MoM y YoY">
+      <section className="reportingComparisonGrid" aria-label="Lectura ejecutiva del período">
         <article className="reportingComparisonCard">
-          <span>Introducción al mercado</span>
-          <strong>{marketComparison.value?.toLocaleString("es-CL") ?? "—"}</strong>
-          <div><b>MoM {comparisonLabel(marketComparison.momPct)}</b><b>YoY {comparisonLabel(marketComparison.yoyPct)}</b></div>
-          <p>Registros del período reportable. Si no existe base válida, no se fuerza un 0%.</p>
+          <span>Compliance gates</span>
+          <strong>{readyCount}/{auditScope.length}</strong>
+          <div><b>Objetivo {auditScope.length}/{auditScope.length}</b><b>Gap {complianceGap}</b></div>
+          <p>La decisión principal es cuánto falta para que el cierre sea defendible, no cuánto cambió contra el mes pasado.</p>
         </article>
         <article className="reportingComparisonCard">
-          <span>Operaciones de gestión</span>
-          <strong>{wasteComparison.value?.toLocaleString("es-CL") ?? "—"}</strong>
-          <div><b>MoM {comparisonLabel(wasteComparison.momPct)}</b><b>YoY {comparisonLabel(wasteComparison.yoyPct)}</b></div>
-          <p>Comparación homogénea por mes sobre registros operacionales persistidos.</p>
+          <span>Expediente documental</span>
+          <strong>{documentReadyCount}/{documentReadiness.length}</strong>
+          <div><b>Objetivo 100%</b><b>Gap {documentGap}</b></div>
+          <p>Controles documentales con cobertura suficiente para el período según los controles implementados.</p>
         </article>
         <article className="reportingComparisonCard">
           <span>Cobertura documento tributario</span>
           <strong>{taxCoverageComparison.value === null ? "—" : taxCoverageComparison.value.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + "%"}</strong>
-          <div><b>MoM {comparisonLabel(taxCoverageComparison.momPct)}</b><b>YoY {comparisonLabel(taxCoverageComparison.yoyPct)}</b></div>
-          <p>Porcentaje de operaciones con documento tributario de respaldo informado.</p>
+          <div>
+            <b>Objetivo 100%</b>
+            <b>Gap {taxCoverageGap === null ? "—" : taxCoverageGap.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + " pp"}</b>
+            <b>YoY {comparisonLabel(taxCoverageComparison.yoyPct)}</b>
+          </div>
+          <p>La referencia histórica aparece sólo cuando existe base comparable válida.</p>
+        </article>
+        <article className="reportingComparisonCard">
+          <span>Actividad operacional</span>
+          <strong>{currentOperationalRows.toLocaleString("es-CL")}</strong>
+          <div><b>YoY {comparisonLabel(operationalYoY)}</b></div>
+          <p>Registros de introducción al mercado + operaciones de gestión del período reportable.</p>
+          <details className="reportingSecondaryComparison">
+            <summary>Ver variación mensual</summary>
+            <span>Mercado MoM {comparisonLabel(marketComparison.momPct)} · Gestión MoM {comparisonLabel(wasteComparison.momPct)}</span>
+          </details>
         </article>
       </section>
 
@@ -243,7 +266,7 @@ export default async function ReportingPage() {
         <div className="panelHead">
           <div>
             <p className="eyebrow">Tendencia · 14 meses</p>
-            <h3>MoM explica el cambio inmediato; YoY separa el efecto estacional.</h3>
+            <h3>Primero objetivo y gap; después contexto histórico y tendencia.</h3>
           </div>
           <span className="workbenchUpdated">Base: registros canónicos persistidos</span>
         </div>
