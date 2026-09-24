@@ -35,9 +35,8 @@ export default async function ClientesPage({
   const params = await searchParams;
   const configured = hasDatabase();
   const databaseStatus = await getRepDatabaseStatus();
-  const [clients, directory] = databaseStatus.state === "ready"
-    ? await Promise.all([listRepClients(), listClientDirectory()])
-    : [[], []];
+  const clients = databaseStatus.state === "ready" ? await listRepClients() : [];
+  const directory = databaseStatus.state === "ready" ? await listClientDirectory() : [];
 
   const query = params.q?.trim().toLocaleLowerCase("es-CL") ?? "";
   const statusFilter = params.status ?? "all";
