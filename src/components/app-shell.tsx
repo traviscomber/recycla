@@ -11,9 +11,10 @@ const streamHref = {
 
 const primaryNav = [
   ["/", "Inicio", "01"],
-  ["/clientes", "Clientes", "02"],
-  ["/evidence", "Evidencia", "03"],
-  ["/reporting", "Cierre REP", "04"]
+  ["/planning", "Planificación", "02"],
+  ["/clientes", "Clientes", "03"],
+  ["/evidence", "Evidencia", "04"],
+  ["/reporting", "Cierre REP", "05"]
 ] as const;
 
 const secondaryNav = [
