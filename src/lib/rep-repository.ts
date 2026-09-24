@@ -214,9 +214,20 @@ export async function getClientCircularityOutcomes(
   }
 }
 
-export async function getRepClient(slug: string): Promise<PersistedClient | null> {
+export async function getRepClient(
+  slug: string,
+  year?: number
+): Promise<PersistedClient | null> {
   const clients = await listRepClients();
-  return clients.find((client) => client.slug === slug) ?? null;
+  const candidates = clients
+    .filter((client) => client.slug === slug)
+    .sort((a, b) => Number(b.period) - Number(a.period));
+
+  if (year) {
+    return candidates.find((client) => Number(client.period) === year) ?? null;
+  }
+
+  return candidates[0] ?? null;
 }
 
 
