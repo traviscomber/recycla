@@ -9,8 +9,8 @@ export default function ResetPasswordPage() {
       <section className="authShell">
         <div className="authBrandBlock">
           <p className="eyebrow">RECYCLA REP OS</p>
-          <h1>Definir contraseña</h1>
-          <p>Crea una nueva contraseña para activar tu acceso operacional.</p>
+          <h1>Crear nueva contraseña</h1>
+          <p>Define una nueva contraseña y vuelve a ingresar a Recycla.</p>
         </div>
         <section className="authCard authManagedCard">
           <RecyclaAuthUI>

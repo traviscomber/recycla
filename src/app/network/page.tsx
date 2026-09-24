@@ -4,6 +4,16 @@ import { listRecentSnapshots } from "@/lib/state-snapshots";
 
 export const dynamic = "force-dynamic";
 
+function actorStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    REVIEW_REQUIRED: "REQUIERE REVISIÓN",
+    VERIFIED: "VERIFICADO",
+    NOT_FOUND: "SIN COINCIDENCIA",
+    UNAVAILABLE: "NO DISPONIBLE"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
 const roles = [
   {
     id: "producer",
@@ -39,16 +49,55 @@ export default async function NetworkPage() {
       snapshot.status !== "NOT_FOUND" &&
       snapshot.status !== "UNAVAILABLE"
   );
+  const actorsVerified = actorSnapshots.filter((snapshot) => snapshot.status === "VERIFIED").length;
+  const actorsToReview = actorSnapshots.filter((snapshot) => snapshot.status === "REVIEW_REQUIRED").length;
 
   return (
     <AppShell active="/network">
       <header className="topbar">
         <div>
-          <p className="eyebrow">REP operating model</p>
-          <h1>REP Network</h1>
-          <p className="muted">Material y financiamiento recorren cadenas distintas. Recycla OS debe modelar ambas sin mezclarlas.</p>
+          <p className="eyebrow">Red REP</p>
+          <h1>Quién participa y qué rol cumple</h1>
+          <p className="muted">Ubica productores, sistemas de gestión, gestores y puntos de recepción antes de asociarlos a una operación.</p>
         </div>
+        <div className="period"><span>Referencias oficiales</span><strong>{actorSnapshots.length}</strong></div>
       </header>
+
+      <section className="decisionStrip" aria-label="Estado de la red REP">
+        <article>
+          <span>Verificados</span>
+          <strong>{actorsVerified}</strong>
+          <p>Actores con referencia oficial confirmada.</p>
+        </article>
+        <article>
+          <span>Por revisar</span>
+          <strong>{actorsToReview}</strong>
+          <p>Coincidencias que todavía requieren validación humana.</p>
+        </article>
+        <article>
+          <span>Siguiente acción</span>
+          <strong>{actorsToReview ? "Revisar" : "Verificar"}</strong>
+          <p>{actorsToReview ? "Resuelve primero las identidades pendientes." : "Verifica una contraparte cuando entre a una operación."}</p>
+        </article>
+      </section>
+
+      <section className="pageGuide">
+        <article>
+          <span>Qué ves aquí</span>
+          <strong>Los actores de la cadena REP</strong>
+          <p>Cada actor tiene una responsabilidad distinta y no debe confundirse con otro rol.</p>
+        </article>
+        <article>
+          <span>Qué debes validar</span>
+          <strong>Identidad y función</strong>
+          <p>Antes de usar una contraparte en una operación, verifica que corresponda al actor correcto.</p>
+        </article>
+        <article>
+          <span>Siguiente paso</span>
+          <strong>Contrastar con fuente oficial</strong>
+          <p>Usa Fuentes oficiales cuando necesites respaldar identidad o contexto externo.</p>
+        </article>
+      </section>
 
       <section className="networkRoles">
         {roles.map((role, index) => (
@@ -57,7 +106,7 @@ export default async function NetworkPage() {
             <strong>{role.label}</strong>
             <p>{role.description}</p>
             <Link className="networkVerifyLink" href={role.verifyHref}>
-              Verificar fuente oficial →
+              Verificar actor →
             </Link>
           </article>
         ))}
@@ -66,8 +115,8 @@ export default async function NetworkPage() {
       <section className="panel networkEvidenceRegistry">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">External actor evidence</p>
-            <h3>Actores REP contrastados con fuentes oficiales</h3>
+            <p className="eyebrow">Actores verificados</p>
+            <h3>Contrapartes con contexto oficial disponible</h3>
           </div>
           <b>{actorSnapshots.length}</b>
         </div>
@@ -77,7 +126,7 @@ export default async function NetworkPage() {
             {actorSnapshots.slice(0, 8).map((snapshot) => (
               <article key={snapshot.id}>
                 <span className={`snapshotStatus snapshot-${snapshot.status.toLowerCase()}`}>
-                  {snapshot.status}
+                  {actorStatusLabel(snapshot.status)}
                 </span>
                 <div>
                   <strong>{snapshot.subjectLabel ?? snapshot.externalIdentifier ?? "Actor sin etiqueta"}</strong>
@@ -95,8 +144,8 @@ export default async function NetworkPage() {
           </div>
         ) : (
           <div className="emptyState compactEmpty">
-            <strong>Sin actores REP con snapshot oficial todavía.</strong>
-            <p>Las verificaciones persistidas aparecerán aquí antes de asociarlas a operaciones o relaciones.</p>
+            <strong>Aún no hay actores verificados.</strong>
+            <p>Cuando una contraparte necesite respaldo externo, verifícala y guarda la referencia oficial.</p>
           </div>
         )}
       </section>
@@ -133,26 +182,26 @@ export default async function NetworkPage() {
 
       <section className="officialVerificationBand">
         <div>
-          <p className="eyebrow">State Intelligence</p>
-          <h3>La red REP puede contrastarse con fuentes públicas oficiales.</h3>
+          <p className="eyebrow">Verificación oficial</p>
+          <h3>Contrasta una contraparte antes de usarla como respaldo operativo.</h3>
           <p>Productores, gestores y destinos pueden buscarse en RETC antes de asociarlos a una operación.</p>
         </div>
         <Link className="buttonLink" href="/state-intelligence">
-          Abrir verificación oficial →
+          Verificar contraparte →
         </Link>
       </section>
 
-      <section className="bottomGrid">
+      <details className="secondaryDetail"><summary>Ver modelo técnico de la red</summary><section className="bottomGrid">
         <article className="panel">
-          <p className="eyebrow">Material system of record</p>
-          <h3>La masa física vive en el Material / REP Ledger.</h3>
+          <p className="eyebrow">Registro material</p>
+          <h3>La masa física vive en la trazabilidad operacional.</h3>
           <p className="muted">
-            Retiros, pesajes, lotes, tratamiento, valorización y evidencia mantienen el lineage físico.
+            Retiros, pesajes, lotes, tratamiento, valorización y evidencia mantienen el historial físico.
           </p>
         </article>
 
         <article className="panel">
-          <p className="eyebrow">Relationship registry</p>
+          <p className="eyebrow">Registro de relaciones</p>
           <h3>Los actores y contratos viven en otra capa.</h3>
           <p className="muted">
             Productor, SIG y gestor pueden cambiar de relación sin reescribir la historia física de una operación.
@@ -161,12 +210,12 @@ export default async function NetworkPage() {
       </section>
 
       <section className="panel ledgerRule">
-        <p className="eyebrow">Architecture rule</p>
+        <p className="eyebrow">Regla de arquitectura</p>
         <h3>No convertir el flujo financiero en toneladas.</h3>
         <p className="muted">
-          Recycla OS relaciona ambos mundos, pero mantiene separación entre material, compliance y relaciones económicas.
+          Recycla OS relaciona ambos mundos, pero mantiene separación entre material, cumplimiento y relaciones económicas.
         </p>
-      </section>
+      </section></details>
     </AppShell>
   );
 }

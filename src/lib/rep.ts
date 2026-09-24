@@ -39,7 +39,7 @@ export const repRegulatoryUniverse: RepRegulatoryProduct[] = [
     operational: true,
     stage: "Metas vigentes",
     milestone: "Desde 2023",
-    note: "Stream operativo en Recycla OS."
+    note: "Flujo operativo activo en Recycla."
   },
   {
     id: "ENVASES_EMBALAJES",
@@ -47,7 +47,7 @@ export const repRegulatoryUniverse: RepRegulatoryProduct[] = [
     operational: false,
     stage: "Metas vigentes",
     milestone: "Desde 2023",
-    note: "Radar regulatorio; fuera del alcance operacional actual."
+    note: "Monitoreo normativo; fuera del alcance operacional actual."
   },
   {
     id: "ACEITES_LUBRICANTES",
@@ -87,6 +87,6 @@ export const repRegulatoryUniverse: RepRegulatoryProduct[] = [
     operational: false,
     stage: "Anteproyecto en elaboración",
     milestone: "7° producto prioritario",
-    note: "Radar regulatorio; útil como stress test de trazabilidad masiva."
+    note: "Monitoreo normativo; útil para probar trazabilidad a mayor escala."
   }
 ];

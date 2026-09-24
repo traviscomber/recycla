@@ -49,22 +49,17 @@ export default async function SignInPage({
       <section className="authShell">
         <div className="authBrandBlock">
           <p className="eyebrow">RECYCLA REP OS</p>
-          <h1>Acceso operacional</h1>
+          <h1>Ingresar a Recycla</h1>
           <p>
-            Ingresa al Workbench REP con tu cuenta autorizada.
+            Acceso interno para operación, evidencia y cierre REP.
           </p>
-          <div className="authTrust">
-            <span>Compliance</span>
-            <span>Evidencia</span>
-            <span>Trazabilidad</span>
-          </div>
         </div>
 
         <section className="authCard authCardPrimary">
           <div className="authCardHead">
-            <span>Cuenta autorizada</span>
+            <span>Acceso interno</span>
             <h2>Ingresar</h2>
-            <p>Usa tu correo corporativo y contraseña.</p>
+            <p>Usa tu correo y contraseña asignados.</p>
           </div>
 
           {!configured ? (
@@ -92,7 +87,7 @@ export default async function SignInPage({
                 </div>
               ) : null}
 
-              <button type="submit">Ingresar al Workbench</button>
+              <button type="submit">Ingresar</button>
             </form>
           )}
 

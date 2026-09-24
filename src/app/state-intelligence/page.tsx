@@ -61,6 +61,26 @@ async function saveSnapshotAction(formData: FormData) {
   redirect(`/state-intelligence?${params.toString()}`);
 }
 
+function gestorStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    VERIFIED_REFERENCE: "REFERENCIA CONFIRMADA",
+    REVIEW_NAME_MATCH: "REVISAR IDENTIDAD",
+    NOT_FOUND: "SIN REFERENCIA",
+    MISSING_IDENTITY: "IDENTIDAD INCOMPLETA"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function snapshotStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    REVIEW_REQUIRED: "REQUIERE REVISIÓN",
+    VERIFIED: "VERIFICADO",
+    NOT_FOUND: "SIN COINCIDENCIA",
+    UNAVAILABLE: "NO DISPONIBLE"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
 const verificationLabels: Record<VerificationKind, string> = {
   producer: "Productor / establecimiento",
   hazardous_destination: "Destinatario de residuos peligrosos",
@@ -103,10 +123,10 @@ export default async function StateIntelligencePage({
     <AppShell active="/state-intelligence">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Official data layer</p>
-          <h1>State Intelligence</h1>
+          <p className="eyebrow">Fuentes oficiales</p>
+          <h1>Verifica una contraparte antes de usarla</h1>
           <p className="muted">
-            Conecta la operación privada con fuentes públicas oficiales sin convertir una coincidencia externa en una decisión automática de cumplimiento.
+            Busca productores, gestores y destinos en fuentes públicas para respaldar identidad y contexto sin confundir una coincidencia con cumplimiento.
           </p>
         </div>
         <div className="period">
@@ -115,29 +135,11 @@ export default async function StateIntelligencePage({
         </div>
       </header>
 
-      <section className="decisionStrip">
-        <article>
-          <span>Principio</span>
-          <strong>Evidencia externa</strong>
-          <p>Contextualiza y valida; no reemplaza las reglas REP.</p>
-        </article>
-        <article>
-          <span>Refresh</span>
-          <strong>6 h</strong>
-          <p>Metadatos RETC cacheados para no sobrecargar fuentes públicas.</p>
-        </article>
-        <article>
-          <span>Snapshot</span>
-          <strong>Versionado</strong>
-          <p>El estado oficial usado por una decisión debe poder reconstruirse.</p>
-        </article>
-      </section>
-
       <section className="panel stateVerifier">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Verificación oficial</p>
-            <h3>Buscar una entidad en datasets públicos RETC</h3>
+            <p className="eyebrow">Buscar contraparte</p>
+            <h3>Consulta la fuente oficial antes de asociarla a una operación</h3>
           </div>
         </div>
 
@@ -165,16 +167,16 @@ export default async function StateIntelligencePage({
         </form>
 
         <p className="verificationHint">
-          Busca sobre el recurso oficial más reciente publicado por RETC, incluyendo XLSX/CSV. Una coincidencia se marca como <strong>requiere revisión</strong> hasta corroborar identidad y contexto.
+          La búsqueda usa el recurso oficial disponible más reciente. Toda coincidencia requiere revisión de identidad y contexto antes de usarla como respaldo.
         </p>
 
         {snapshotFeedback ? (
           <div className={`snapshotFeedback snapshotFeedback-${snapshotFeedback}`}>
             {snapshotFeedback === "saved"
-              ? "Snapshot oficial persistido. Quedó disponible en REP Network y Audit Room."
+              ? "Referencia oficial guardada. Quedó disponible en Red REP y Auditoría."
               : snapshotFeedback === "invalid"
-                ? "La solicitud de snapshot no era válida."
-                : "No fue posible persistir el snapshot oficial."}
+                ? "La solicitud de referencia no era válida."
+                : "No fue posible guardar la referencia oficial."}
           </div>
         ) : null}
 
@@ -199,7 +201,7 @@ export default async function StateIntelligencePage({
                   <article className="matchCard" key={`${match.resourceId}-${index}`}>
                     <div className="matchHead">
                       <span>{String(index + 1).padStart(2, "0")}</span>
-                      <b>{match.status === "REVIEW_REQUIRED" ? "REQUIERE REVISIÓN" : match.status}</b>
+                      <b>{snapshotStatusLabel(match.status)}</b>
                     </div>
                     <strong>{match.sourceLabel}</strong>
                     <p>{match.resourceName}</p>
@@ -214,7 +216,7 @@ export default async function StateIntelligencePage({
                     </dl>
 
                     <div className="matchFoot">
-                      <span>Match: texto / ID en dataset oficial</span>
+                      <span>Coincidencia por texto o ID en fuente oficial</span>
                       <span className={match.isHistorical ? "historicalSource" : ""}>
                         Año fuente: {match.sourceYear ?? "s/i"}{match.isHistorical ? " · histórica" : ""}
                       </span>
@@ -225,10 +227,10 @@ export default async function StateIntelligencePage({
                       <input type="hidden" name="kind" value={kind} />
                       <input type="hidden" name="matchIndex" value={index} />
                       <div>
-                        <span>State Snapshot</span>
-                        <p>Congela esta coincidencia oficial como evidencia externa. No la convierte en cumplimiento REP.</p>
+                        <span>Guardar referencia</span>
+                        <p>Conserva esta coincidencia y su fuente para poder reconstruir la revisión después.</p>
                       </div>
-                      <button type="submit">Guardar snapshot</button>
+                      <button type="submit">Guardar referencia</button>
                     </form>
                   </article>
                 ))}
@@ -245,28 +247,47 @@ export default async function StateIntelligencePage({
         ) : null}
       </section>
 
+      <section className="pageGuide">
+        <article>
+          <span>Cómo interpretar el resultado</span>
+          <strong>Una coincidencia es una referencia</strong>
+          <p>Aporta contexto oficial, pero no prueba por sí sola autorización o cumplimiento.</p>
+        </article>
+        <article>
+          <span>Cuándo guardarla</span>
+          <strong>Cuando respalda una revisión</strong>
+          <p>Conserva la fuente y fecha sólo cuando necesites reconstruir una decisión después.</p>
+        </article>
+        <article>
+          <span>Qué hacer si no aparece</span>
+          <strong>Revisar identidad y categoría</strong>
+          <p>La ausencia de coincidencia no demuestra que la entidad no exista.</p>
+        </article>
+      </section>
+
+      {gestorRows.length ? (
       <section className="panel gestorIntelligencePanel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Gestor Intelligence</p>
-            <h3>Contrapartes operacionales contrastadas contra registros oficiales RETC.</h3>
+            <p className="eyebrow">Gestores y destinos</p>
+            <h3>Contrapartes operacionales que ya fueron contrastadas con fuentes oficiales.</h3>
           </div>
-          <span className="workbenchUpdated">Match exacto por identificador o nombre · no equivale a autorización vigente</span>
+          <span className="workbenchUpdated">La coincidencia ayuda a revisar identidad; no equivale a autorización vigente</span>
         </div>
 
         <section className="decisionStrip">
           <article>
-            <span>Referencia oficial</span>
+            <span>Identidad confirmada</span>
             <strong>{gestoresVerified.length}</strong>
             <p>Coincidencia exacta por identificador.</p>
           </article>
           <article>
-            <span>Revisar identidad</span>
+            <span>Revisión pendiente</span>
             <strong>{gestoresReview.length}</strong>
             <p>Coincidencia exacta sólo por nombre.</p>
           </article>
           <article>
-            <span>Sin match / identidad</span>
+            <span>Sin referencia suficiente</span>
             <strong>{gestoresNotFound.length}</strong>
             <p>Requiere investigación antes del cierre.</p>
           </article>
@@ -290,7 +311,7 @@ export default async function StateIntelligencePage({
                     <td>{new Date(row.lastSeenAt).toLocaleDateString("es-CL")}</td>
                     <td>
                       <span className={"gestorStatus gestor-" + row.status.toLowerCase()}>
-                        {row.status.replaceAll("_", " ")}
+                        {gestorStatusLabel(row.status)}
                       </span>
                     </td>
                     <td>{row.sourceId ?? "—"}</td>
@@ -303,18 +324,22 @@ export default async function StateIntelligencePage({
         ) : (
           <div className="emptyState compactEmpty">
             <strong>Sin contrapartes reportables para contrastar.</strong>
-            <p>Gestor Intelligence se activa cuando existen operaciones de gestión con contraparte persistida.</p>
+            <p>La verificación de gestores se activa cuando existen operaciones de gestión con contraparte persistida.</p>
           </div>
         )}
 
         <div className="stateGuardrail">
-          <strong>Guardrail</strong>
+          <strong>Límite de uso</strong>
           <p>
-            Una coincidencia RETC demuestra presencia en el dataset consultado, no vigencia de permisos ni cumplimiento REP. SNIFA permanece como capa de contexto de fiscalización y sancionatorios.
+            Una coincidencia RETC demuestra presencia en el registro oficial consultado, no vigencia de permisos ni cumplimiento REP. SNIFA permanece como capa de contexto de fiscalización y sancionatorios.
           </p>
         </div>
       </section>
 
+      ) : null}
+
+      <details className="secondaryDetail">
+        <summary>Ver fuentes, sincronización y evidencia técnica</summary>
       <section className="stateSourceGrid">
         {stateSources.map((source, index) => {
           const meta = metaById.get(source.id);
@@ -324,7 +349,7 @@ export default async function StateIntelligencePage({
               <div className="stateSourceHead">
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <b className={`sourceStatus source-${meta?.status ?? "unavailable"}`}>
-                  {meta?.status === "ready" ? "LIVE METADATA" : meta?.status === "not_applicable" ? "EXTERNAL" : "UNAVAILABLE"}
+                  {meta?.status === "ready" ? "DISPONIBLE" : meta?.status === "not_applicable" ? "EXTERNA" : "NO DISPONIBLE"}
                 </b>
               </div>
 
@@ -334,17 +359,17 @@ export default async function StateIntelligencePage({
               <dl>
                 <div><dt>Agencia</dt><dd>{source.agency}</dd></div>
                 <div><dt>Uso</dt><dd>{source.productUse.join(" · ")}</dd></div>
-                {meta?.lastModified ? <div><dt>Metadata</dt><dd>{new Date(meta.lastModified).toLocaleDateString("es-CL")}</dd></div> : null}
+                {meta?.lastModified ? <div><dt>Actualización fuente</dt><dd>{new Date(meta.lastModified).toLocaleDateString("es-CL")}</dd></div> : null}
                 {typeof meta?.resources === "number" ? <div><dt>Recursos</dt><dd>{meta.resources}</dd></div> : null}
                 {sync ? (
                   <div>
-                    <dt>Ingesta</dt>
+                    <dt>Datos cargados</dt>
                     <dd>{sync.rowCount.toLocaleString("es-CL")} filas · {sync.status}</dd>
                   </div>
                 ) : null}
                 {sync?.finishedAt ? (
                   <div>
-                    <dt>Último sync</dt>
+                    <dt>Última sincronización</dt>
                     <dd>{new Date(sync.finishedAt).toLocaleString("es-CL")}</dd>
                   </div>
                 ) : null}
@@ -362,8 +387,8 @@ export default async function StateIntelligencePage({
       <section className="panel snapshotRegistry">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">State Snapshot Registry</p>
-            <h3>Qué evidencia externa quedó congelada para decisiones operacionales.</h3>
+            <p className="eyebrow">Referencias guardadas</p>
+            <h3>Qué contexto oficial quedó preservado para revisiones posteriores.</h3>
           </div>
           <b>{snapshots.length}</b>
         </div>
@@ -373,7 +398,7 @@ export default async function StateIntelligencePage({
             {snapshots.map((snapshot) => (
               <article key={snapshot.id}>
                 <span className={`snapshotStatus snapshot-${snapshot.status.toLowerCase()}`}>
-                  {snapshot.status}
+                  {snapshotStatusLabel(snapshot.status)}
                 </span>
                 <div>
                   <strong>{snapshot.externalIdentifier ?? "Sin identificador externo"}</strong>
@@ -385,37 +410,38 @@ export default async function StateIntelligencePage({
           </div>
         ) : (
           <div className="emptyState compactEmpty">
-            <strong>Aún no hay snapshots persistidos.</strong>
-            <p>El registro se poblará cuando una verificación oficial se congele como evidencia del expediente.</p>
+            <strong>Aún no hay referencias oficiales guardadas.</strong>
+            <p>El registro aparecerá cuando una verificación se guarde como respaldo de una revisión.</p>
           </div>
         )}
       </section>
 
       <section className="bottomGrid">
         <article className="panel">
-          <p className="eyebrow">Verification flow</p>
-          <h3>Actor / destino → búsqueda oficial → match → evidencia → auditoría.</h3>
+          <p className="eyebrow">Flujo de verificación</p>
+          <h3>Actor / destino → búsqueda oficial → revisión → evidencia → auditoría.</h3>
           <p className="muted">
             El resultado operativo debe evolucionar de “requiere revisión” a “verificado” sólo cuando identidad, fuente y contexto coincidan de forma suficiente.
           </p>
         </article>
 
         <article className="panel">
-          <p className="eyebrow">State Snapshot</p>
+          <p className="eyebrow">Referencia preservada</p>
           <h3>Congelar el contexto externo cuando una operación cambia de estado.</h3>
           <p className="muted">
-            Fuente, identificador, fecha de consulta, contenido normalizado y hash quedan ligados al lineage sin sobrescribir el histórico.
+            Fuente, identificador, fecha de consulta, contenido normalizado y hash quedan ligados al historial sin sobrescribir el histórico.
           </p>
         </article>
       </section>
 
       <section className="panel ledgerRule">
-        <p className="eyebrow">Guardrail</p>
+        <p className="eyebrow">Límite de uso</p>
         <h3>“Aparece en RETC/SNIFA” no significa “cumple REP”.</h3>
         <p className="muted">
-          State Intelligence aporta contexto verificable. La elegibilidad y acreditación siguen dependiendo de reglas versionadas, operación y evidencia.
+          Fuentes oficiales aporta contexto verificable. La elegibilidad y acreditación siguen dependiendo de reglas versionadas, operación y evidencia.
         </p>
       </section>
+      </details>
     </AppShell>
   );
 }
