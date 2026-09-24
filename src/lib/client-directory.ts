@@ -26,7 +26,7 @@ export async function listClientDirectory(limit = 200): Promise<ClientDirectoryE
 
     const safeLimit = Math.min(Math.max(limit, 1), 500);
 
-    return await sql<ClientDirectoryEntry[]>\`
+    return await sql<ClientDirectoryEntry[]>`
       select
         slug,
         display_name as "displayName",
@@ -40,7 +40,7 @@ export async function listClientDirectory(limit = 200): Promise<ClientDirectoryE
       from client_directory
       order by display_name
       limit ${safeLimit}
-    \`;
+    `;
   } catch {
     return [];
   }
