@@ -5,15 +5,17 @@ import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
 import { getLatestComplianceRun } from "@/lib/compliance-runs";
 import { listComplianceFindings } from "@/lib/compliance-findings";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
+import { listGestorIntelligence } from "@/lib/gestor-intelligence";
 
 export const dynamic = "force-dynamic";
 
 export default async function AuditPage() {
-  const [snapshots, compliance, latestRun, liveFindings] = await Promise.all([
+  const [snapshots, compliance, latestRun, liveFindings, gestorRows] = await Promise.all([
     listRecentSnapshots(100),
     evaluateComplianceReadiness(),
     getLatestComplianceRun("recycla-os"),
-    listComplianceFindings("recycla-os", 100)
+    listComplianceFindings("recycla-os", 100),
+    listGestorIntelligence("recycla-os", 100)
   ]);
   const externalActorEvidence = snapshots.filter(
     (snapshot) =>
@@ -23,6 +25,8 @@ export default async function AuditPage() {
   const reviewRequired = externalActorEvidence.filter(
     (snapshot) => snapshot.status === "REVIEW_REQUIRED"
   );
+  const gestorVerified = gestorRows.filter((row) => row.status === "VERIFIED_REFERENCE");
+  const gestorReview = gestorRows.filter((row) => row.status !== "VERIFIED_REFERENCE");
 
   return (
     <AppShell active="/audit">
@@ -67,9 +71,9 @@ export default async function AuditPage() {
           <p>Persistidos en State Intelligence</p>
         </article>
         <article>
-          <span>Requieren revisión</span>
-          <strong>{reviewRequired.length}</strong>
-          <p>No equivalen a cumplimiento</p>
+          <span>Gestores verificados por referencia</span>
+          <strong>{gestorVerified.length}/{gestorRows.length}</strong>
+          <p>Match exacto en datasets RETC ingeridos</p>
         </article>
       </section>
 
@@ -144,6 +148,48 @@ export default async function AuditPage() {
             <p>Ejecuta el compliance pre-check para sincronizar la reconciliación con Audit Room.</p>
           </div>
         )}
+      </section>
+
+      <section className="panel auditGestorIntelligence">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Gestor Intelligence · Audit</p>
+            <h3>Contrapartes que requieren validación antes de usar su operación como soporte.</h3>
+          </div>
+          <b>{gestorReview.length}</b>
+        </div>
+
+        {gestorRows.length ? (
+          <div className="tableWrap">
+            <table className="dataTable">
+              <thead>
+                <tr>
+                  <th>Contraparte</th><th>Referencia</th><th>Operaciones</th><th>Estado</th><th>Fuente oficial</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gestorRows.slice(0, 20).map((row, index) => (
+                  <tr key={(row.counterpartyRef ?? row.counterpartyName ?? "sin-id") + "-" + index}>
+                    <td><strong>{row.counterpartyName ?? "Sin nombre"}</strong></td>
+                    <td>{row.counterpartyRef ?? "—"}</td>
+                    <td>{row.operationCount}</td>
+                    <td>{row.status.replaceAll("_", " ")}</td>
+                    <td>{row.sourceId ? row.sourceId + (row.sourceYear ? " · " + row.sourceYear : "") : "Sin match oficial"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin contrapartes operacionales persistidas.</strong>
+            <p>Este control aparecerá cuando el cierre contenga operaciones de gestión con gestor o destino.</p>
+          </div>
+        )}
+
+        <p className="muted">
+          Un match oficial sirve como evidencia contextual. No reemplaza la revisión de autorización, alcance, vigencia ni demás condiciones aplicables a la operación.
+        </p>
       </section>
 
       <section className="panel auditExternalEvidence">
