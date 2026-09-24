@@ -20,6 +20,7 @@ import {
   getLatestMonthlyRepReport,
   latestReportableMonth
 } from "@/lib/monthly-reporting";
+import { finalizeMonthlyRepDraft } from "@/lib/monthly-close";
 import { reconcileMonthlyReporting } from "@/lib/reporting-reconciliation";
 import { reconcileHistoricalYear } from "@/lib/historical-reconciliation";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
@@ -44,6 +45,19 @@ async function generateMonthlyDraftAction() {
   await requireComplianceSession();
 
   await generateMonthlyRepDraft("recycla-os");
+  revalidatePath("/reporting");
+  revalidatePath("/audit");
+}
+
+async function finalizeMonthlyDraftAction() {
+  "use server";
+
+  await requireComplianceSession();
+
+  const reportingMonth = latestReportableMonth();
+  await syncComplianceFindings("recycla-os", reportingMonth);
+  await finalizeMonthlyRepDraft("recycla-os", reportingMonth);
+  await runCompliancePrecheck("recycla-os", reportingMonth);
   revalidatePath("/reporting");
   revalidatePath("/audit");
 }
@@ -90,6 +104,9 @@ export default async function ReportingPage() {
   const reconciliationReady = reconciliation?.status === "READY";
   const openReconciliationIssues = reconciliation?.issues.length ?? 0;
   const monthlyDraftReady = Boolean(latestMonthly);
+  const monthlyCloseReady =
+    latestMonthly?.reportingMonth === suggestedMonth &&
+    (latestMonthly.status === "READY" || latestMonthly.status === "SUBMITTED");
   const precheckPassed = latestRun?.status === "PASS";
 
   const closeSteps = [
@@ -124,10 +141,12 @@ export default async function ReportingPage() {
     {
       index: "04",
       label: "Cerrar",
-      detail: monthlyDraftReady
-        ? `${latestMonthly?.reportingMonth} · v${latestMonthly?.version}`
-        : "Cierre mensual no generado",
-      state: monthlyDraftReady ? "done" : "pending"
+      detail: monthlyCloseReady
+        ? `${latestMonthly?.reportingMonth} · v${latestMonthly?.version} · ${latestMonthly?.status}`
+        : monthlyDraftReady
+          ? `${latestMonthly?.reportingMonth} · v${latestMonthly?.version} · ${latestMonthly?.status}`
+          : "Cierre mensual no generado",
+      state: monthlyCloseReady ? "done" : monthlyDraftReady ? "attention" : "pending"
     },
     {
       index: "05",
@@ -329,6 +348,14 @@ export default async function ReportingPage() {
             <Link className="buttonLink" href="/reporting/intake">Ingresar datos reales →</Link>
             <form action={generateMonthlyDraftAction}>
               <button type="submit">Generar cierre mensual</button>
+            </form>
+            <form action={finalizeMonthlyDraftAction}>
+              <button
+                type="submit"
+                disabled={!latestMonthly || !reconciliationReady || openReconciliationIssues > 0 || monthlyCloseReady}
+              >
+                {monthlyCloseReady ? "Cierre validado" : "Validar cierre mensual"}
+              </button>
             </form>
           </div>
         </div>
