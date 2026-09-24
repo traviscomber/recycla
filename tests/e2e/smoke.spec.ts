@@ -30,7 +30,12 @@ test("auth entry remains public", async ({ page }) => {
 test("password recovery remains public", async ({ page }) => {
   const response = await page.goto("/auth/forgot-password");
   expect(response?.status()).toBeLessThan(500);
-  await expect(page.getByText("Olvidé mi contraseña")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recuperar acceso" })).toBeVisible();
+});
+
+test("public sign-up surface is disabled", async ({ page }) => {
+  const response = await page.goto("/auth/sign-up");
+  expect(response?.status()).toBe(404);
 });
 
 test("machine sync rejects unauthenticated mutation", async ({ request }) => {

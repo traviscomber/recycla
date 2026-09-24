@@ -1071,3 +1071,230 @@ h1{font-weight:500;letter-spacing:-.035em}
     justify-self: start;
   }
 }
+
+
+/* Recycla Auth */
+.authPage {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background:
+    linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), var(--line) calc(100% - 1px)) 0 0 / 96px 96px,
+    linear-gradient(0deg, transparent 0, transparent calc(100% - 1px), var(--line) calc(100% - 1px)) 0 0 / 96px 96px,
+    var(--surface-1);
+}
+
+.authShell {
+  width: min(980px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+
+.authBrandBlock {
+  padding: clamp(32px, 6vw, 72px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 560px;
+  border-right: 1px solid var(--line);
+}
+
+.authBrandBlock h1 {
+  max-width: 8ch;
+  margin: 10px 0 16px;
+  font-size: clamp(2.5rem, 5vw, 4.8rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+}
+
+.authBrandBlock > p:not(.eyebrow) {
+  max-width: 34rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.authTrust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.authTrust span {
+  border: 1px solid var(--line);
+  padding: 7px 9px;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text-faint);
+}
+
+.authCard {
+  padding: clamp(28px, 5vw, 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.authCardHead {
+  margin-bottom: 28px;
+}
+
+.authCardHead > span {
+  color: var(--green);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.authCardHead h2 {
+  margin: 8px 0 6px;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+.authCardHead p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.authForm {
+  display: grid;
+  gap: 16px;
+}
+
+.authForm label {
+  display: grid;
+  gap: 7px;
+}
+
+.authForm label > span {
+  color: var(--text-faint);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.authForm input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-3);
+  color: var(--text);
+  padding: 0 14px;
+  border-radius: 0;
+  outline: none;
+}
+
+.authForm input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+.authForm button {
+  min-height: 46px;
+  border: 1px solid var(--green);
+  background: var(--green);
+  color: #07120e;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.authErrorBox {
+  border-left: 2px solid var(--danger);
+  background: var(--surface-3);
+  padding: 12px 14px;
+}
+
+.authErrorBox strong {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.authErrorBox p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.authRecovery {
+  display: grid;
+  gap: 5px;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.authRecovery span {
+  color: var(--text-faint);
+  font-size: 9px;
+}
+
+.authRecovery a {
+  color: var(--text);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.authRecovery a:hover {
+  color: var(--green);
+}
+
+.authManagedCard .neon-auth-ui > [data-slot="card"] {
+  max-width: none;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: inherit;
+}
+
+.authManagedCard .neon-auth-ui [data-slot="card-header"],
+.authManagedCard .neon-auth-ui [data-slot="card-content"],
+.authManagedCard .neon-auth-ui [data-slot="card-footer"] {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.authManagedCard .neon-auth-ui [data-slot="card-footer"] {
+  display: none;
+}
+
+.authManagedCard .neon-auth-ui input,
+.authManagedCard .neon-auth-ui button {
+  border-radius: 0 !important;
+}
+
+@media (max-width: 760px) {
+  .authPage {
+    padding: 16px;
+    place-items: start center;
+  }
+
+  .authShell {
+    grid-template-columns: 1fr;
+  }
+
+  .authBrandBlock {
+    min-height: auto;
+    padding: 28px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .authBrandBlock h1 {
+    max-width: none;
+    font-size: 2.6rem;
+  }
+
+  .authCard {
+    padding: 28px;
+  }
+}
