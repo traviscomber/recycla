@@ -100,7 +100,7 @@ export default async function ClientesPage({
         </div>
         <div className="period">
           <span>Fichas operacionales</span>
-          <strong>{filteredClients.length}/{clients.length}</strong>
+          <strong>{clients.length ? `${filteredClients.length}/${clients.length}` : "SIN CARTERA"}</strong>
         </div>
       </header>
 
@@ -139,6 +139,7 @@ export default async function ClientesPage({
         </article>
       </section>
 
+      {clients.length ? (
       <section className="clientSummary">
         <article className="card">
           <span className="label">Obligaciones REP</span>
@@ -156,6 +157,7 @@ export default async function ClientesPage({
           <p className="muted">Requieren intervención antes del cierre.</p>
         </article>
       </section>
+      ) : null}
 
       {clients.length === 0 && directory.length > 0 ? (
         <section className="systemNotice notice-schema_missing">
@@ -179,7 +181,7 @@ export default async function ClientesPage({
             <h3>Empresas que Recycla muestra públicamente como clientes.</h3>
           </div>
           <span className="workbenchUpdated">
-            {referenceDirectory.length} referencia{referenceDirectory.length === 1 ? "" : "s"} · {linkedDirectory.length} vinculada{linkedDirectory.length === 1 ? "" : "s"} al core
+            {referenceDirectory.length} publicada{referenceDirectory.length === 1 ? "" : "s"} · {linkedDirectory.length} operacional{linkedDirectory.length === 1 ? "" : "es"}
           </span>
         </div>
 
@@ -210,10 +212,11 @@ export default async function ClientesPage({
         )}
 
         <p className="ficha360Footnote">
-          Este directorio sólo acredita la publicación observada en recycla.cl. Una entrada pasa a la cartera operacional únicamente cuando queda vinculada a una organización canónica con período y obligaciones REP persistidas.
+          Esta lista es una referencia comercial publicada por Recycla. Sólo pasa a cartera operacional cuando existe organización, período y obligaciones REP persistidas.
         </p>
       </section>
 
+      {clients.length ? (
       <section className="panel clientDirectory">
         <div className="panelHead">
           <div>
@@ -319,6 +322,7 @@ export default async function ClientesPage({
           </div>
         )}
       </section>
+      ) : null}
     </AppShell>
   );
 }

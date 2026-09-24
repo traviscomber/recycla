@@ -196,6 +196,68 @@ export default async function ReportingPage() {
     }
   ] as const;
 
+  if (operationalRows === 0) {
+    return (
+      <AppShell active="/reporting">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">Cierre REP</p>
+            <h1>El período aún no puede cerrarse</h1>
+            <p className="muted">
+              Todavía no hay registros operacionales del período. Primero carga la información; después se habilitan reconciliación, evidencia, validación y exportación.
+            </p>
+          </div>
+          <div className="period">
+            <span>Estado de cierre</span>
+            <strong>SIN DATOS</strong>
+          </div>
+        </header>
+
+        <section className="pageGuide">
+          <article>
+            <span>Paso actual</span>
+            <strong>1. Cargar datos del período</strong>
+            <p>Registra introducción al mercado y/o operaciones de gestión según corresponda.</p>
+          </article>
+          <article>
+            <span>Después</span>
+            <strong>2. Revisar y resolver</strong>
+            <p>La app habilitará reconciliación, documentos y observaciones cuando exista información operacional.</p>
+          </article>
+          <article>
+            <span>Final</span>
+            <strong>3. Validar y exportar</strong>
+            <p>El pack final permanece bloqueado hasta que todos los controles aplicables estén listos.</p>
+          </article>
+        </section>
+
+        <section className="panel reportingEmptyGate">
+          <div>
+            <p className="eyebrow">Única acción disponible</p>
+            <h2>Cargar información del período</h2>
+            <p className="muted">
+              No se muestran métricas, tendencias ni controles en cero porque todavía no existe una base operacional que interpretar.
+            </p>
+          </div>
+          <Link className="buttonLink" href="/reporting/intake">Cargar datos →</Link>
+        </section>
+
+        <section className="complianceNotice">
+          <div>
+            <p className="eyebrow">Declaración REP {currentDeclarationNotice.year}</p>
+            <h3>
+              Productos introducidos en {currentDeclarationNotice.reportedYear}: ventana informada para {currentDeclarationNotice.period.toLowerCase()}.
+            </h3>
+            <p>{currentDeclarationNotice.exactDates}. {currentDeclarationNotice.note}</p>
+          </div>
+          <a className="buttonLink secondary" href={complianceSources.declaration2026.url} target="_blank" rel="noreferrer">
+            Fuente MMA ↗
+          </a>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell active="/reporting">
       <header className="topbar">
