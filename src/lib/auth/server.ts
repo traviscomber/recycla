@@ -31,6 +31,18 @@ export function isAuthConfigured() {
   );
 }
 
+function resolveAuthBaseUrl() {
+  // Vercel may inject a branch-scoped Neon Auth URL into previews. Some preview
+  // auth branches do not expose email/password and return feature_not_supported.
+  // Recycla uses the canonical managed-auth directory for internal identities,
+  // while keeping the preview app/data isolated.
+  if (process.env.VERCEL_ENV === "preview") {
+    return DEFAULT_NEON_AUTH_BASE_URL;
+  }
+
+  return process.env.NEON_AUTH_BASE_URL || DEFAULT_NEON_AUTH_BASE_URL;
+}
+
 function createAuth() {
   const secret = resolveCookieSecret();
 
@@ -39,7 +51,7 @@ function createAuth() {
   }
 
   return createNeonAuth({
-    baseUrl: process.env.NEON_AUTH_BASE_URL || DEFAULT_NEON_AUTH_BASE_URL,
+    baseUrl: resolveAuthBaseUrl(),
     cookies: {
       secret
     }
