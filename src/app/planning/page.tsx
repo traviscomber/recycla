@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { listOutcomeCalendarEvents, type OutcomeCalendarEvent } from "@/lib/outcome-planning";
 import { fmt } from "@/lib/rep";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const streamLabels: Record<OutcomeCalendarEvent["stream"], string> = {
   AEE_RAEE: "AEE / RAEE",
@@ -13,11 +13,19 @@ const streamLabels: Record<OutcomeCalendarEvent["stream"], string> = {
   ACEITES_LUBRICANTES: "Aceites"
 };
 
+function chileTodayKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santiago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+}
+
 function parseAnchor(value?: string) {
-  const match = value?.match(/^\d{4}-\d{2}-\d{2}$/);
-  if (!match) return new Date();
-  const date = new Date(`${value}T12:00:00Z`);
-  return Number.isNaN(date.getTime()) ? new Date() : date;
+  const key = value?.match(/^\d{4}-\d{2}-\d{2}$/) ? value : chileTodayKey();
+  const date = new Date(`${key}T12:00:00Z`);
+  return Number.isNaN(date.getTime()) ? new Date(`${chileTodayKey()}T12:00:00Z`) : date;
 }
 
 function toDateKey(date: Date) {
@@ -131,12 +139,25 @@ export default async function PlanningPage({
   });
 
   const days = Array.from({ length: range }, (_, index) => addDays(start, index));
-  const todayKey = toDateKey(new Date());
+  const todayKey = chileTodayKey();
   const plannedCount = events.filter((event) => event.kind === "planned").length;
   const actualCount = events.filter((event) => event.kind === "actual").length;
   const forecastedCount = events.filter(
     (event) => event.kind === "planned" && event.forecastRecoveryPct !== null
   ).length;
+  const twinCandidates = events
+    .filter(
+      (event) =>
+        event.kind === "planned" &&
+        event.bestComparablePct !== null &&
+        event.worstComparablePct !== null
+    )
+    .sort(
+      (a, b) =>
+        ((b.bestComparablePct ?? 0) - (b.worstComparablePct ?? 0)) -
+        ((a.bestComparablePct ?? 0) - (a.worstComparablePct ?? 0))
+    );
+  const strongestTwin = twinCandidates[0] ?? null;
 
   const rowMap = new Map<string, { client: string; site: string | null; events: OutcomeCalendarEvent[] }>();
   for (const event of events) {
@@ -163,7 +184,7 @@ export default async function PlanningPage({
       <header className="planningTopbar">
         <div>
           <p className="eyebrow">Planificación operacional</p>
-          <h1>Calendario de outcomes</h1>
+          <h1>Calendario de resultados</h1>
           <p className="muted">
             Planifica retiros y compáralos con resultados históricos antes de ejecutar.
           </p>
@@ -216,7 +237,7 @@ export default async function PlanningPage({
         </div>
 
         <Link className="buttonLink planningNewAction" href="/reporting/intake">
-          Cargar operación →
+          Registrar operación →
         </Link>
       </section>
 
@@ -337,11 +358,23 @@ export default async function PlanningPage({
       <section className="planningInsightBand">
         <div>
           <p className="eyebrow">Outcome Twin</p>
-          <h3>La proyección sólo aparece cuando existen al menos 3 casos históricos comparables.</h3>
-          <p>
-            La primera referencia usa resultados reales del mismo cliente y producto. No inventa probabilidades ni
-            convierte una correlación histórica en certeza.
-          </p>
+          {strongestTwin ? (
+            <>
+              <h3>
+                {strongestTwin.client}: casos comparables van de {strongestTwin.worstComparablePct?.toFixed(0)}% a {strongestTwin.bestComparablePct?.toFixed(0)}% de recuperación.
+              </h3>
+              <p>
+                Referencia actual ≈{strongestTwin.forecastRecoveryPct?.toFixed(0)}% sobre {strongestTwin.comparableCases} casos del mismo cliente y producto. La brecha histórica ayuda a decidir qué revisar antes del retiro.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3>La proyección se activa con al menos 3 casos históricos comparables.</h3>
+              <p>
+                La primera referencia usa resultados reales del mismo cliente y producto. No inventa probabilidades ni convierte una correlación histórica en certeza.
+              </p>
+            </>
+          )}
         </div>
         <div className="planningLegend">
           <span><i className="legendPlanned" /> Planificado</span>
