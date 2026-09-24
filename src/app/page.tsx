@@ -12,6 +12,24 @@ import { listGestorIntelligence } from "@/lib/gestor-intelligence";
 
 export const dynamic = "force-dynamic";
 
+function autopilotSourceLabel(source: string) {
+  const labels: Record<string, string> = {
+    COMPLIANCE_GATE: "Control de cierre",
+    EVIDENCE_CHAIN: "Evidencia",
+    GESTOR_INTELLIGENCE: "Gestor / destino",
+    FINDING: "Observación"
+  };
+  return labels[source] ?? source.replaceAll("_", " ").toLocaleLowerCase("es-CL");
+}
+
+function autopilotActionLabel(href: string) {
+  if (href.startsWith("/reporting")) return "Abrir cierre";
+  if (href.startsWith("/audit")) return "Revisar";
+  if (href.startsWith("/evidence")) return "Completar evidencia";
+  if (href.startsWith("/state-intelligence")) return "Revisar fuente";
+  return "Abrir";
+}
+
 function clientState(client: Awaited<ReturnType<typeof listRepClients>>[number]) {
   const gaps = client.obligations.filter(
     (item) => item.accreditable - item.obligation < 0
@@ -75,6 +93,7 @@ export default async function Home() {
   const actorSnapshots = stateSnapshots.filter((snapshot) =>
     snapshot.subjectType.startsWith("rep_actor_")
   );
+  const hasOperationalClients = clients.length > 0;
 
   return (
     <AppShell active="/">
@@ -87,8 +106,8 @@ export default async function Home() {
           </p>
         </div>
         <div className="period">
-          <span>Pendientes de hoy</span>
-          <strong>{workItems.length}</strong>
+          <span>{hasOperationalClients ? "Pendientes de hoy" : "Estado"}</span>
+          <strong>{hasOperationalClients ? workItems.length : "INICIAL"}</strong>
         </div>
       </header>
 
@@ -150,133 +169,138 @@ export default async function Home() {
         </section>
       ) : null}
 
-      <section className="panel autopilotPanel">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Siguiente paso recomendado</p>
-            <h3>Haz primero lo que más impacta el cierre.</h3>
-          </div>
-          <span className="workbenchUpdated">Priorizado desde datos reales · sin inventar cumplimiento</span>
-        </div>
-
-        <div className="autopilotSummary">
-          <article>
-            <span>Bloqueos</span>
-            <strong>{autopilotBlockers.length}</strong>
-          </article>
-          <article>
-            <span>Pendientes</span>
-            <strong>{autopilotActions.length}</strong>
-          </article>
-          <article>
-            <span>Operaciones trazables</span>
-            <strong>{evidenceChains.length}</strong>
-          </article>
-        </div>
-
-        {autopilotActions.length ? (
-          <div className="autopilotList">
-            {autopilotActions.slice(0, 6).map((action, index) => (
-              <article className={"autopilotItem autopilot-" + action.priority.toLowerCase()} key={action.id}>
-                <span className="autopilotIndex">{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <small>{action.priority} · {action.source.replaceAll("_", " ")}</small>
-                  <strong>{action.title}</strong>
-                  <p>{action.detail}</p>
-                </div>
-                <div className="autopilotAffected">
-                  <span>Afectados</span>
-                  <strong>{action.affected}</strong>
-                </div>
-                <Link className="buttonLink secondary" href={action.href}>
-                  {action.actionLabel} →
-                </Link>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="emptyState compactEmpty">
-            <strong>Sin acciones derivadas de los controles actuales.</strong>
-            <p>Esto no reemplaza el pre-check final ni constituye una declaración de cumplimiento.</p>
-          </div>
-        )}
-      </section>
-
-      <section className="workbenchSignals" aria-label="Prioridad operacional">
-        <article className={criticalItems.length ? "workbenchSignal signal-critical" : "workbenchSignal"}>
-          <span>Críticas</span>
-          <strong>{criticalItems.length}</strong>
-          <p>{criticalItems.length ? "Bloquean acreditación o cierre." : "Sin bloqueos críticos detectados."}</p>
-        </article>
-        <article className={warningItems.length ? "workbenchSignal signal-warning" : "workbenchSignal"}>
-          <span>Requieren acción</span>
-          <strong>{warningItems.length}</strong>
-          <p>{warningItems.length ? "Evidencia o controles pendientes." : "Sin acciones operativas pendientes."}</p>
-        </article>
-        <article className={reviewItems.length ? "workbenchSignal signal-review" : "workbenchSignal"}>
-          <span>Revisión humana</span>
-          <strong>{reviewItems.length}</strong>
-          <p>{reviewItems.length ? "Fuentes externas por validar." : "Sin evidencia externa pendiente."}</p>
-        </article>
-        <article className="workbenchSignal">
-          <span>Clientes sin excepción</span>
-          <strong>{cleanClients}/{clients.length}</strong>
-          <p>Calculado por producto, sin mezclar kg y litros.</p>
-        </article>
-      </section>
-
-      <section className="panel workbenchQueue">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Pendientes del día</p>
-            <h3>Qué requiere tu atención, en orden.</h3>
-          </div>
-          <span className="workbenchUpdated">Calculado desde datos persistidos</span>
-        </div>
-
-        {workItems.length ? (
-          <div className="workbenchList">
-            {workItems.slice(0, 12).map((item) => (
-              <article className={`workbenchItem priority-${item.priority}`} key={item.id}>
-                <div className="workbenchPriority">
-                  <i />
-                  <span>{item.priority === "critical" ? "CRÍTICA" : item.priority === "warning" ? "ACCIÓN" : "REVISAR"}</span>
-                </div>
-                <div className="workbenchBody">
-                  <strong>{item.title}</strong>
-                  <p>{item.detail}</p>
-                  <small>
-                    {item.subject} · {item.context}
-                    {item.sourceAt ? ` · ${new Date(item.sourceAt).toLocaleDateString("es-CL")}` : ""}
-                  </small>
-                </div>
-                <Link className="buttonLink secondary" href={item.href}>
-                  {item.actionLabel} →
-                </Link>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="emptyState">
-            <strong>No hay excepciones abiertas derivadas de los datos actuales.</strong>
-            <p>
-              Esto no equivale por sí solo a cumplimiento final. El cierre regulatorio mantiene sus propios gates.
-            </p>
-            <Link className="buttonLink" href="/reporting">Abrir cierre REP →</Link>
-          </div>
-        )}
-      </section>
-
-      <section className="workbenchGrid">
-        <article className="panel">
-          <div className="panelHead">
-            <div>
-              <p className="eyebrow">Cartera</p>
-              <h3>Estado por cliente</h3>
+      {hasOperationalClients ? (
+        <>
+          <section className="panel autopilotPanel">
+            <div className="panelHead">
+              <div>
+                <p className="eyebrow">Siguiente paso recomendado</p>
+                <h3>Haz primero lo que más impacta el cierre.</h3>
+              </div>
+              <span className="workbenchUpdated">Priorizado desde datos reales · sin inventar cumplimiento</span>
             </div>
-            <Link className="buttonLink secondary" href="/clientes">Ver todos →</Link>
-          </div>
-          {clientStates.length ? (
+
+            <div className="autopilotSummary">
+              <article>
+                <span>Bloqueos</span>
+                <strong>{autopilotBlockers.length}</strong>
+              </article>
+              <article>
+                <span>Pendientes</span>
+                <strong>{autopilotActions.length}</strong>
+              </article>
+              <article>
+                <span>Operaciones trazables</span>
+                <strong>{evidenceChains.length}</strong>
+              </article>
+            </div>
+
+            {autopilotActions.length ? (
+              <div className="autopilotList">
+                {autopilotActions.slice(0, 6).map((action, index) => (
+                  <article className={"autopilotItem autopilot-" + action.priority.toLowerCase()} key={action.id}>
+                    <span className="autopilotIndex">{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <small>{action.priority === "BLOCKER" ? "BLOQUEO" : action.priority === "ACTION" ? "ACCIÓN" : "REVISIÓN"} · {autopilotSourceLabel(action.source)}</small>
+                      <strong>{action.title}</strong>
+                      <p>{action.detail}</p>
+                    </div>
+                    <div className="autopilotAffected">
+                      <span>Afectados</span>
+                      <strong>{action.affected}</strong>
+                    </div>
+                    <Link className="buttonLink secondary" href={action.href}>
+                      {autopilotActionLabel(action.href)} →
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptyState compactEmpty">
+                <strong>Sin acciones derivadas de los controles actuales.</strong>
+                <p>El cierre final mantiene su propia validación antes de habilitar la exportación.</p>
+              </div>
+            )}
+          </section>
+
+          <section className="workbenchSignals" aria-label="Prioridad operacional">
+            <article className={criticalItems.length ? "workbenchSignal signal-critical" : "workbenchSignal"}>
+              <span>Críticas</span>
+              <strong>{criticalItems.length}</strong>
+              <p>{criticalItems.length ? "Bloquean acreditación o cierre." : "Sin bloqueos críticos detectados."}</p>
+            </article>
+            <article className={warningItems.length ? "workbenchSignal signal-warning" : "workbenchSignal"}>
+              <span>Requieren acción</span>
+              <strong>{warningItems.length}</strong>
+              <p>{warningItems.length ? "Evidencia o controles pendientes." : "Sin acciones operativas pendientes."}</p>
+            </article>
+            <article className={reviewItems.length ? "workbenchSignal signal-review" : "workbenchSignal"}>
+              <span>Revisión humana</span>
+              <strong>{reviewItems.length}</strong>
+              <p>{reviewItems.length ? "Fuentes externas por validar." : "Sin evidencia externa pendiente."}</p>
+            </article>
+            <article className="workbenchSignal">
+              <span>Clientes sin excepción</span>
+              <strong>{cleanClients}/{clients.length}</strong>
+              <p>Calculado por producto, sin mezclar kg y litros.</p>
+            </article>
+          </section>
+
+          <section className="panel workbenchQueue">
+            <div className="panelHead">
+              <div>
+                <p className="eyebrow">Pendientes del día</p>
+                <h3>Qué requiere tu atención, en orden.</h3>
+              </div>
+              <span className="workbenchUpdated">Calculado desde datos persistidos</span>
+            </div>
+
+            {workItems.length ? (
+              <div className="workbenchList">
+                {workItems.slice(0, 12).map((item) => (
+                  <article className={`workbenchItem priority-${item.priority}`} key={item.id}>
+                    <div className="workbenchPriority">
+                      <i />
+                      <span>{item.priority === "critical" ? "CRÍTICA" : item.priority === "warning" ? "ACCIÓN" : "REVISAR"}</span>
+                    </div>
+                    <div className="workbenchBody">
+                      <strong>{item.title}</strong>
+                      <p>{item.detail}</p>
+                      <small>
+                        {item.subject} · {item.context}
+                        {item.sourceAt ? ` · ${new Date(item.sourceAt).toLocaleDateString("es-CL")}` : ""}
+                      </small>
+                    </div>
+                    <Link className="buttonLink secondary" href={item.href}>
+                      {item.actionLabel} →
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="emptyState">
+                <strong>No hay excepciones abiertas derivadas de los datos actuales.</strong>
+                <p>
+                  Esto no equivale por sí solo a cumplimiento final. El cierre regulatorio mantiene sus propios gates.
+                </p>
+                <Link className="buttonLink" href="/reporting">Abrir cierre REP →</Link>
+              </div>
+            )}
+          </section>
+
+        </>
+      ) : null}
+
+      <section className={hasOperationalClients ? "workbenchGrid" : "workbenchGrid workbenchGridSingle"}>
+        {hasOperationalClients ? (
+          <article className="panel">
+            <div className="panelHead">
+              <div>
+                <p className="eyebrow">Cartera</p>
+                <h3>Estado por cliente</h3>
+              </div>
+              <Link className="buttonLink secondary" href="/clientes">Ver todos →</Link>
+            </div>
             <div className="workbenchClients">
               {clientStates.slice(0, 8).map(({ client, state }) => (
                 <Link href={`/clientes/${client.slug}`} key={`${client.slug}-${client.period}`}>
@@ -290,13 +314,8 @@ export default async function Home() {
                 </Link>
               ))}
             </div>
-          ) : (
-            <div className="emptyState compactEmpty">
-              <strong>Sin clientes REP persistidos.</strong>
-              <p>La cartera aparecerá cuando existan organizaciones con obligaciones reales.</p>
-            </div>
-          )}
-        </article>
+          </article>
+        ) : null}
 
         <article className="panel">
           <div className="panelHead">
@@ -313,19 +332,20 @@ export default async function Home() {
               <p>{producerSync?.sourceYear ? `Fuente ${producerSync.sourceYear}` : "Sin sync confirmado"}</p>
             </div>
             <div>
-              <span>Snapshots actores</span>
+              <span>Referencias de actores</span>
               <strong>{actorSnapshots.length}</strong>
               <p>Evidencia externa persistida</p>
             </div>
             <div>
-              <span>Hallazgos abiertos</span>
+              <span>Observaciones abiertas</span>
               <strong>{complianceFindings.filter((finding) => finding.status === "open").length}</strong>
-              <p>Desde reconciliación persistida</p>
+              <p>Detectadas desde datos persistidos</p>
             </div>
           </div>
         </article>
       </section>
 
+      {hasOperationalClients ? (
       <section className="panel workbenchPaths">
         <div>
           <p className="eyebrow">Herramientas de control</p>
@@ -338,6 +358,7 @@ export default async function Home() {
           <Link href="/ledger"><span>Trazabilidad</span><strong>Seguir historial →</strong></Link>
         </div>
       </section>
+      ) : null}
     </AppShell>
   );
 }
