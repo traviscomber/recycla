@@ -1490,3 +1490,134 @@ h1{font-weight:500;letter-spacing:-.035em}
     border-top: 1px solid var(--line);
   }
 }
+
+
+/* Compliance Autopilot */
+.autopilotPanel {
+  margin-bottom: 18px;
+}
+
+.autopilotSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.autopilotSummary article {
+  padding: 14px 16px;
+  display: grid;
+  gap: 4px;
+  border-right: 1px solid var(--line);
+}
+
+.autopilotSummary article:last-child {
+  border-right: 0;
+}
+
+.autopilotSummary span,
+.autopilotAffected span {
+  color: var(--text-faint);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.autopilotSummary strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.autopilotList {
+  display: grid;
+}
+
+.autopilotItem {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 74px auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.autopilotItem:first-child {
+  border-top: 0;
+}
+
+.autopilotIndex {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.autopilotItem > div:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.autopilotItem small {
+  color: var(--text-faint);
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+.autopilotItem strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.autopilotItem p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.autopilotAffected {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+
+.autopilotAffected strong {
+  font-size: 17px;
+}
+
+.autopilot-blocker .autopilotIndex,
+.autopilot-blocker .autopilotAffected strong {
+  color: var(--danger);
+}
+
+.autopilot-action .autopilotIndex {
+  color: var(--green);
+}
+
+@media (max-width: 760px) {
+  .autopilotSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .autopilotSummary article {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .autopilotSummary article:last-child {
+    border-bottom: 0;
+  }
+
+  .autopilotItem {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .autopilotAffected {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .autopilotItem .buttonLink {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
