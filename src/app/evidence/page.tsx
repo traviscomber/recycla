@@ -1,53 +1,157 @@
 import { AppShell } from "@/components/app-shell";
+import { listEvidenceChains } from "@/lib/evidence-chain";
+import { fmt } from "@/lib/rep";
 import { listEvidenceDocuments, listRepLedgerEntries } from "@/lib/rep-repository";
 
 export const dynamic = "force-dynamic";
 
+const streamLabel: Record<string, string> = {
+  AEE_RAEE: "AEE / RAEE",
+  NEUMATICOS: "Neumáticos",
+  BATERIAS: "Baterías",
+  PILAS: "Pilas",
+  ACEITES_LUBRICANTES: "Aceites lubricantes"
+};
+
+function stageClass(done: boolean) {
+  return done ? "chainStage chainStageDone" : "chainStage";
+}
+
 export default async function EvidencePage() {
-  const [documents, ledgerEntries] = await Promise.all([
+  const [documents, ledgerEntries, chains] = await Promise.all([
     listEvidenceDocuments(100),
-    listRepLedgerEntries(100)
+    listRepLedgerEntries(100),
+    listEvidenceChains(100)
   ]);
 
   const linkedDocuments = documents.filter((document) => document.linkedEntities > 0);
   const checksummed = documents.filter((document) => Boolean(document.checksumSha256));
   const ledgerWithEvidence = ledgerEntries.filter((entry) => entry.evidenceCount > 0);
+  const completeChains = chains.filter((chain) => chain.completedStages === chain.totalStages);
+  const evidenceReadyChains = chains.filter((chain) => chain.evidenceCount > 0 && chain.checksummedEvidence === chain.evidenceCount);
+  const blockedChains = chains.filter((chain) => chain.blockers.length > 0);
 
   return (
     <AppShell active="/evidence">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Lineage verificable</p>
+          <p className="eyebrow">REP Evidence Chain</p>
           <h1>Evidence Graph</h1>
-          <p className="muted">Abre cada cifra hasta la operación física y el documento que la respalda.</p>
+          <p className="muted">
+            Reconstruye cada movimiento desde el retiro físico hasta evidencia, valorización y estado REP.
+          </p>
         </div>
-        <div className="period"><span>Documentos</span><strong>{documents.length}</strong></div>
+        <div className="period"><span>Cadenas visibles</span><strong>{chains.length}</strong></div>
       </header>
 
-      <section className="decisionStrip" aria-label="Resumen de evidencia">
+      <section className="decisionStrip" aria-label="Cobertura de Evidence Chain">
         <article>
-          <span>Documentos vinculados</span>
-          <strong>{linkedDocuments.length}</strong>
-          <p>Con relación persistida a entidades operacionales</p>
+          <span>Cadena completa</span>
+          <strong>{chains.length ? completeChains.length + "/" + chains.length : "—"}</strong>
+          <p>Retiro → pesaje → lote → valorización → evidencia → ledger</p>
         </article>
         <article>
-          <span>Integridad hash</span>
-          <strong>{documents.length ? `${checksummed.length}/${documents.length}` : "—"}</strong>
-          <p>Documentos con checksum SHA-256</p>
+          <span>Evidencia íntegra</span>
+          <strong>{chains.length ? evidenceReadyChains.length + "/" + chains.length : "—"}</strong>
+          <p>Con documentos asociados y checksum SHA-256 completo</p>
         </article>
         <article>
-          <span>Ledger con evidencia</span>
-          <strong>{ledgerEntries.length ? `${ledgerWithEvidence.length}/${ledgerEntries.length}` : "—"}</strong>
-          <p>Entradas visibles con evidencia asociada</p>
+          <span>Requieren acción</span>
+          <strong>{blockedChains.length}</strong>
+          <p>Cadenas con una o más etapas técnicas pendientes</p>
         </article>
+      </section>
+
+      <section className="panel evidenceChainPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Cadena operacional verificable</p>
+            <h3>Una operación física, una historia reconstruible.</h3>
+          </div>
+          <span className="chainLegend">6 etapas técnicas · no equivale por sí sola a cumplimiento</span>
+        </div>
+
+        {chains.length ? (
+          <div className="evidenceChainList">
+            {chains.map((chain) => {
+              const weighingDone = chain.netKg !== null;
+              const lotDone = chain.lotCount > 0;
+              const valuationDone = chain.allocatedKg > 0;
+              const evidenceDone = chain.evidenceCount > 0 && chain.checksummedEvidence === chain.evidenceCount;
+              const ledgerDone = chain.latestLedgerState === "ACCREDITABLE";
+
+              return (
+                <article className="evidenceChainRow" key={chain.collectionId}>
+                  <div className="chainIdentity">
+                    <div>
+                      <span>{new Date(chain.collectedAt).toLocaleDateString("es-CL")}</span>
+                      <strong>{chain.client}</strong>
+                      <p>{(streamLabel[chain.stream] ?? chain.stream) + " · " + (chain.externalRef ?? chain.collectionId.slice(0, 8))}</p>
+                    </div>
+                    <div className="chainCoverage">
+                      <strong>{chain.coveragePercent}%</strong>
+                      <span>{chain.completedStages}/{chain.totalStages} etapas</span>
+                    </div>
+                  </div>
+
+                  <div className="chainStages" aria-label="Etapas de trazabilidad">
+                    <div className={stageClass(true)}>
+                      <span>01</span><strong>Retiro</strong>
+                      <small>{chain.declaredQuantity !== null ? fmt(chain.declaredQuantity) + " " + (chain.declaredUnit ?? "") : "Registrado"}</small>
+                    </div>
+                    <div className={stageClass(weighingDone)}>
+                      <span>02</span><strong>Pesaje</strong>
+                      <small>{chain.netKg !== null ? fmt(chain.netKg) + " kg" : "Pendiente"}</small>
+                    </div>
+                    <div className={stageClass(lotDone)}>
+                      <span>03</span><strong>Lote</strong>
+                      <small>{chain.lotCodes.length ? chain.lotCodes.slice(0, 2).join(" · ") : "Pendiente"}</small>
+                    </div>
+                    <div className={stageClass(valuationDone)}>
+                      <span>04</span><strong>Valorización</strong>
+                      <small>{valuationDone ? fmt(chain.allocatedKg) + " kg" : "Pendiente"}</small>
+                    </div>
+                    <div className={stageClass(evidenceDone)}>
+                      <span>05</span><strong>Evidencia</strong>
+                      <small>{chain.evidenceCount ? chain.checksummedEvidence + "/" + chain.evidenceCount + " hash" : "Pendiente"}</small>
+                    </div>
+                    <div className={stageClass(ledgerDone)}>
+                      <span>06</span><strong>Ledger</strong>
+                      <small>{chain.latestLedgerState?.replaceAll("_", " ") ?? "Pendiente"}</small>
+                    </div>
+                  </div>
+
+                  <div className="chainFooter">
+                    <div>
+                      <span>Ruta</span>
+                      <strong>{chain.valuationRoutes.length ? chain.valuationRoutes.join(" · ").replaceAll("_", " ") : "Sin valorización cerrada"}</strong>
+                      {chain.destinations.length ? <small>{chain.destinations.join(" · ")}</small> : null}
+                    </div>
+                    <div>
+                      <span>Siguiente acción</span>
+                      <strong>{chain.blockers[0] ?? "Cadena técnicamente completa"}</strong>
+                      {chain.blockers.length > 1 ? <small>+{chain.blockers.length - 1} pendientes adicionales</small> : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="emptyState">
+            <strong>Sin cadenas operacionales persistidas.</strong>
+            <p>Evidence Chain aparecerá cuando existan retiros reales conectados a pesaje, lote, valorización, evidencia y ledger.</p>
+          </div>
+        )}
       </section>
 
       <section className="panel">
         <div className="panelHead">
           <div>
             <p className="eyebrow">Documentos persistidos</p>
-            <h3>Evidencia disponible y su nivel de vinculación.</h3>
+            <h3>Evidencia disponible y nivel de vinculación.</h3>
           </div>
+          <b>{linkedDocuments.length} vinculados</b>
         </div>
 
         {documents.length ? (
@@ -77,7 +181,7 @@ export default async function EvidencePage() {
         ) : (
           <div className="emptyState">
             <strong>Sin documentos operacionales persistidos.</strong>
-            <p>Evidence Graph no mostrará expedientes hasta que existan documentos reales y vínculos verificables.</p>
+            <p>No se muestra evidencia hasta que existan documentos reales y vínculos verificables.</p>
           </div>
         )}
       </section>
@@ -85,7 +189,7 @@ export default async function EvidencePage() {
       <section className="bottomGrid">
         <article className="panel">
           <div className="panelHead">
-            <div><p className="eyebrow">Cobertura de lineage</p><h3>Entradas REP respaldadas por evidencia.</h3></div>
+            <div><p className="eyebrow">Cobertura del ledger</p><h3>Entradas REP respaldadas por evidencia.</h3></div>
             <b>{ledgerWithEvidence.length}</b>
           </div>
           {ledgerWithEvidence.length ? (
@@ -102,21 +206,21 @@ export default async function EvidencePage() {
           ) : (
             <div className="emptyState compactEmpty">
               <strong>Sin entradas del ledger con evidencia vinculada.</strong>
-              <p>La cobertura aparecerá al asociar documentos reales con las entidades operacionales.</p>
+              <p>La cobertura aparecerá al asociar documentos reales con entidades operacionales.</p>
             </div>
           )}
         </article>
 
         <article className="panel blockerPanel">
-          <p className="eyebrow">Regla de acreditación</p>
-          <h3>La evidencia debe ser verificable antes de acreditar.</h3>
+          <p className="eyebrow">Principio de acreditación</p>
+          <h3>La ausencia de respaldo nunca se reemplaza con un supuesto.</h3>
           <p className="muted">
-            El sistema conserva documento, checksum y vínculo con la entidad operacional. La ausencia de respaldo no se reemplaza con supuestos.
+            La cadena conserva operación física, transformación, documento, checksum y estado REP como capas separadas y verificables.
           </p>
           <div className="notReady">
-            <span>ESTADO DOCUMENTAL</span>
-            <strong>{documents.length && ledgerWithEvidence.length ? "CON EVIDENCIA" : "PENDIENTE"}</strong>
-            <p>El estado refleja únicamente información persistida.</p>
+            <span>INTEGRIDAD DOCUMENTAL</span>
+            <strong>{documents.length ? checksummed.length + "/" + documents.length : "PENDIENTE"}</strong>
+            <p>Documentos persistidos con checksum SHA-256.</p>
           </div>
         </article>
       </section>
