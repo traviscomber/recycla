@@ -59,6 +59,8 @@ export default async function ClientesPage({
       (entry.rut?.toLocaleLowerCase("es-CL").includes(query) ?? false)
     );
   });
+  const referenceDirectory = filteredDirectory.filter((entry) => !entry.hasCanonicalOrganization);
+  const linkedDirectory = filteredDirectory.filter((entry) => entry.hasCanonicalOrganization);
 
   const filteredClients = clients.filter((client) => {
     const status = clientStatus(client);
@@ -97,8 +99,8 @@ export default async function ClientesPage({
           <p className="muted">Consulta por cliente, RUT, período, producto prioritario o estado de cierre.</p>
         </div>
         <div className="period">
-          <span>Resultados</span>
-          <strong>{filteredDirectory.length + filteredClients.length}/{directory.length + clients.length}</strong>
+          <span>Fichas operacionales</span>
+          <strong>{filteredClients.length}/{clients.length}</strong>
         </div>
       </header>
 
@@ -137,13 +139,30 @@ export default async function ClientesPage({
         </article>
       </section>
 
+      {clients.length === 0 && directory.length > 0 ? (
+        <section className="systemNotice notice-schema_missing">
+          <div>
+            <p className="eyebrow">Límite de la cartera actual</p>
+            <h3>El directorio publicado todavía no es cartera REP operacional.</h3>
+            <p>
+              Hay {directory.length} referencias publicadas por Recycla, pero aún no existen organizaciones,
+              períodos ni obligaciones REP persistidas. Ninguna referencia se cuenta como obligación, volumen
+              o estado de cumplimiento.
+            </p>
+          </div>
+          <span>REFERENCIA ≠ OPERACIÓN</span>
+        </section>
+      ) : null}
+
       <section className="panel publishedClientDirectory">
         <div className="panelHead">
           <div>
             <p className="eyebrow">Directorio publicado por Recycla</p>
-            <h3>Clientes identificados desde la sección oficial “Nuestros clientes”.</h3>
+            <h3>Referencias identificadas desde la sección oficial “Nuestros clientes”.</h3>
           </div>
-          <span className="workbenchUpdated">Fuente: recycla.cl · sin inferir obligaciones REP</span>
+          <span className="workbenchUpdated">
+            {referenceDirectory.length} referencia{referenceDirectory.length === 1 ? "" : "s"} · {linkedDirectory.length} vinculada{linkedDirectory.length === 1 ? "" : "s"} al core
+          </span>
         </div>
 
         {filteredDirectory.length ? (
@@ -155,7 +174,9 @@ export default async function ClientesPage({
                   <span>{entry.rut ?? "RUT aún no incorporado"}</span>
                 </div>
                 <div>
-                  <span className="publishedClientStatus">PUBLICADO</span>
+                  <span className="publishedClientStatus">
+                    {entry.hasCanonicalOrganization ? "VINCULADO AL CORE" : "REFERENCIA"}
+                  </span>
                   {entry.website ? (
                     <a href={entry.website} target="_blank" rel="noreferrer">Sitio empresa ↗</a>
                   ) : null}
@@ -171,7 +192,7 @@ export default async function ClientesPage({
         )}
 
         <p className="ficha360Footnote">
-          Este directorio prueba que la empresa aparece publicada por Recycla como cliente; no inventa RUT, obligaciones, volúmenes ni vigencia contractual.
+          Este directorio sólo acredita la publicación observada en recycla.cl. Una entrada pasa a la cartera operacional únicamente cuando queda vinculada a una organización canónica con período y obligaciones REP persistidas.
         </p>
       </section>
 
