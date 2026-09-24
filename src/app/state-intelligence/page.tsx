@@ -135,24 +135,6 @@ export default async function StateIntelligencePage({
         </div>
       </header>
 
-      <section className="pageGuide">
-        <article>
-          <span>Qué haces aquí</span>
-          <strong>Buscar una entidad</strong>
-          <p>Consulta una contraparte por nombre, establecimiento o identificador disponible.</p>
-        </article>
-        <article>
-          <span>Qué significa un match</span>
-          <strong>Referencia para revisar</strong>
-          <p>Una coincidencia aporta contexto oficial, pero no prueba por sí sola autorización o cumplimiento.</p>
-        </article>
-        <article>
-          <span>Cuándo guardarlo</span>
-          <strong>Cuando respalda una decisión</strong>
-          <p>Guarda una referencia sólo cuando necesites conservar qué fuente fue usada y cuándo.</p>
-        </article>
-      </section>
-
       <section className="panel stateVerifier">
         <div className="panelHead">
           <div>
@@ -219,7 +201,7 @@ export default async function StateIntelligencePage({
                   <article className="matchCard" key={`${match.resourceId}-${index}`}>
                     <div className="matchHead">
                       <span>{String(index + 1).padStart(2, "0")}</span>
-                      <b>{match.status === "REVIEW_REQUIRED" ? "REQUIERE REVISIÓN" : match.status}</b>
+                      <b>{snapshotStatusLabel(match.status)}</b>
                     </div>
                     <strong>{match.sourceLabel}</strong>
                     <p>{match.resourceName}</p>
@@ -263,6 +245,24 @@ export default async function StateIntelligencePage({
             )}
           </div>
         ) : null}
+      </section>
+
+      <section className="pageGuide">
+        <article>
+          <span>Cómo interpretar el resultado</span>
+          <strong>Una coincidencia es una referencia</strong>
+          <p>Aporta contexto oficial, pero no prueba por sí sola autorización o cumplimiento.</p>
+        </article>
+        <article>
+          <span>Cuándo guardarla</span>
+          <strong>Cuando respalda una revisión</strong>
+          <p>Conserva la fuente y fecha sólo cuando necesites reconstruir una decisión después.</p>
+        </article>
+        <article>
+          <span>Qué hacer si no aparece</span>
+          <strong>Revisar identidad y categoría</strong>
+          <p>La ausencia de coincidencia no demuestra que la entidad no exista.</p>
+        </article>
       </section>
 
       {gestorRows.length ? (
@@ -324,14 +324,14 @@ export default async function StateIntelligencePage({
         ) : (
           <div className="emptyState compactEmpty">
             <strong>Sin contrapartes reportables para contrastar.</strong>
-            <p>Gestor Intelligence se activa cuando existen operaciones de gestión con contraparte persistida.</p>
+            <p>La verificación de gestores se activa cuando existen operaciones de gestión con contraparte persistida.</p>
           </div>
         )}
 
         <div className="stateGuardrail">
           <strong>Límite de uso</strong>
           <p>
-            Una coincidencia RETC demuestra presencia en el dataset consultado, no vigencia de permisos ni cumplimiento REP. SNIFA permanece como capa de contexto de fiscalización y sancionatorios.
+            Una coincidencia RETC demuestra presencia en el registro oficial consultado, no vigencia de permisos ni cumplimiento REP. SNIFA permanece como capa de contexto de fiscalización y sancionatorios.
           </p>
         </div>
       </section>
