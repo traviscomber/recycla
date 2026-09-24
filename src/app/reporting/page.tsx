@@ -200,10 +200,10 @@ export default async function ReportingPage() {
     <AppShell active="/reporting">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Compliance close</p>
-          <h1>Report Readiness</h1>
+          <p className="eyebrow">Cierre REP</p>
+          <h1>Qué falta para cerrar el período</h1>
           <p className="muted">
-            Preparar el cierre REP para que dataset, evidencia y auditoría lleguen reconciliados al reporte regulatorio.
+            Esta pantalla ordena datos, evidencia y revisiones hasta dejar el período listo para reportar.
           </p>
         </div>
         <div className="period">
@@ -211,6 +211,24 @@ export default async function ReportingPage() {
           <strong>{closureReady ? "LISTO" : "NO LISTO"}</strong>
         </div>
       </header>
+
+      <section className="pageGuide">
+        <article>
+          <span>Qué ves aquí</span>
+          <strong>El avance real del cierre</strong>
+          <p>La app reúne datos operacionales, documentos, observaciones y validaciones del período.</p>
+        </article>
+        <article>
+          <span>Qué debes mirar</span>
+          <strong>El primer paso pendiente</strong>
+          <p>No necesitas interpretar todos los indicadores: sigue el flujo y resuelve el primer paso que no esté listo.</p>
+        </article>
+        <article>
+          <span>Cuándo termina</span>
+          <strong>Cuando el estado sea LISTO</strong>
+          <p>El pack final sólo se habilita cuando los controles críticos y la reconciliación están cerrados.</p>
+        </article>
+      </section>
 
       <section className="complianceNotice">
         <div>
@@ -229,19 +247,19 @@ export default async function ReportingPage() {
 
       <section className="reportingComparisonGrid" aria-label="Lectura ejecutiva del período">
         <article className="reportingComparisonCard">
-          <span>Compliance gates</span>
+          <span>Controles de cierre</span>
           <strong>{readyCount}/{auditScope.length}</strong>
           <div><b>Objetivo {auditScope.length}/{auditScope.length}</b><b>Gap {complianceGap}</b></div>
-          <p>La decisión principal es cuánto falta para que el cierre sea defendible, no cuánto cambió contra el mes pasado.</p>
+          <p>Cuántos controles ya están listos y cuántos faltan antes de cerrar.</p>
         </article>
         <article className="reportingComparisonCard">
-          <span>Expediente documental</span>
+          <span>Documentación requerida</span>
           <strong>{documentReadyCount}/{documentReadiness.length}</strong>
           <div><b>Objetivo 100%</b><b>Gap {documentGap}</b></div>
           <p>Controles documentales con cobertura suficiente para el período según los controles implementados.</p>
         </article>
         <article className="reportingComparisonCard">
-          <span>Cobertura documento tributario</span>
+          <span>Respaldo tributario</span>
           <strong>{taxCoverageComparison.value === null ? "—" : taxCoverageComparison.value.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + "%"}</strong>
           <div>
             <b>Objetivo 100%</b>
@@ -251,7 +269,7 @@ export default async function ReportingPage() {
           <p>La referencia histórica aparece sólo cuando existe base comparable válida.</p>
         </article>
         <article className="reportingComparisonCard">
-          <span>Actividad operacional</span>
+          <span>Registros del período</span>
           <strong>{currentOperationalRows.toLocaleString("es-CL")}</strong>
           <div><b>YoY {comparisonLabel(operationalYoY)}</b></div>
           <p>Registros de introducción al mercado + operaciones de gestión del período reportable.</p>
@@ -327,10 +345,10 @@ export default async function ReportingPage() {
       <section className="panel closeWorkflowPanel" aria-label="Flujo de cierre mensual REP">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Flujo operativo</p>
-            <h3>Ingresar → revisar → resolver → cerrar → validar → exportar.</h3>
+            <p className="eyebrow">Tu ruta de cierre</p>
+            <h3>Sigue estos pasos en orden. El sistema bloquea lo que todavía no corresponde hacer.</h3>
           </div>
-          <Link className="buttonLink" href="/reporting/intake">Ingresar datos →</Link>
+          <Link className="buttonLink" href="/reporting/intake">Cargar datos del período →</Link>
         </div>
 
         <div className="closeWorkflow">
@@ -352,11 +370,11 @@ export default async function ReportingPage() {
       <section className="panel complianceRunPanel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Compliance pre-check</p>
-            <h3>Persistir el estado real de los gates antes del cierre.</h3>
+            <p className="eyebrow">Validación final</p>
+            <h3>Comprueba que no quede ningún bloqueo antes de exportar.</h3>
           </div>
           <form action={runPrecheckAction}>
-            <button type="submit">Ejecutar pre-check</button>
+            <button type="submit">Validar cierre</button>
           </form>
         </div>
 
@@ -367,12 +385,12 @@ export default async function ReportingPage() {
             <p>{latestRun?.finishedAt ? new Date(latestRun.finishedAt).toLocaleString("es-CL") : "Aún no hay corrida persistida"}</p>
           </article>
           <article>
-            <span>Gates bloqueantes</span>
+            <span>Bloqueos</span>
             <strong>{Number(latestRun?.summary?.blocking ?? 0)}</strong>
             <p>NOT CONNECTED + BLOCKED</p>
           </article>
           <article>
-            <span>Requieren revisión</span>
+            <span>Por revisar</span>
             <strong>{Number(latestRun?.summary?.reviewRequired ?? 0)}</strong>
             <p>Controles con evidencia pero sin cierre</p>
           </article>
@@ -381,7 +399,7 @@ export default async function ReportingPage() {
 
       <section className="reportHero">
         <article className="reportState">
-          <span>CIERRE REGULATORIO</span>
+          <span>ESTADO FINAL</span>
           <strong>{closureReady ? "LISTO" : "NO LISTO"}</strong>
           <p>
             El cierre sólo cambia a LISTO cuando ledger, evidencia, auditoría y dataset reportable están reconciliados.
