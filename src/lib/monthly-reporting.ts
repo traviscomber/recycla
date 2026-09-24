@@ -301,3 +301,43 @@ export async function getLatestMonthlyRepReport(
     return null;
   }
 }
+
+
+export async function getMonthlyRepReport(
+  subjectRef: string,
+  reportingMonth: string
+): Promise<MonthlyRepReport | null> {
+  if (!hasDatabase()) return null;
+  try {
+    const sql = db();
+    const table = await sql<Array<{ monthly: string | null }>>`
+      select to_regclass('public.monthly_rep_reports')::text as monthly
+    `;
+    if (!table[0]?.monthly) return null;
+
+    const rows = await sql<MonthlyRepReport[]>`
+      select
+        id,
+        subject_ref as "subjectRef",
+        reporting_month::text as "reportingMonth",
+        source_period_start::text as "sourcePeriodStart",
+        source_period_end::text as "sourcePeriodEnd",
+        status,
+        introduced_market as "introducedMarket",
+        waste_operations as "wasteOperations",
+        evidence_summary as "evidenceSummary",
+        checksum_sha256 as "checksumSha256",
+        version,
+        generated_at::text as "generatedAt",
+        finalized_at::text as "finalizedAt"
+      from monthly_rep_reports
+      where subject_ref = ${subjectRef}
+        and reporting_month = ${reportingMonth}
+      order by version desc
+      limit 1
+    `;
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
