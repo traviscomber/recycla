@@ -93,26 +93,13 @@ export default async function CircularityPage() {
         <article>
           <span>Material en mejores rutas</span>
           <strong>{total > 0 ? fmt(reuseAndRecycle) + " kg" : "—"}</strong>
-          <p>Calculado desde outputs de valorización persistidos</p>
+          <p>Calculado desde resultados de valorización persistidos</p>
         </article>
         <article>
           <span>Material a disposición</span>
           <strong>{total > 0 ? ((disposal / total) * 100).toFixed(1) + "%" : "—"}</strong>
           <p>Debe explicarse y reducirse cuando sea técnicamente posible</p>
         </article>
-      </section>
-
-      <section className="circularityHierarchy">
-        {circularityHierarchy.map((level) => (
-          <article className={level.id === "PREVENTION" ? "preWaste" : ""} key={level.id}>
-            <span>{String(level.priority).padStart(2, "0")}</span>
-            <div>
-              <strong>{level.label}</strong>
-              <p>{level.description}</p>
-            </div>
-            <b>{level.appliesAfterWasteGeneration ? "OUTCOME" : "PRE-WASTE"}</b>
-          </article>
-        ))}
       </section>
 
       <section className="bottomGrid">
@@ -152,16 +139,32 @@ export default async function CircularityPage() {
           <p className="eyebrow">Cómo leer esta vista</p>
           <h3>El destino material complementa el estado REP.</h3>
           <p className="muted">
-            Reutilización, reciclaje, valorización energética y disposición son outcomes alternativos
+            Reutilización, reciclaje, valorización energética y disposición son destinos alternativos
             del material. La interfaz muestra su distribución sin inventar un puntaje regulatorio.
           </p>
           <div className="notReady circularityNote">
-            <span>REGLA DE MODELO</span>
+            <span>CRITERIO</span>
             <strong>DIMENSIÓN COMPLEMENTARIA</strong>
             <p>La trazabilidad conserva el estado REP; Circularidad clasifica el destino físico.</p>
           </div>
         </article>
       </section>
+
+      <details className="secondaryDetail">
+        <summary>Ver jerarquía de circularidad y criterio técnico</summary>
+        <section className="circularityHierarchy">
+          {circularityHierarchy.map((level) => (
+            <article className={level.id === "PREVENTION" ? "preWaste" : ""} key={level.id}>
+              <span>{String(level.priority).padStart(2, "0")}</span>
+              <div>
+                <strong>{level.label}</strong>
+                <p>{level.description}</p>
+              </div>
+              <b>{level.appliesAfterWasteGeneration ? "RESULTADO" : "PREVENCIÓN"}</b>
+            </article>
+          ))}
+        </section>
+      </details>
     </AppShell>
   );
 }
