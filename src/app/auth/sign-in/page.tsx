@@ -21,12 +21,14 @@ async function signInAction(formData: FormData) {
   const { error } = await getAuthServer().signIn.email({ email, password });
 
   if (error) {
-    console.error("AUTH_SIGNIN_FAILED", {
-      code: "code" in error ? error.code : undefined,
-      status: "status" in error ? error.status : undefined,
-      message: "message" in error ? error.message : String(error)
-    });
-    redirect("/auth/sign-in?error=invalid");
+    const code =
+      "code" in error && error.code
+        ? String(error.code)
+        : "status" in error && error.status
+          ? String(error.status)
+          : "unknown";
+    const source = process.env.NEON_AUTH_BASE_URL ? "env" : "fallback";
+    redirect(`/auth/sign-in?error=invalid&authCode=${encodeURIComponent(code)}&authSource=${source}`);
   }
 
   redirect("/");
@@ -35,7 +37,7 @@ async function signInAction(formData: FormData) {
 export default async function SignInPage({
   searchParams
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; authCode?: string; authSource?: string }>;
 }) {
   const params = await searchParams;
   const configured = isAuthConfigured();
@@ -89,6 +91,9 @@ export default async function SignInPage({
                 <div className="authErrorBox">
                   <strong>Acceso no completado</strong>
                   <p>{message}</p>
+                  {params.authCode ? (
+                    <small>Diagnóstico: {params.authCode} · auth {params.authSource ?? "unknown"}</small>
+                  ) : null}
                 </div>
               ) : null}
 
