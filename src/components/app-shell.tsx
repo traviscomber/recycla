@@ -9,17 +9,20 @@ const streamHref = {
   ACEITES_LUBRICANTES: "/productos/aceites-lubricantes"
 } as const;
 
-const nav = [
-  ["/", "Workbench", "01"],
-  ["/clientes", "Clientes REP", "02"],
-  ["/ledger", "REP Ledger", "03"],
-  ["/evidence", "Evidence Graph", "04"],
-  ["/audit", "Audit Room", "05"],
-  ["/reporting", "Report Readiness", "06"],
-  ["/regulatory", "Regulatory Radar", "07"],
-  ["/circularity", "Circularity Quality", "08"],
-  ["/network", "REP Network", "09"],
-  ["/state-intelligence", "State Intelligence", "10"]
+const primaryNav = [
+  ["/", "Inicio", "01"],
+  ["/clientes", "Clientes", "02"],
+  ["/evidence", "Evidencia", "03"],
+  ["/reporting", "Cierre REP", "04"]
+] as const;
+
+const secondaryNav = [
+  ["/audit", "Auditoría"],
+  ["/ledger", "Trazabilidad"],
+  ["/state-intelligence", "Fuentes oficiales"],
+  ["/regulatory", "Normativa"],
+  ["/circularity", "Circularidad"],
+  ["/network", "Red REP"]
 ] as const;
 
 export function AppShell({
@@ -42,11 +45,11 @@ export function AppShell({
           </div>
         </div>
 
-        <div className="railLabel">Operational REP Intelligence</div>
+        <div className="railLabel">Cumplimiento REP, paso a paso</div>
 
 
         <nav className="sideNav" aria-label="Navegación principal">
-          {nav.map(([href, label, index]) => (
+          {primaryNav.map(([href, label, index]) => (
             <Link className={active === href ? "active" : ""} href={href} key={href}>
               <span>{index}</span>
               <strong>{label}</strong>
@@ -54,14 +57,27 @@ export function AppShell({
           ))}
         </nav>
 
-        <div className="scope">
-          <span>Streams activos</span>
-          {priorityStreams.map((s) => (
-            <Link className="scopeLink" href={streamHref[s.id]} key={s.id}>
-              {s.label}
-            </Link>
-          ))}
-        </div>
+        <details className="secondaryNavGroup" open={secondaryNav.some(([href]) => href === active)}>
+          <summary>Más herramientas</summary>
+          <nav aria-label="Herramientas avanzadas">
+            {secondaryNav.map(([href, label]) => (
+              <Link className={active === href ? "active" : ""} href={href} key={href}>
+                <strong>{label}</strong>
+              </Link>
+            ))}
+          </nav>
+        </details>
+
+        <details className="secondaryNavGroup scope" open={active.startsWith("/productos/")}>
+          <summary>Productos REP</summary>
+          <div>
+            {priorityStreams.map((s) => (
+              <Link className="scopeLink" href={streamHref[s.id]} key={s.id}>
+                {s.label}
+              </Link>
+            ))}
+          </div>
+        </details>
 
         <div className="systemState">
           <i />
@@ -82,7 +98,7 @@ export function AppShell({
         </div>
 
         <nav className="mobileNav" aria-label="Navegación móvil">
-          {nav.map(([href, label, index]) => (
+          {primaryNav.map(([href, label, index]) => (
             <Link className={active === href ? "active" : ""} href={href} key={href}>
               <span>{index}</span>{label}
             </Link>

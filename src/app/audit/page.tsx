@@ -32,10 +32,10 @@ export default async function AuditPage() {
     <AppShell active="/audit">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Compliance assurance</p>
-          <h1>Audit Room</h1>
+          <p className="eyebrow">Auditoría</p>
+          <h1>Qué debe revisarse antes del cierre</h1>
           <p className="muted">
-            Probar consistencia, trazabilidad y respaldo antes de que el período llegue al informe de cumplimiento.
+            Aquí se concentran observaciones, controles y evidencia externa que todavía requieren validación.
           </p>
         </div>
         <div className="period">
@@ -47,31 +47,31 @@ export default async function AuditPage() {
       <section className="panel auditRunStatus">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Último compliance pre-check</p>
+            <p className="eyebrow">Última validación del cierre</p>
             <h3>{latestRun?.status ?? "SIN EJECUTAR"}</h3>
           </div>
-          <Link className="buttonLink" href="/reporting">Ejecutar desde Report Readiness →</Link>
+          <Link className="buttonLink" href="/reporting">Abrir Cierre REP →</Link>
         </div>
         <p className="muted">
           {latestRun?.finishedAt
             ? "Última corrida persistida: " + new Date(latestRun.finishedAt).toLocaleString("es-CL")
-            : "Aún no existe una corrida persistida de los gates de compliance."}
+            : "Aún no existe una corrida persistida de los controles de cierre."}
         </p>
       </section>
 
       <section className="decisionStrip auditDecisionStrip" aria-label="Resumen de auditoría">
         <article>
-          <span>Hallazgos críticos</span>
+          <span>Observaciones críticas</span>
           <strong className="negative">{liveFindings.filter((finding) => finding.status === "open" && finding.severity === "critical").length}</strong>
           <p>Live · reconciliación persistida</p>
         </article>
         <article>
-          <span>Snapshots oficiales</span>
+          <span>Fuentes oficiales revisables</span>
           <strong>{externalActorEvidence.length}</strong>
           <p>Persistidos en State Intelligence</p>
         </article>
         <article>
-          <span>Gestores verificados por referencia</span>
+          <span>Gestores con referencia oficial</span>
           <strong>{gestorVerified.length}/{gestorRows.length}</strong>
           <p>Match exacto en datasets RETC ingeridos</p>
         </article>
@@ -114,8 +114,8 @@ export default async function AuditPage() {
       <section className="panel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Hallazgos live · reconciliación</p>
-            <h3>Brechas detectadas automáticamente en los datos reportables.</h3>
+            <p className="eyebrow">Observaciones del período</p>
+            <h3>Brechas detectadas automáticamente que requieren revisión.</h3>
           </div>
           <b>{liveFindings.filter((finding) => finding.status === "open").length}</b>
         </div>
@@ -145,7 +145,7 @@ export default async function AuditPage() {
         ) : (
           <div className="emptyState compactEmpty">
             <strong>Sin hallazgos live persistidos.</strong>
-            <p>Ejecuta el compliance pre-check para sincronizar la reconciliación con Audit Room.</p>
+            <p>Ejecuta el validación del cierre para sincronizar la reconciliación con Audit Room.</p>
           </div>
         )}
       </section>
@@ -153,8 +153,8 @@ export default async function AuditPage() {
       <section className="panel auditGestorIntelligence">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Gestor Intelligence · Audit</p>
-            <h3>Contrapartes que requieren validación antes de usar su operación como soporte.</h3>
+            <p className="eyebrow">Gestores y destinos</p>
+            <h3>Contrapartes que deben validarse antes de usar su operación como respaldo.</h3>
           </div>
           <b>{gestorReview.length}</b>
         </div>
@@ -195,8 +195,8 @@ export default async function AuditPage() {
       <section className="panel auditExternalEvidence">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Official external evidence · Live</p>
-            <h3>Snapshots oficiales disponibles para revisión.</h3>
+            <p className="eyebrow">Fuentes oficiales</p>
+            <h3>Referencias externas disponibles para revisión.</h3>
           </div>
           <b>{externalActorEvidence.length}</b>
         </div>
@@ -262,7 +262,7 @@ export default async function AuditPage() {
       </section>
 
       <section className="panel ledgerRule">
-        <p className="eyebrow">Audit principle</p>
+        <p className="eyebrow">Regla de auditoría</p>
         <h3>Una inconsistencia se resuelve y queda trazada; nunca se borra del historial.</h3>
         <p className="muted">
           El hallazgo original, su evidencia, la resolución aplicada y el estado final deben quedar vinculados al dato reportado.

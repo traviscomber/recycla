@@ -19,9 +19,9 @@ export default async function LedgerPage() {
     <AppShell active="/ledger">
       <header className="topbar">
         <div>
-          <p className="eyebrow">System of record</p>
-          <h1>REP Ledger</h1>
-          <p className="muted">Cada movimiento conserva cantidad, estado regulatorio, evidencia y lineage.</p>
+          <p className="eyebrow">Trazabilidad</p>
+          <h1>Historial de movimientos REP</h1>
+          <p className="muted">Cada movimiento conserva cantidad, estado, evidencia y origen para poder reconstruirlo.</p>
         </div>
         <div className="period"><span>Entradas visibles</span><strong>{entries.length}</strong></div>
       </header>
@@ -30,7 +30,7 @@ export default async function LedgerPage() {
         <article className="card dark">
           <span className="label">Principio</span>
           <h2>Una tonelada no se acredita dos veces.</h2>
-          <p>Cada imputación mantiene un lineage único hasta la operación física que la originó.</p>
+          <p>Cada imputación mantiene un vínculo único con la operación física que la originó.</p>
         </article>
         <article className="card">
           <span className="label">Estados</span>
@@ -44,8 +44,8 @@ export default async function LedgerPage() {
       <section className="panel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Ledger entries</p>
-            <h3>Trazabilidad regulatoria por operación</h3>
+            <p className="eyebrow">Movimientos registrados</p>
+            <h3>Qué pasó, cuándo y con qué respaldo.</h3>
           </div>
         </div>
 
@@ -78,15 +78,15 @@ export default async function LedgerPage() {
         ) : (
           <div className="emptyState">
             <strong>Sin entradas operacionales persistidas.</strong>
-            <p>El ledger se poblará únicamente desde movimientos reales y sus transiciones regulatorias.</p>
+            <p>La trazabilidad aparecerá únicamente desde movimientos reales y sus cambios de estado.</p>
           </div>
         )}
       </section>
 
       <section className="panel ledgerRule">
         <p className="eyebrow">Regla de integridad</p>
-        <h3>Physical record → REP state → rule version → evidence set → accreditation</h3>
-        <p className="muted">El ledger no borra historia. Una corrección genera una nueva transición o suspensión, nunca reescribe silenciosamente el pasado.</p>
+        <h3>Operación física → estado REP → regla aplicada → evidencia → acreditación</h3>
+        <p className="muted">La trazabilidad no borra historia. Una corrección genera una nueva transición o suspensión, nunca reescribe silenciosamente el pasado.</p>
       </section>
     </AppShell>
   );

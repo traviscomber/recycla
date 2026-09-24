@@ -53,10 +53,10 @@ export default async function ClientPage({
       </header>
       <section className="ficha360Hero">
         <div>
-          <p className="eyebrow">Ficha 360 · organización</p>
-          <h2>Lo importante ahora</h2>
+          <p className="eyebrow">Resumen operativo</p>
+          <h2>Qué necesita este cliente ahora</h2>
           <p className="muted">
-            Estado REP, evidencia, actividad y cierre en una sola vista. El detalle secundario queda abajo.
+            Estado REP, brechas, documentos y cierre del período en una sola vista.
           </p>
         </div>
         <div className="ficha360Actions">
@@ -67,9 +67,9 @@ export default async function ClientPage({
 
       <section className="ficha360Decision">
         <article className={gaps.length ? "ficha360Signal signal-attention" : "ficha360Signal signal-ok"}>
-          <span>Próxima acción</span>
+          <span>Estado del período</span>
           <strong>{status}</strong>
-          <p>{gaps.length ? `Resolver ${gaps.length} gap(s) REP antes del cierre.` : ficha?.reporting.latestCheck?.status === "PASS" ? "Continuar al cierre regulatorio." : "Ejecutar pre-check de cumplimiento."}</p>
+          <p>{gaps.length ? `Resolver ${gaps.length} brecha(s) REP antes del cierre.` : ficha?.reporting.latestCheck?.status === "PASS" ? "Continuar al cierre regulatorio." : "Ejecutar la validación final del cierre."}</p>
         </article>
         <article className="ficha360Signal">
           <span>Evidencia</span>
@@ -77,7 +77,7 @@ export default async function ClientPage({
           <p>{ficha?.expiringDocumentCount ? `${ficha.expiringDocumentCount} documento(s) vencen dentro de 60 días.` : "Sin vencimientos próximos detectados."}</p>
         </article>
         <article className={ficha?.reporting.criticalFindings ? "ficha360Signal signal-attention" : "ficha360Signal"}>
-          <span>Hallazgos abiertos</span>
+          <span>Observaciones abiertas</span>
           <strong>{ficha?.reporting.openFindings ?? 0}</strong>
           <p>{ficha?.reporting.criticalFindings ? `${ficha.reporting.criticalFindings} crítico(s).` : "Sin hallazgos críticos enlazados."}</p>
         </article>
@@ -86,7 +86,7 @@ export default async function ClientPage({
       <section className="ficha360Identity panel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Identidad y cobertura</p>
+            <p className="eyebrow">Datos del cliente</p>
             <h3>{ficha?.organization.legalName ?? client.name}</h3>
           </div>
           <span className="ficha360Updated">
@@ -97,7 +97,7 @@ export default async function ClientPage({
           <div><span>RUT</span><strong>{client.rut}</strong></div>
           <div><span>Período</span><strong>{client.period}</strong></div>
           <div><span>Productos REP</span><strong>{client.obligations.length}</strong></div>
-          <div><span>Cobertura reporting</span><strong>{ficha?.reporting.latestReport ? "Disponible" : "Sin reporte enlazado"}</strong></div>
+          <div><span>Cierre enlazado</span><strong>{ficha?.reporting.latestReport ? "Disponible" : "Aún no generado"}</strong></div>
         </div>
       </section>
 
@@ -105,7 +105,7 @@ export default async function ClientPage({
         <div className="panelHead">
           <div>
             <p className="eyebrow">Productos REP</p>
-            <h3>Qué está cubierto y dónde intervenir.</h3>
+            <h3>Avance por producto y brechas que requieren acción.</h3>
           </div>
           <Link className="buttonLink secondary" href="/clientes">Volver a clientes</Link>
         </div>
@@ -118,7 +118,7 @@ export default async function ClientPage({
                 <summary>
                   <div>
                     <strong>{item.label}</strong>
-                    <span>{pct.toFixed(1)}% readiness</span>
+                    <span>{pct.toFixed(1)}% de avance</span>
                   </div>
                   <b className={currentGap < 0 ? "negative" : "positive"}>
                     {currentGap < 0 ? "" : "+"}{fmt(currentGap)} {item.unit}
@@ -139,12 +139,12 @@ export default async function ClientPage({
       </section>
 
       <details className="ficha360Disclosure">
-        <summary>Ver circularidad y detalle operacional</summary>
+        <summary>Ver detalle operacional y circularidad</summary>
         <section className="clientDualView">
         <article className="panel">
           <div className="panelHead">
             <div>
-              <p className="eyebrow">Circularity Quality</p>
+              <p className="eyebrow">Circularidad</p>
               <h3>¿Qué ruta siguió el material?</h3>
             </div>
           </div>
@@ -181,9 +181,9 @@ export default async function ClientPage({
           <div className="panelHead">
             <div>
               <p className="eyebrow">Actividad reciente</p>
-              <h3>Últimos movimientos REP</h3>
+              <h3>Últimos movimientos</h3>
             </div>
-            <Link className="buttonLink secondary" href="/ledger">Abrir ledger →</Link>
+            <Link className="buttonLink secondary" href="/ledger">Ver trazabilidad →</Link>
           </div>
           {ficha?.ledgerEvents.length ? (
             <div className="ficha360Timeline">
@@ -225,14 +225,14 @@ export default async function ClientPage({
         <article className="panel">
           <div className="panelHead">
             <div>
-              <p className="eyebrow">Reporting</p>
-              <h3>Estado del cierre enlazado</h3>
+              <p className="eyebrow">Cierre REP</p>
+              <h3>Estado del período</h3>
             </div>
-            <Link className="buttonLink secondary" href="/reporting">Abrir reporting →</Link>
+            <Link className="buttonLink secondary" href="/reporting">Abrir cierre REP →</Link>
           </div>
           <div className="ficha360Meta">
             <div><span>Último reporte</span><strong>{ficha?.reporting.latestReport?.status ?? "No informado"}</strong></div>
-            <div><span>Último pre-check</span><strong>{ficha?.reporting.latestCheck?.status ?? "No ejecutado"}</strong></div>
+            <div><span>Última validación</span><strong>{ficha?.reporting.latestCheck?.status ?? "No ejecutada"}</strong></div>
             <div><span>Filas mercado</span><strong>{ficha?.reporting.marketRows ?? 0}</strong></div>
             <div><span>Operaciones gestión</span><strong>{ficha?.reporting.wasteRows ?? 0}</strong></div>
           </div>
