@@ -2210,3 +2210,53 @@ h1{font-weight:500;letter-spacing:-.035em}
     flex-direction: column;
   }
 }
+
+
+/* Secondary modules: decision first, technical depth second */
+.secondaryDetail {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.secondaryDetail > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 18px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.secondaryDetail > summary::-webkit-details-marker {
+  display: none;
+}
+
+.secondaryDetail > summary::after {
+  content: "+";
+  float: right;
+  color: var(--green);
+}
+
+.secondaryDetail[open] > summary::after {
+  content: "–";
+}
+
+.secondaryDetail[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.secondaryDetail > section {
+  margin: 0;
+}
+
+.secondaryDetail .bottomGrid,
+.secondaryDetail .stateSourceGrid {
+  padding: 18px;
+}
+
+.secondaryDetail .snapshotRegistry,
+.secondaryDetail .ledgerRule {
+  margin: 18px;
+}
