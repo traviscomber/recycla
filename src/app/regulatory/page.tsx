@@ -2,8 +2,10 @@ import { AppShell } from "@/components/app-shell";
 import { repRegulatoryUniverse } from "@/lib/rep";
 
 export default function RegulatoryRadarPage() {
-  const operational = repRegulatoryUniverse.filter((item) => item.operational).length;
-  const radarOnly = repRegulatoryUniverse.length - operational;
+  const operationalProducts = repRegulatoryUniverse.filter((item) => item.operational);
+  const monitoredProducts = repRegulatoryUniverse.filter((item) => !item.operational);
+  const operational = operationalProducts.length;
+  const radarOnly = monitoredProducts.length;
 
   return (
     <AppShell active="/regulatory">
@@ -38,12 +40,12 @@ export default function RegulatoryRadarPage() {
         <article>
           <span>Productos prioritarios</span>
           <strong>{repRegulatoryUniverse.length}</strong>
-          <p>Universo REP monitoreado</p>
+          <p>Total visible entre operación y monitoreo</p>
         </article>
         <article>
           <span>Productos operacionales</span>
           <strong>{operational}</strong>
-          <p>Con adapter activo en Recycla OS</p>
+          <p>Con flujo activo dentro de Recycla</p>
         </article>
         <article>
           <span>Sólo monitoreo</span>
@@ -52,26 +54,59 @@ export default function RegulatoryRadarPage() {
         </article>
       </section>
 
-      <section className="regulatoryMatrix">
-        {repRegulatoryUniverse.map((item, index) => (
-          <article className={item.operational ? "regulatoryRow operational" : "regulatoryRow radarOnly"} key={item.id}>
-            <span className="regIndex">{String(index + 1).padStart(2, "0")}</span>
-            <div className="regProduct">
-              <strong>{item.label}</strong>
-              <span>{item.operational ? "OPERACIONAL" : "MONITOREO"}</span>
-            </div>
-            <div className="regStage">
-              <span>Etapa</span>
-              <strong>{item.stage}</strong>
-            </div>
-            <div className="regMilestone">
-              <span>Hito</span>
-              <strong>{item.milestone}</strong>
-            </div>
-            <p>{item.note}</p>
-          </article>
-        ))}
+      <section className="panel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Operativo ahora</p>
+            <h3>Productos que forman parte del flujo actual</h3>
+          </div>
+          <b>{operationalProducts.length}</b>
+        </div>
+        <div className="regulatoryMatrix">
+          {operationalProducts.map((item, index) => (
+            <article className="regulatoryRow operational" key={item.id}>
+              <span className="regIndex">{String(index + 1).padStart(2, "0")}</span>
+              <div className="regProduct">
+                <strong>{item.label}</strong>
+                <span>OPERACIONAL</span>
+              </div>
+              <div className="regStage">
+                <span>Etapa</span>
+                <strong>{item.stage}</strong>
+              </div>
+              <div className="regMilestone">
+                <span>Próximo hito</span>
+                <strong>{item.milestone}</strong>
+              </div>
+              <p>{item.note}</p>
+            </article>
+          ))}
+        </div>
       </section>
+
+      <details className="secondaryDetail">
+        <summary>Ver productos en monitoreo ({monitoredProducts.length})</summary>
+        <section className="regulatoryMatrix">
+          {monitoredProducts.map((item, index) => (
+            <article className="regulatoryRow radarOnly" key={item.id}>
+              <span className="regIndex">{String(index + 1).padStart(2, "0")}</span>
+              <div className="regProduct">
+                <strong>{item.label}</strong>
+                <span>MONITOREO</span>
+              </div>
+              <div className="regStage">
+                <span>Etapa</span>
+                <strong>{item.stage}</strong>
+              </div>
+              <div className="regMilestone">
+                <span>Hito observado</span>
+                <strong>{item.milestone}</strong>
+              </div>
+              <p>{item.note}</p>
+            </article>
+          ))}
+        </section>
+      </details>
 
       <section className="bottomGrid">
         <article className="panel">
