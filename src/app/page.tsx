@@ -80,17 +80,58 @@ export default async function Home() {
     <AppShell active="/">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Compliance Workbench</p>
-          <h1>Qué resolver ahora</h1>
+          <p className="eyebrow">Inicio</p>
+          <h1>Tu cumplimiento REP, en orden</h1>
           <p className="muted">
-            Excepciones reales primero. Abre el contexto completo sólo cuando lo necesitas.
+            La app te muestra qué falta, qué revisar y cuándo el cierre está realmente listo.
           </p>
         </div>
         <div className="period">
-          <span>Acciones abiertas</span>
+          <span>Pendientes de hoy</span>
           <strong>{workItems.length}</strong>
         </div>
       </header>
+
+      <section className="friendlyFlow" aria-label="Cómo funciona Recycla REP OS">
+        <article>
+          <span>01</span>
+          <div>
+            <strong>Cliente y obligación</strong>
+            <p>Define quién reporta, qué producto REP aplica y cuál es la meta del período.</p>
+          </div>
+        </article>
+        <article>
+          <span>02</span>
+          <div>
+            <strong>Operación y evidencia</strong>
+            <p>Conecta retiros, pesajes, documentos y valorización sin perder trazabilidad.</p>
+          </div>
+        </article>
+        <article>
+          <span>03</span>
+          <div>
+            <strong>Cierre y auditoría</strong>
+            <p>Resuelve observaciones y exporta sólo cuando el período está defendible.</p>
+          </div>
+        </article>
+      </section>
+
+      {clients.length === 0 ? (
+        <section className="panel firstRunPanel">
+          <div>
+            <p className="eyebrow">Tu punto de partida</p>
+            <h2>Aún no hay clientes REP operacionales cargados.</h2>
+            <p>
+              Puedes revisar las empresas publicadas por Recycla, pero todavía no cuentan como cartera activa
+              hasta que tengan organización, período y obligaciones REP asociadas.
+            </p>
+          </div>
+          <div className="firstRunActions">
+            <Link className="buttonLink" href="/clientes">Ver clientes →</Link>
+            <Link className="buttonLink secondary" href="/state-intelligence">Revisar fuentes oficiales →</Link>
+          </div>
+        </section>
+      ) : null}
 
       {databaseStatus.state !== "ready" ? (
         <section className={`systemNotice notice-${databaseStatus.state}`}>
@@ -112,23 +153,23 @@ export default async function Home() {
       <section className="panel autopilotPanel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Compliance Autopilot</p>
-            <h3>Qué hacer primero para acercar el cierre a una condición defendible.</h3>
+            <p className="eyebrow">Siguiente paso recomendado</p>
+            <h3>Haz primero lo que más impacta el cierre.</h3>
           </div>
-          <span className="workbenchUpdated">Motor determinístico · sin inferir cumplimiento</span>
+          <span className="workbenchUpdated">Priorizado desde datos reales · sin inventar cumplimiento</span>
         </div>
 
         <div className="autopilotSummary">
           <article>
-            <span>Bloqueantes</span>
+            <span>Bloqueos</span>
             <strong>{autopilotBlockers.length}</strong>
           </article>
           <article>
-            <span>Acciones priorizadas</span>
+            <span>Pendientes</span>
             <strong>{autopilotActions.length}</strong>
           </article>
           <article>
-            <span>Cadenas físicas</span>
+            <span>Operaciones trazables</span>
             <strong>{evidenceChains.length}</strong>
           </article>
         </div>
@@ -187,10 +228,10 @@ export default async function Home() {
       <section className="panel workbenchQueue">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Cola de trabajo</p>
-            <h3>Ordenada por impacto, no por módulo.</h3>
+            <p className="eyebrow">Pendientes del día</p>
+            <h3>Qué requiere tu atención, en orden.</h3>
           </div>
-          <span className="workbenchUpdated">Datos persistidos · vista derivada</span>
+          <span className="workbenchUpdated">Calculado desde datos persistidos</span>
         </div>
 
         {workItems.length ? (
@@ -260,10 +301,10 @@ export default async function Home() {
         <article className="panel">
           <div className="panelHead">
             <div>
-              <p className="eyebrow">Pulso de fuentes</p>
-              <h3>Contexto estatal disponible</h3>
+              <p className="eyebrow">Fuentes oficiales</p>
+              <h3>Información externa conectada</h3>
             </div>
-            <Link className="buttonLink secondary" href="/state-intelligence">Abrir fuentes →</Link>
+            <Link className="buttonLink secondary" href="/state-intelligence">Revisar fuentes →</Link>
           </div>
           <div className="workbenchPulse">
             <div>
@@ -287,14 +328,14 @@ export default async function Home() {
 
       <section className="panel workbenchPaths">
         <div>
-          <p className="eyebrow">Cuando necesitas profundidad</p>
-          <h3>El Workbench decide dónde entrar.</h3>
+          <p className="eyebrow">Herramientas de control</p>
+          <h3>Entra al detalle sólo cuando lo necesites.</h3>
         </div>
         <div className="workbenchPathLinks">
           <Link href="/reporting"><span>Cierre REP</span><strong>Preparar y validar →</strong></Link>
-          <Link href="/audit"><span>Audit Room</span><strong>Resolver hallazgos →</strong></Link>
-          <Link href="/evidence"><span>Evidence Graph</span><strong>Completar respaldo →</strong></Link>
-          <Link href="/ledger"><span>REP Ledger</span><strong>Seguir lineage →</strong></Link>
+          <Link href="/audit"><span>Auditoría</span><strong>Resolver observaciones →</strong></Link>
+          <Link href="/evidence"><span>Evidencia</span><strong>Completar respaldo →</strong></Link>
+          <Link href="/ledger"><span>Trazabilidad</span><strong>Seguir historial →</strong></Link>
         </div>
       </section>
     </AppShell>
