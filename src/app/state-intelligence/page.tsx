@@ -103,10 +103,10 @@ export default async function StateIntelligencePage({
     <AppShell active="/state-intelligence">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Official data layer</p>
-          <h1>State Intelligence</h1>
+          <p className="eyebrow">Fuentes oficiales</p>
+          <h1>Verifica una contraparte antes de usarla</h1>
           <p className="muted">
-            Conecta la operación privada con fuentes públicas oficiales sin convertir una coincidencia externa en una decisión automática de cumplimiento.
+            Busca productores, gestores y destinos en fuentes públicas para respaldar identidad y contexto sin confundir una coincidencia con cumplimiento.
           </p>
         </div>
         <div className="period">
@@ -115,29 +115,47 @@ export default async function StateIntelligencePage({
         </div>
       </header>
 
+      <section className="pageGuide">
+        <article>
+          <span>Qué haces aquí</span>
+          <strong>Buscar una entidad</strong>
+          <p>Consulta una contraparte por nombre, establecimiento o identificador disponible.</p>
+        </article>
+        <article>
+          <span>Qué significa un match</span>
+          <strong>Referencia para revisar</strong>
+          <p>Una coincidencia aporta contexto oficial, pero no prueba por sí sola autorización o cumplimiento.</p>
+        </article>
+        <article>
+          <span>Cuándo guardarlo</span>
+          <strong>Cuando respalda una decisión</strong>
+          <p>Guarda una referencia sólo cuando necesites conservar qué fuente fue usada y cuándo.</p>
+        </article>
+      </section>
+
       <section className="decisionStrip">
         <article>
-          <span>Principio</span>
-          <strong>Evidencia externa</strong>
-          <p>Contextualiza y valida; no reemplaza las reglas REP.</p>
+          <span>Uso</span>
+          <strong>Verificación externa</strong>
+          <p>Sirve para respaldar identidad y contexto.</p>
         </article>
         <article>
-          <span>Refresh</span>
-          <strong>6 h</strong>
-          <p>Metadatos RETC cacheados para no sobrecargar fuentes públicas.</p>
+          <span>Fuentes activas</span>
+          <strong>{ready}/{stateSources.length}</strong>
+          <p>Disponibilidad actual de las fuentes conectadas.</p>
         </article>
         <article>
-          <span>Snapshot</span>
-          <strong>Versionado</strong>
-          <p>El estado oficial usado por una decisión debe poder reconstruirse.</p>
+          <span>Referencias guardadas</span>
+          <strong>{snapshots.length}</strong>
+          <p>Contexto oficial preservado para revisión posterior.</p>
         </article>
       </section>
 
       <section className="panel stateVerifier">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Verificación oficial</p>
-            <h3>Buscar una entidad en datasets públicos RETC</h3>
+            <p className="eyebrow">Buscar contraparte</p>
+            <h3>Consulta la fuente oficial antes de asociarla a una operación</h3>
           </div>
         </div>
 
@@ -165,13 +183,13 @@ export default async function StateIntelligencePage({
         </form>
 
         <p className="verificationHint">
-          Busca sobre el recurso oficial más reciente publicado por RETC, incluyendo XLSX/CSV. Una coincidencia se marca como <strong>requiere revisión</strong> hasta corroborar identidad y contexto.
+          La búsqueda usa el recurso oficial disponible más reciente. Toda coincidencia requiere revisión de identidad y contexto antes de usarla como respaldo.
         </p>
 
         {snapshotFeedback ? (
           <div className={`snapshotFeedback snapshotFeedback-${snapshotFeedback}`}>
             {snapshotFeedback === "saved"
-              ? "Snapshot oficial persistido. Quedó disponible en REP Network y Audit Room."
+              ? "Referencia oficial guardada. Quedó disponible en Red REP y Auditoría."
               : snapshotFeedback === "invalid"
                 ? "La solicitud de snapshot no era válida."
                 : "No fue posible persistir el snapshot oficial."}
@@ -225,10 +243,10 @@ export default async function StateIntelligencePage({
                       <input type="hidden" name="kind" value={kind} />
                       <input type="hidden" name="matchIndex" value={index} />
                       <div>
-                        <span>State Snapshot</span>
-                        <p>Congela esta coincidencia oficial como evidencia externa. No la convierte en cumplimiento REP.</p>
+                        <span>Guardar referencia</span>
+                        <p>Conserva esta coincidencia y su fuente para poder reconstruir la revisión después.</p>
                       </div>
-                      <button type="submit">Guardar snapshot</button>
+                      <button type="submit">Guardar referencia</button>
                     </form>
                   </article>
                 ))}
@@ -245,28 +263,29 @@ export default async function StateIntelligencePage({
         ) : null}
       </section>
 
+      {gestorRows.length ? (
       <section className="panel gestorIntelligencePanel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Gestor Intelligence</p>
-            <h3>Contrapartes operacionales contrastadas contra registros oficiales RETC.</h3>
+            <p className="eyebrow">Gestores y destinos</p>
+            <h3>Contrapartes operacionales que ya fueron contrastadas con fuentes oficiales.</h3>
           </div>
-          <span className="workbenchUpdated">Match exacto por identificador o nombre · no equivale a autorización vigente</span>
+          <span className="workbenchUpdated">La coincidencia ayuda a revisar identidad; no equivale a autorización vigente</span>
         </div>
 
         <section className="decisionStrip">
           <article>
-            <span>Referencia oficial</span>
+            <span>Identidad confirmada</span>
             <strong>{gestoresVerified.length}</strong>
             <p>Coincidencia exacta por identificador.</p>
           </article>
           <article>
-            <span>Revisar identidad</span>
+            <span>Revisión pendiente</span>
             <strong>{gestoresReview.length}</strong>
             <p>Coincidencia exacta sólo por nombre.</p>
           </article>
           <article>
-            <span>Sin match / identidad</span>
+            <span>Sin referencia suficiente</span>
             <strong>{gestoresNotFound.length}</strong>
             <p>Requiere investigación antes del cierre.</p>
           </article>
@@ -315,6 +334,10 @@ export default async function StateIntelligencePage({
         </div>
       </section>
 
+      ) : null}
+
+      <details className="secondaryDetail">
+        <summary>Ver fuentes, sincronización y evidencia técnica</summary>
       <section className="stateSourceGrid">
         {stateSources.map((source, index) => {
           const meta = metaById.get(source.id);
@@ -362,8 +385,8 @@ export default async function StateIntelligencePage({
       <section className="panel snapshotRegistry">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">State Snapshot Registry</p>
-            <h3>Qué evidencia externa quedó congelada para decisiones operacionales.</h3>
+            <p className="eyebrow">Referencias guardadas</p>
+            <h3>Qué contexto oficial quedó preservado para revisiones posteriores.</h3>
           </div>
           <b>{snapshots.length}</b>
         </div>
@@ -385,15 +408,15 @@ export default async function StateIntelligencePage({
           </div>
         ) : (
           <div className="emptyState compactEmpty">
-            <strong>Aún no hay snapshots persistidos.</strong>
-            <p>El registro se poblará cuando una verificación oficial se congele como evidencia del expediente.</p>
+            <strong>Aún no hay referencias oficiales guardadas.</strong>
+            <p>El registro aparecerá cuando una verificación se guarde como respaldo de una revisión.</p>
           </div>
         )}
       </section>
 
       <section className="bottomGrid">
         <article className="panel">
-          <p className="eyebrow">Verification flow</p>
+          <p className="eyebrow">Flujo de verificación</p>
           <h3>Actor / destino → búsqueda oficial → match → evidencia → auditoría.</h3>
           <p className="muted">
             El resultado operativo debe evolucionar de “requiere revisión” a “verificado” sólo cuando identidad, fuente y contexto coincidan de forma suficiente.
@@ -401,21 +424,22 @@ export default async function StateIntelligencePage({
         </article>
 
         <article className="panel">
-          <p className="eyebrow">State Snapshot</p>
+          <p className="eyebrow">Referencia preservada</p>
           <h3>Congelar el contexto externo cuando una operación cambia de estado.</h3>
           <p className="muted">
-            Fuente, identificador, fecha de consulta, contenido normalizado y hash quedan ligados al lineage sin sobrescribir el histórico.
+            Fuente, identificador, fecha de consulta, contenido normalizado y hash quedan ligados al historial sin sobrescribir el histórico.
           </p>
         </article>
       </section>
 
       <section className="panel ledgerRule">
-        <p className="eyebrow">Guardrail</p>
+        <p className="eyebrow">Límite de uso</p>
         <h3>“Aparece en RETC/SNIFA” no significa “cumple REP”.</h3>
         <p className="muted">
           State Intelligence aporta contexto verificable. La elegibilidad y acreditación siguen dependiendo de reglas versionadas, operación y evidencia.
         </p>
       </section>
+      </details>
     </AppShell>
   );
 }
