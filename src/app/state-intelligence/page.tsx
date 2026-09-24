@@ -61,6 +61,26 @@ async function saveSnapshotAction(formData: FormData) {
   redirect(`/state-intelligence?${params.toString()}`);
 }
 
+function gestorStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    VERIFIED_REFERENCE: "REFERENCIA CONFIRMADA",
+    REVIEW_NAME_MATCH: "REVISAR IDENTIDAD",
+    NOT_FOUND: "SIN REFERENCIA",
+    MISSING_IDENTITY: "IDENTIDAD INCOMPLETA"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function snapshotStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    REVIEW_REQUIRED: "REQUIERE REVISIÓN",
+    VERIFIED: "VERIFICADO",
+    NOT_FOUND: "SIN COINCIDENCIA",
+    NO DISPONIBLE: "NO DISPONIBLE"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
 const verificationLabels: Record<VerificationKind, string> = {
   producer: "Productor / establecimiento",
   hazardous_destination: "Destinatario de residuos peligrosos",
@@ -232,7 +252,7 @@ export default async function StateIntelligencePage({
                     </dl>
 
                     <div className="matchFoot">
-                      <span>Match: texto / ID en dataset oficial</span>
+                      <span>Coincidencia por texto o ID en fuente oficial</span>
                       <span className={match.isHistorical ? "historicalSource" : ""}>
                         Año fuente: {match.sourceYear ?? "s/i"}{match.isHistorical ? " · histórica" : ""}
                       </span>
@@ -309,7 +329,7 @@ export default async function StateIntelligencePage({
                     <td>{new Date(row.lastSeenAt).toLocaleDateString("es-CL")}</td>
                     <td>
                       <span className={"gestorStatus gestor-" + row.status.toLowerCase()}>
-                        {row.status.replaceAll("_", " ")}
+                        {gestorStatusLabel(row.status)}
                       </span>
                     </td>
                     <td>{row.sourceId ?? "—"}</td>
@@ -327,7 +347,7 @@ export default async function StateIntelligencePage({
         )}
 
         <div className="stateGuardrail">
-          <strong>Guardrail</strong>
+          <strong>Límite de uso</strong>
           <p>
             Una coincidencia RETC demuestra presencia en el dataset consultado, no vigencia de permisos ni cumplimiento REP. SNIFA permanece como capa de contexto de fiscalización y sancionatorios.
           </p>
@@ -347,7 +367,7 @@ export default async function StateIntelligencePage({
               <div className="stateSourceHead">
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <b className={`sourceStatus source-${meta?.status ?? "unavailable"}`}>
-                  {meta?.status === "ready" ? "LIVE METADATA" : meta?.status === "not_applicable" ? "EXTERNAL" : "UNAVAILABLE"}
+                  {meta?.status === "ready" ? "DISPONIBLE" : meta?.status === "not_applicable" ? "EXTERNA" : "UNAVAILABLE"}
                 </b>
               </div>
 
@@ -396,7 +416,7 @@ export default async function StateIntelligencePage({
             {snapshots.map((snapshot) => (
               <article key={snapshot.id}>
                 <span className={`snapshotStatus snapshot-${snapshot.status.toLowerCase()}`}>
-                  {snapshot.status}
+                  {snapshotStatusLabel(snapshot.status)}
                 </span>
                 <div>
                   <strong>{snapshot.externalIdentifier ?? "Sin identificador externo"}</strong>
