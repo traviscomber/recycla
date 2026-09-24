@@ -24,7 +24,7 @@ export async function bootstrapClientDirectory() {
 
   const sql = db();
 
-  await sql\`
+  await sql`
     create table if not exists client_directory (
       id uuid primary key default gen_random_uuid(),
       slug text not null unique,
@@ -41,15 +41,15 @@ export async function bootstrapClientDirectory() {
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
-  \`;
+  `;
 
-  await sql\`
+  await sql`
     create index if not exists client_directory_name_idx
       on client_directory (lower(display_name))
-  \`;
+  `;
 
   for (const [slug, displayName, website] of publishedClients) {
-    await sql\`
+    await sql`
       insert into client_directory (
         slug, display_name, relationship_status, source_kind, source_url, metadata
       ) values (
@@ -64,12 +64,12 @@ export async function bootstrapClientDirectory() {
         metadata = excluded.metadata,
         source_observed_at = now(),
         updated_at = now()
-    \`;
+    `;
   }
 
-  const [summary] = await sql<Array<{ rows: number }>>\`
+  const [summary] = await sql<Array<{ rows: number }>>`
     select count(*)::int as rows from client_directory
-  \`;
+  `;
 
   return {
     ok: true,
