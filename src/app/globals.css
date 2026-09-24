@@ -2260,3 +2260,74 @@ h1{font-weight:500;letter-spacing:-.035em}
 .secondaryDetail .ledgerRule {
   margin: 18px;
 }
+
+
+/* Final UX QA polish */
+.secondaryDetail > summary:focus-visible,
+.networkVerifyLink:focus-visible,
+.officialVerificationBand .buttonLink:focus-visible {
+  outline: 1px solid var(--green);
+  outline-offset: 3px;
+}
+
+.secondaryDetail > summary {
+  min-height: 44px;
+}
+
+@media (max-width: 760px) {
+  .stateSourceFoot,
+  .matchFoot {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stateSourceFoot a,
+  .officialVerificationBand .buttonLink {
+    width: 100%;
+  }
+
+  .verificationForm button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .networkVerifyLink {
+    padding: 8px 0;
+  }
+
+  .secondaryDetail .bottomGrid,
+  .secondaryDetail .stateSourceGrid {
+    padding: 12px;
+  }
+
+  .secondaryDetail .snapshotRegistry,
+  .secondaryDetail .ledgerRule {
+    margin: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .authPage {
+    padding: 0;
+  }
+
+  .authShell {
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .authBrandBlock,
+  .authCard {
+    padding: 24px 20px;
+  }
+
+  .authBrandBlock h1 {
+    font-size: 2.25rem;
+  }
+
+  .regulatoryRow > span,
+  .regulatoryRow > div,
+  .regulatoryRow > p {
+    padding: 13px 10px;
+  }
+}
