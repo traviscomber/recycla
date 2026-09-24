@@ -21,6 +21,11 @@ async function signInAction(formData: FormData) {
   const { error } = await getAuthServer().signIn.email({ email, password });
 
   if (error) {
+    console.error("AUTH_SIGNIN_FAILED", {
+      code: "code" in error ? error.code : undefined,
+      status: "status" in error ? error.status : undefined,
+      message: "message" in error ? error.message : String(error)
+    });
     redirect("/auth/sign-in?error=invalid");
   }
 
