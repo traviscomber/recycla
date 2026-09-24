@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { listEvidenceChains } from "@/lib/evidence-chain";
 import { fmt } from "@/lib/rep";
 import { listEvidenceDocuments, listRepLedgerEntries } from "@/lib/rep-repository";
+import { listGestorIntelligence } from "@/lib/gestor-intelligence";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +20,11 @@ function stageClass(done: boolean) {
 }
 
 export default async function EvidencePage() {
-  const [documents, ledgerEntries, chains] = await Promise.all([
+  const [documents, ledgerEntries, chains, gestores] = await Promise.all([
     listEvidenceDocuments(100),
     listRepLedgerEntries(100),
-    listEvidenceChains(100)
+    listEvidenceChains(100),
+    listGestorIntelligence("recycla-os", 100)
   ]);
 
   const linkedDocuments = documents.filter((document) => document.linkedEntities > 0);
@@ -30,6 +33,8 @@ export default async function EvidencePage() {
   const completeChains = chains.filter((chain) => chain.completedStages === chain.totalStages);
   const evidenceReadyChains = chains.filter((chain) => chain.evidenceCount > 0 && chain.checksummedEvidence === chain.evidenceCount);
   const blockedChains = chains.filter((chain) => chain.blockers.length > 0);
+  const verifiedGestores = gestores.filter((item) => item.status === "VERIFIED_REFERENCE");
+  const unresolvedGestores = gestores.filter((item) => item.status !== "VERIFIED_REFERENCE");
 
   return (
     <AppShell active="/evidence">
@@ -143,6 +148,35 @@ export default async function EvidencePage() {
             <p>Evidence Chain aparecerá cuando existan retiros reales conectados a pesaje, lote, valorización, evidencia y ledger.</p>
           </div>
         )}
+      </section>
+
+      <section className="panel evidenceGestorContext">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Gestores / destinos</p>
+            <h3>Contexto oficial conectado al respaldo operacional.</h3>
+          </div>
+          <Link className="buttonLink secondary" href="/state-intelligence">
+            Abrir Gestor Intelligence →
+          </Link>
+        </div>
+        <div className="workbenchPulse">
+          <div>
+            <span>Contrapartes reportables</span>
+            <strong>{gestores.length}</strong>
+            <p>Derivadas de operaciones de gestión persistidas</p>
+          </div>
+          <div>
+            <span>Match exacto por referencia</span>
+            <strong>{verifiedGestores.length}</strong>
+            <p>Coincidencia en datasets RETC ingeridos</p>
+          </div>
+          <div>
+            <span>Requieren revisión</span>
+            <strong>{unresolvedGestores.length}</strong>
+            <p>No se convierten automáticamente en evidencia suficiente</p>
+          </div>
+        </div>
       </section>
 
       <section className="panel">
