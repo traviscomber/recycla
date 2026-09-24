@@ -36,6 +36,55 @@ export default async function EvidencePage() {
   const verifiedGestores = gestores.filter((item) => item.status === "VERIFIED_REFERENCE");
   const unresolvedGestores = gestores.filter((item) => item.status !== "VERIFIED_REFERENCE");
 
+  const hasOperationalEvidence = chains.length > 0 || documents.length > 0 || ledgerEntries.length > 0;
+
+  if (!hasOperationalEvidence) {
+    return (
+      <AppShell active="/evidence">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">Evidencia</p>
+            <h1>Aún no hay operaciones que respaldar</h1>
+            <p className="muted">
+              La evidencia aparece cuando existen movimientos reales del período. Primero carga la operación; después podrás revisar documentos y trazabilidad.
+            </p>
+          </div>
+          <div className="period"><span>Estado</span><strong>SIN OPERACIÓN</strong></div>
+        </header>
+
+        <section className="pageGuide">
+          <article>
+            <span>Primero</span>
+            <strong>Cargar la operación</strong>
+            <p>Registra los datos del período que originan retiro, pesaje, valorización o gestión.</p>
+          </article>
+          <article>
+            <span>Después</span>
+            <strong>Adjuntar y vincular respaldo</strong>
+            <p>Los documentos se conectan a la operación concreta para conservar trazabilidad.</p>
+          </article>
+          <article>
+            <span>Resultado</span>
+            <strong>Una historia verificable</strong>
+            <p>La vista mostrará qué etapas están completas y cuál es el primer pendiente.</p>
+          </article>
+        </section>
+
+        <section className="panel reportingEmptyGate">
+          <div>
+            <p className="eyebrow">Punto de partida</p>
+            <h2>Sin operación no hay evidencia que evaluar.</h2>
+            <p className="muted">La app evita mostrar tablas y métricas vacías hasta que exista información operacional real.</p>
+          </div>
+          <div className="firstRunActions">
+            <Link className="buttonLink" href="/reporting/intake">Cargar datos →</Link>
+            <Link className="buttonLink secondary" href="/clientes">Ver clientes →</Link>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell active="/evidence">
       <header className="topbar">
