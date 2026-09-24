@@ -28,14 +28,57 @@ export default async function CircularityPage() {
     .reduce((sum, item) => sum + item.quantityKg, 0);
   const disposal = outcomes.find((item) => item.route === "DISPOSAL")?.quantityKg ?? 0;
 
+  if (total === 0) {
+    return (
+      <AppShell active="/circularity">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">Circularidad</p>
+            <h1>Aún no hay resultados materiales que comparar</h1>
+            <p className="muted">
+              Esta vista se activa cuando existen valorizaciones reales asignadas a clientes y podemos distinguir reutilización, reciclaje, valorización energética y disposición.
+            </p>
+          </div>
+          <div className="period"><span>Estado</span><strong>SIN DATOS</strong></div>
+        </header>
+
+        <section className="pageGuide">
+          <article>
+            <span>Primero</span>
+            <strong>Registrar la valorización</strong>
+            <p>La operación debe tener un destino material real y cantidad asociada.</p>
+          </article>
+          <article>
+            <span>Después</span>
+            <strong>Comparar la calidad del resultado</strong>
+            <p>La app mostrará cuánto terminó en reutilización, reciclaje, otras valorizaciones o disposición.</p>
+          </article>
+          <article>
+            <span>Objetivo</span>
+            <strong>Mejorar la ruta material</strong>
+            <p>La circularidad complementa el cumplimiento REP; no lo reemplaza.</p>
+          </article>
+        </section>
+
+        <section className="panel reportingEmptyGate">
+          <div>
+            <p className="eyebrow">Punto de partida</p>
+            <h2>Primero necesitamos resultados de valorización reales.</h2>
+            <p className="muted">No mostramos porcentajes vacíos ni un puntaje artificial mientras no exista material clasificado.</p>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell active="/circularity">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Circularity intelligence</p>
-          <h1>Circularity Quality</h1>
+          <p className="eyebrow">Circularidad</p>
+          <h1>Qué tan bueno fue el destino del material</h1>
           <p className="muted">
-            Cumplir una meta REP no dice por sí solo qué tan alta fue la calidad circular del resultado.
+            Cumplir REP y lograr un buen destino material son cosas distintas. Aquí medimos el resultado físico.
           </p>
         </div>
         <div className="period"><span>Clientes con datos</span><strong>{outcomeSets.filter((items) => items.length > 0).length}</strong></div>
@@ -43,17 +86,17 @@ export default async function CircularityPage() {
 
       <section className="decisionStrip">
         <article>
-          <span>Rutas materiales prioritarias</span>
+          <span>Reutilización + reciclaje</span>
           <strong>{total > 0 ? ((reuseAndRecycle / total) * 100).toFixed(1) + "%" : "—"}</strong>
           <p>Preparación para reutilización + reciclaje</p>
         </article>
         <article>
-          <span>Masa en rutas materiales</span>
+          <span>Material en mejores rutas</span>
           <strong>{total > 0 ? fmt(reuseAndRecycle) + " kg" : "—"}</strong>
           <p>Calculado desde outputs de valorización persistidos</p>
         </article>
         <article>
-          <span>Disposición</span>
+          <span>Material a disposición</span>
           <strong>{total > 0 ? ((disposal / total) * 100).toFixed(1) + "%" : "—"}</strong>
           <p>Debe explicarse y reducirse cuando sea técnicamente posible</p>
         </article>
@@ -106,16 +149,16 @@ export default async function CircularityPage() {
         </article>
 
         <article className="panel">
-          <p className="eyebrow">Arquitectura</p>
-          <h3>Ruta circular ≠ estado del REP Ledger.</h3>
+          <p className="eyebrow">Cómo leer esta vista</p>
+          <h3>El destino material complementa el estado REP.</h3>
           <p className="muted">
             Reutilización, reciclaje, valorización energética y disposición son outcomes alternativos
             del material. La interfaz muestra su distribución sin inventar un puntaje regulatorio.
           </p>
           <div className="notReady circularityNote">
             <span>REGLA DE MODELO</span>
-            <strong>ORTHOGONAL DIMENSION</strong>
-            <p>El ledger conserva estado regulatorio; Circularity Quality clasifica el destino físico.</p>
+            <strong>DIMENSIÓN COMPLEMENTARIA</strong>
+            <p>La trazabilidad conserva el estado REP; Circularidad clasifica el destino físico.</p>
           </div>
         </article>
       </section>
