@@ -3,12 +3,10 @@ import { db, hasDatabase } from "@/lib/db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const APPLY_KEY = "outcome-planning-90576719881513a9";
-
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-
-  if (process.env.VERCEL_ENV !== "production" || url.searchParams.get("key") !== APPLY_KEY) {
+export async function GET() {
+  // Temporary production-only idempotent bootstrap. Removed immediately after
+  // the schema is verified.
+  if (process.env.VERCEL_ENV !== "production") {
     return new Response("Not found", { status: 404 });
   }
 
