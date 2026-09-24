@@ -615,3 +615,240 @@ h1{font-weight:500;letter-spacing:-.035em}
 .closeStep-pending{opacity:.72}
 @media (max-width:1100px){.closeWorkflow{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:680px){.closeWorkflow{grid-template-columns:1fr}.closeStep{grid-template-columns:36px 1fr auto;align-items:start}.closeStep>span{padding-top:2px}}
+
+
+/* Ficha 360 */
+.ficha360Hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+  margin: 8px 0 18px;
+}
+
+.ficha360Hero h2 {
+  margin: 4px 0 6px;
+}
+
+.ficha360Actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.buttonLink.secondary {
+  background: transparent;
+}
+
+.ficha360Decision {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ficha360Signal {
+  padding: 18px;
+  border: 1px solid var(--line);
+  min-height: 132px;
+}
+
+.ficha360Signal span,
+.ficha360Meta span,
+.ficha360Updated,
+.ficha360Timeline span,
+.ficha360Docs span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.ficha360Signal strong {
+  display: block;
+  margin: 8px 0 6px;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.ficha360Signal p,
+.ficha360Footnote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.ficha360Signal.signal-attention {
+  border-color: currentColor;
+}
+
+.ficha360Meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.ficha360Meta > div {
+  background: var(--panel);
+  padding: 14px 16px;
+}
+
+.ficha360Meta strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.95rem;
+}
+
+.ficha360Lower {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.ficha360Timeline,
+.ficha360Docs {
+  display: grid;
+  gap: 0;
+}
+
+.ficha360Timeline > div,
+.ficha360Docs > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.ficha360Docs > div {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ficha360Timeline p,
+.ficha360Docs p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.ficha360Footnote {
+  margin-top: 12px;
+}
+
+@media (max-width: 1100px) {
+  .ficha360Decision,
+  .ficha360Meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ficha360Lower {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .ficha360Hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ficha360Decision,
+  .ficha360Meta {
+    grid-template-columns: 1fr;
+  }
+
+  .ficha360Timeline > div {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .ficha360Timeline > div > b {
+    grid-column: 2;
+  }
+
+  .ficha360Docs > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.ficha360Decision {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ficha360Products {
+  border-top: 1px solid var(--line);
+}
+
+.ficha360Product {
+  border-bottom: 1px solid var(--line);
+}
+
+.ficha360Product summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 15px 0;
+  cursor: pointer;
+}
+
+.ficha360Product summary::-webkit-details-marker {
+  display: none;
+}
+
+.ficha360Product summary div {
+  display: grid;
+  gap: 3px;
+}
+
+.ficha360Product summary span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.ficha360ProductDetail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+}
+
+.ficha360ProductDetail > div {
+  background: var(--panel);
+  padding: 12px 14px;
+}
+
+.ficha360ProductDetail span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-bottom: 4px;
+}
+
+.ficha360Disclosure {
+  margin-top: 14px;
+}
+
+.ficha360Disclosure > summary {
+  cursor: pointer;
+  padding: 14px 0;
+  font-weight: 600;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.ficha360Disclosure[open] > summary {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 900px) {
+  .ficha360Decision,
+  .ficha360ProductDetail {
+    grid-template-columns: 1fr;
+  }
+}
