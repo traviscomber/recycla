@@ -25,6 +25,8 @@ import { reconcileMonthlyReporting } from "@/lib/reporting-reconciliation";
 import { reconcileHistoricalYear } from "@/lib/historical-reconciliation";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
+import { evaluateRepDocumentReadiness } from "@/lib/document-readiness";
+import { compareMonthlyMetric, getReportingTrend } from "@/lib/reporting-analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -68,16 +70,30 @@ function gateTone(status: ComplianceGateStatus) {
   return "blocked";
 }
 
+function comparisonLabel(value: number | null) {
+  if (value === null) return "Sin base comparable";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toLocaleString("es-CL", { maximumFractionDigits: 1 })}%`;
+}
+
+function monthLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CL", { month: "short", year: "2-digit", timeZone: "UTC" })
+    .format(new Date(value + "T00:00:00.000Z"))
+    .replace(".", "");
+}
+
 export default async function ReportingPage() {
   const suggestedMonth = latestReportableMonth();
-  const [syncs, snapshots, compliance, latestRun, latestMonthly, reconciliation, historical2025] = await Promise.all([
+  const [syncs, snapshots, compliance, latestRun, latestMonthly, reconciliation, historical2025, documentReadiness, reportingTrend] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
     evaluateComplianceReadiness(),
     getLatestComplianceRun("recycla-os"),
     getLatestMonthlyRepReport("recycla-os"),
     reconcileMonthlyReporting("recycla-os", suggestedMonth),
-    reconcileHistoricalYear("recycla-os", 2025)
+    reconcileHistoricalYear("recycla-os", 2025),
+    evaluateRepDocumentReadiness("recycla-os", suggestedMonth),
+    getReportingTrend("recycla-os", suggestedMonth)
   ]);
 
   const producerSync = syncs.find((sync) => sync.sourceId === "retc-priority-products");
@@ -108,6 +124,11 @@ export default async function ReportingPage() {
     latestMonthly?.reportingMonth === suggestedMonth &&
     (latestMonthly.status === "READY" || latestMonthly.status === "SUBMITTED");
   const precheckPassed = latestRun?.status === "PASS";
+  const marketComparison = compareMonthlyMetric(reportingTrend, suggestedMonth, "marketRows");
+  const wasteComparison = compareMonthlyMetric(reportingTrend, suggestedMonth, "wasteRows");
+  const taxCoverageComparison = compareMonthlyMetric(reportingTrend, suggestedMonth, "wasteTaxDocCoveragePct");
+  const documentReadyCount = documentReadiness.filter((item) => item.status === "READY").length;
+  const documentReviewCount = documentReadiness.filter((item) => item.status === "REVIEW_REQUIRED").length;
 
   const closeSteps = [
     {
@@ -195,6 +216,89 @@ export default async function ReportingPage() {
         <a className="buttonLink" href={complianceSources.declaration2026.url} target="_blank" rel="noreferrer">
           Fuente MMA ↗
         </a>
+      </section>
+
+      <section className="reportingComparisonGrid" aria-label="Comparativos MoM y YoY">
+        <article className="reportingComparisonCard">
+          <span>Introducción al mercado</span>
+          <strong>{marketComparison.value?.toLocaleString("es-CL") ?? "—"}</strong>
+          <div><b>MoM {comparisonLabel(marketComparison.momPct)}</b><b>YoY {comparisonLabel(marketComparison.yoyPct)}</b></div>
+          <p>Registros del período reportable. Si no existe base válida, no se fuerza un 0%.</p>
+        </article>
+        <article className="reportingComparisonCard">
+          <span>Operaciones de gestión</span>
+          <strong>{wasteComparison.value?.toLocaleString("es-CL") ?? "—"}</strong>
+          <div><b>MoM {comparisonLabel(wasteComparison.momPct)}</b><b>YoY {comparisonLabel(wasteComparison.yoyPct)}</b></div>
+          <p>Comparación homogénea por mes sobre registros operacionales persistidos.</p>
+        </article>
+        <article className="reportingComparisonCard">
+          <span>Cobertura documento tributario</span>
+          <strong>{taxCoverageComparison.value === null ? "—" : taxCoverageComparison.value.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + "%"}</strong>
+          <div><b>MoM {comparisonLabel(taxCoverageComparison.momPct)}</b><b>YoY {comparisonLabel(taxCoverageComparison.yoyPct)}</b></div>
+          <p>Porcentaje de operaciones con documento tributario de respaldo informado.</p>
+        </article>
+      </section>
+
+      <section className="panel reportingTrendPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Tendencia · 14 meses</p>
+            <h3>MoM explica el cambio inmediato; YoY separa el efecto estacional.</h3>
+          </div>
+          <span className="workbenchUpdated">Base: registros canónicos persistidos</span>
+        </div>
+        <div className="reportingTrendRows">
+          {reportingTrend.map((point) => {
+            const maxRows = Math.max(1, ...reportingTrend.map((item) => item.marketRows + item.wasteRows));
+            const total = point.marketRows + point.wasteRows;
+            return (
+              <article key={point.month}>
+                <span>{monthLabel(point.month)}</span>
+                <div className="reportingTrendTrack">
+                  <i style={{ width: `${Math.max(2, (total / maxRows) * 100)}%` }} />
+                </div>
+                <strong>{total.toLocaleString("es-CL")}</strong>
+                <small>{point.marketRows.toLocaleString("es-CL")} mercado · {point.wasteRows.toLocaleString("es-CL")} gestión</small>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel documentReadinessPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Expediente REP · documentación legal</p>
+            <h3>Qué exige respaldar la normativa y qué está realmente cubierto en el período.</h3>
+          </div>
+          <b>{documentReadyCount}/{documentReadiness.length} READY · {documentReviewCount} revisar</b>
+        </div>
+
+        <div className="documentReadinessList">
+          {documentReadiness.map((item, index) => (
+            <article className={"documentReadinessRow documentReadiness-" + item.status.toLowerCase()} key={item.id}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div className="documentReadinessBody">
+                <div>
+                  <strong>{item.label}</strong>
+                  <em>{item.class.replaceAll("_", " ")}</em>
+                </div>
+                <p>{item.legalRequirement}</p>
+                <small>{item.legalBasis} · Retención: {item.retention}</small>
+                <small>Ejemplos de respaldo: {item.evidenceExamples.join(" · ")}</small>
+              </div>
+              <div className="documentReadinessState">
+                <strong>{item.coveragePct === null ? "—" : item.coveragePct.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + "%"}</strong>
+                <span>{item.status.replaceAll("_", " ")}</span>
+                <small>{item.detail}</small>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <p className="historicalCaveat">
+          La plataforma distingue entre registro exigido, respaldo documental exigido y antecedentes condicionales. “READY” significa cobertura del control implementado, no una declaración jurídica autónoma de cumplimiento.
+        </p>
       </section>
 
       <section className="panel closeWorkflowPanel" aria-label="Flujo de cierre mensual REP">
