@@ -129,8 +129,8 @@ export default async function CircularityPage() {
             </div>
           ) : (
             <div className="emptyState compactEmpty">
-              <strong>Sin outcomes circulares persistidos.</strong>
-              <p>La distribución aparecerá cuando existan outputs de valorización asignados a clientes reales.</p>
+              <strong>Sin resultados de circularidad persistidos.</strong>
+              <p>La distribución aparecerá cuando existan resultados de valorización asignados a clientes reales.</p>
             </div>
           )}
         </article>
