@@ -94,9 +94,9 @@ export default async function ClientesPage({
     <AppShell active="/clientes">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Cartera REP</p>
-          <h1>Clientes REP</h1>
-          <p className="muted">Consulta por cliente, RUT, período, producto prioritario o estado de cierre.</p>
+          <p className="eyebrow">Clientes</p>
+          <h1>Quién debe cumplir y cómo va</h1>
+          <p className="muted">Aquí ves cada cliente operativo, sus obligaciones REP y qué falta para cerrar el período.</p>
         </div>
         <div className="period">
           <span>Fichas operacionales</span>
@@ -121,19 +121,37 @@ export default async function ClientesPage({
         </section>
       ) : null}
 
+      <section className="pageGuide">
+        <article>
+          <span>Qué ves aquí</span>
+          <strong>Clientes con obligaciones REP reales</strong>
+          <p>Una empresa aparece como operacional sólo cuando tiene organización, período y obligaciones persistidas.</p>
+        </article>
+        <article>
+          <span>Qué debes mirar</span>
+          <strong>Estado y brecha por producto</strong>
+          <p>La prioridad es identificar quién requiere acción antes del cierre.</p>
+        </article>
+        <article>
+          <span>Siguiente paso</span>
+          <strong>Abrir la ficha del cliente</strong>
+          <p>Desde ahí revisas obligación, avance, evidencia y pendientes del período.</p>
+        </article>
+      </section>
+
       <section className="clientSummary">
         <article className="card">
-          <span className="label">Obligaciones activas</span>
+          <span className="label">Obligaciones REP</span>
           <div className="big">{activeObligations}</div>
           <p className="muted">Separadas por producto prioritario.</p>
         </article>
         <article className="card">
-          <span className="label">Productos cubiertos</span>
+          <span className="label">Productos REP activos</span>
           <div className="big">{products}</div>
           <p className="muted">Calculado desde obligaciones persistidas.</p>
         </article>
         <article className="card risk">
-          <span className="label">Clientes con gap</span>
+          <span className="label">Clientes que requieren acción</span>
           <div className="gap">{clientsWithGap}</div>
           <p className="muted">Requieren intervención antes del cierre.</p>
         </article>
@@ -142,23 +160,23 @@ export default async function ClientesPage({
       {clients.length === 0 && directory.length > 0 ? (
         <section className="systemNotice notice-schema_missing">
           <div>
-            <p className="eyebrow">Límite de la cartera actual</p>
-            <h3>El directorio publicado todavía no es cartera REP operacional.</h3>
+            <p className="eyebrow">Importante</p>
+            <h3>Las empresas publicadas todavía no son clientes operacionales dentro de la app.</h3>
             <p>
               Hay {directory.length} referencias publicadas por Recycla, pero aún no existen organizaciones,
               períodos ni obligaciones REP persistidas. Ninguna referencia se cuenta como obligación, volumen
               o estado de cumplimiento.
             </p>
           </div>
-          <span>REFERENCIA ≠ OPERACIÓN</span>
+          <span>AÚN NO OPERACIONAL</span>
         </section>
       ) : null}
 
       <section className="panel publishedClientDirectory">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Directorio publicado por Recycla</p>
-            <h3>Referencias identificadas desde la sección oficial “Nuestros clientes”.</h3>
+            <p className="eyebrow">Empresas publicadas</p>
+            <h3>Empresas que Recycla muestra públicamente como clientes.</h3>
           </div>
           <span className="workbenchUpdated">
             {referenceDirectory.length} referencia{referenceDirectory.length === 1 ? "" : "s"} · {linkedDirectory.length} vinculada{linkedDirectory.length === 1 ? "" : "s"} al core
@@ -175,7 +193,7 @@ export default async function ClientesPage({
                 </div>
                 <div>
                   <span className="publishedClientStatus">
-                    {entry.hasCanonicalOrganization ? "VINCULADO AL CORE" : "REFERENCIA"}
+                    {entry.hasCanonicalOrganization ? "CLIENTE OPERACIONAL" : "REFERENCIA PUBLICADA"}
                   </span>
                   {entry.website ? (
                     <a href={entry.website} target="_blank" rel="noreferrer">Sitio empresa ↗</a>
@@ -199,8 +217,8 @@ export default async function ClientesPage({
       <section className="panel clientDirectory">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Directorio consultable</p>
-            <h3>Encuentra la ficha correcta sin ambigüedad de período.</h3>
+            <p className="eyebrow">Cartera operacional</p>
+            <h3>Busca un cliente y entra directamente a su estado REP.</h3>
           </div>
           {(query || statusFilter !== "all" || streamFilter !== "all" || yearFilter !== "all") ? (
             <Link className="buttonLink secondary" href="/clientes">Limpiar filtros</Link>
@@ -280,7 +298,7 @@ export default async function ClientesPage({
                         <div className="productRow" key={item.stream}>
                           <div>
                             <strong>{item.label}</strong>
-                            <span>{pct.toFixed(1)}% readiness</span>
+                            <span>{pct.toFixed(1)}% de avance</span>
                           </div>
                           <b className={currentGap < 0 ? "negative" : "positive"}>
                             {currentGap < 0 ? "" : "+"}
