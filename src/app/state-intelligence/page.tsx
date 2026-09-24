@@ -76,7 +76,7 @@ function snapshotStatusLabel(status: string) {
     REVIEW_REQUIRED: "REQUIERE REVISIÓN",
     VERIFIED: "VERIFICADO",
     NOT_FOUND: "SIN COINCIDENCIA",
-    NO DISPONIBLE: "NO DISPONIBLE"
+    UNAVAILABLE: "NO DISPONIBLE"
   };
   return labels[status] ?? status.replaceAll("_", " ");
 }
