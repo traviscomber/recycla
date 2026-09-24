@@ -18,10 +18,18 @@ function gap(item: { obligation: number; accreditable: number }) {
   return item.accreditable - item.obligation;
 }
 
-export default async function ClientPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ClientPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ year?: string }>;
+}) {
   const { slug } = await params;
+  const { year: yearParam } = await searchParams;
+  const year = yearParam && /^\d{4}$/.test(yearParam) ? Number(yearParam) : undefined;
   if (!hasDatabase()) notFound();
-  const client = await getRepClient(slug);
+  const client = await getRepClient(slug, year);
   if (!client) notFound();
 
   const [circularity, ficha] = await Promise.all([

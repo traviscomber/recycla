@@ -5,6 +5,10 @@ import { listComplianceFindings } from "@/lib/compliance-findings";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
 import { buildComplianceWorkbench } from "@/lib/workbench";
+import { buildComplianceAutopilot } from "@/lib/compliance-autopilot";
+import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
+import { listEvidenceChains } from "@/lib/evidence-chain";
+import { listGestorIntelligence } from "@/lib/gestor-intelligence";
 
 export const dynamic = "force-dynamic";
 
@@ -22,20 +26,39 @@ function clientState(client: Awaited<ReturnType<typeof listRepClients>>[number])
 }
 
 export default async function Home() {
-  const [stateSyncs, stateSnapshots, databaseStatus, clients, complianceFindings] =
-    await Promise.all([
-      getStateSyncOverview(),
-      listRecentSnapshots(100),
-      getRepDatabaseStatus(),
-      listRepClients(),
-      listComplianceFindings("recycla-os", 100)
-    ]);
+  const [
+    stateSyncs,
+    stateSnapshots,
+    databaseStatus,
+    clients,
+    complianceFindings,
+    evidenceChains,
+    complianceGates,
+    gestores
+  ] = await Promise.all([
+    getStateSyncOverview(),
+    listRecentSnapshots(100),
+    getRepDatabaseStatus(),
+    listRepClients(),
+    listComplianceFindings("recycla-os", 100),
+    listEvidenceChains(100),
+    evaluateComplianceReadiness(),
+    listGestorIntelligence("recycla-os", 100)
+  ]);
 
   const workItems = buildComplianceWorkbench({
     clients,
     findings: complianceFindings,
     snapshots: stateSnapshots
   });
+
+  const autopilotActions = buildComplianceAutopilot({
+    findings: complianceFindings,
+    chains: evidenceChains,
+    gates: complianceGates,
+    gestores
+  });
+  const autopilotBlockers = autopilotActions.filter((item) => item.priority === "BLOCKER");
 
   const criticalItems = workItems.filter((item) => item.priority === "critical");
   const warningItems = workItems.filter((item) => item.priority === "warning");
@@ -85,6 +108,58 @@ export default async function Home() {
           <span>ATENCIÓN TÉCNICA</span>
         </section>
       ) : null}
+
+      <section className="panel autopilotPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Compliance Autopilot</p>
+            <h3>Qué hacer primero para acercar el cierre a una condición defendible.</h3>
+          </div>
+          <span className="workbenchUpdated">Motor determinístico · sin inferir cumplimiento</span>
+        </div>
+
+        <div className="autopilotSummary">
+          <article>
+            <span>Bloqueantes</span>
+            <strong>{autopilotBlockers.length}</strong>
+          </article>
+          <article>
+            <span>Acciones priorizadas</span>
+            <strong>{autopilotActions.length}</strong>
+          </article>
+          <article>
+            <span>Cadenas físicas</span>
+            <strong>{evidenceChains.length}</strong>
+          </article>
+        </div>
+
+        {autopilotActions.length ? (
+          <div className="autopilotList">
+            {autopilotActions.slice(0, 6).map((action, index) => (
+              <article className={"autopilotItem autopilot-" + action.priority.toLowerCase()} key={action.id}>
+                <span className="autopilotIndex">{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <small>{action.priority} · {action.source.replaceAll("_", " ")}</small>
+                  <strong>{action.title}</strong>
+                  <p>{action.detail}</p>
+                </div>
+                <div className="autopilotAffected">
+                  <span>Afectados</span>
+                  <strong>{action.affected}</strong>
+                </div>
+                <Link className="buttonLink secondary" href={action.href}>
+                  {action.actionLabel} →
+                </Link>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin acciones derivadas de los controles actuales.</strong>
+            <p>Esto no reemplaza el pre-check final ni constituye una declaración de cumplimiento.</p>
+          </div>
+        )}
+      </section>
 
       <section className="workbenchSignals" aria-label="Prioridad operacional">
         <article className={criticalItems.length ? "workbenchSignal signal-critical" : "workbenchSignal"}>

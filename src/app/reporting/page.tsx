@@ -20,10 +20,13 @@ import {
   getLatestMonthlyRepReport,
   latestReportableMonth
 } from "@/lib/monthly-reporting";
+import { finalizeMonthlyRepDraft } from "@/lib/monthly-close";
 import { reconcileMonthlyReporting } from "@/lib/reporting-reconciliation";
 import { reconcileHistoricalYear } from "@/lib/historical-reconciliation";
 import { getStateSyncOverview } from "@/lib/state-ingestion";
 import { listRecentSnapshots } from "@/lib/state-snapshots";
+import { evaluateRepDocumentReadiness } from "@/lib/document-readiness";
+import { compareMonthlyMetric, getReportingTrend } from "@/lib/reporting-analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -48,22 +51,49 @@ async function generateMonthlyDraftAction() {
   revalidatePath("/audit");
 }
 
+async function finalizeMonthlyDraftAction() {
+  "use server";
+
+  await requireComplianceSession();
+
+  const reportingMonth = latestReportableMonth();
+  await syncComplianceFindings("recycla-os", reportingMonth);
+  await finalizeMonthlyRepDraft("recycla-os", reportingMonth);
+  await runCompliancePrecheck("recycla-os", reportingMonth);
+  revalidatePath("/reporting");
+  revalidatePath("/audit");
+}
+
 function gateTone(status: ComplianceGateStatus) {
   if (status === "LIVE" || status === "READY") return "done";
   if (status === "REVIEW_REQUIRED") return "next";
   return "blocked";
 }
 
+function comparisonLabel(value: number | null) {
+  if (value === null) return "Sin base comparable";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toLocaleString("es-CL", { maximumFractionDigits: 1 })}%`;
+}
+
+function monthLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CL", { month: "short", year: "2-digit", timeZone: "UTC" })
+    .format(new Date(value + "T00:00:00.000Z"))
+    .replace(".", "");
+}
+
 export default async function ReportingPage() {
   const suggestedMonth = latestReportableMonth();
-  const [syncs, snapshots, compliance, latestRun, latestMonthly, reconciliation, historical2025] = await Promise.all([
+  const [syncs, snapshots, compliance, latestRun, latestMonthly, reconciliation, historical2025, documentReadiness, reportingTrend] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
     evaluateComplianceReadiness(),
     getLatestComplianceRun("recycla-os"),
     getLatestMonthlyRepReport("recycla-os"),
     reconcileMonthlyReporting("recycla-os", suggestedMonth),
-    reconcileHistoricalYear("recycla-os", 2025)
+    reconcileHistoricalYear("recycla-os", 2025),
+    evaluateRepDocumentReadiness("recycla-os", suggestedMonth),
+    getReportingTrend("recycla-os", suggestedMonth)
   ]);
 
   const producerSync = syncs.find((sync) => sync.sourceId === "retc-priority-products");
@@ -90,7 +120,24 @@ export default async function ReportingPage() {
   const reconciliationReady = reconciliation?.status === "READY";
   const openReconciliationIssues = reconciliation?.issues.length ?? 0;
   const monthlyDraftReady = Boolean(latestMonthly);
+  const monthlyCloseReady =
+    latestMonthly?.reportingMonth === suggestedMonth &&
+    (latestMonthly.status === "READY" || latestMonthly.status === "SUBMITTED");
   const precheckPassed = latestRun?.status === "PASS";
+  const marketComparison = compareMonthlyMetric(reportingTrend, suggestedMonth, "marketRows");
+  const wasteComparison = compareMonthlyMetric(reportingTrend, suggestedMonth, "wasteRows");
+  const taxCoverageComparison = compareMonthlyMetric(reportingTrend, suggestedMonth, "wasteTaxDocCoveragePct");
+  const documentReadyCount = documentReadiness.filter((item) => item.status === "READY").length;
+  const documentReviewCount = documentReadiness.filter((item) => item.status === "REVIEW_REQUIRED").length;
+  const complianceGap = auditScope.length - readyCount;
+  const documentGap = documentReadiness.length - documentReadyCount;
+  const taxCoverageGap =
+    taxCoverageComparison.value === null ? null : Math.max(0, 100 - taxCoverageComparison.value);
+  const currentOperationalRows = (marketComparison.value ?? 0) + (wasteComparison.value ?? 0);
+  const operationalYoY =
+    marketComparison.yoyPct === null || wasteComparison.yoyPct === null
+      ? null
+      : Math.round(((marketComparison.yoyPct + wasteComparison.yoyPct) / 2) * 10) / 10;
 
   const closeSteps = [
     {
@@ -124,10 +171,12 @@ export default async function ReportingPage() {
     {
       index: "04",
       label: "Cerrar",
-      detail: monthlyDraftReady
-        ? `${latestMonthly?.reportingMonth} · v${latestMonthly?.version}`
-        : "Cierre mensual no generado",
-      state: monthlyDraftReady ? "done" : "pending"
+      detail: monthlyCloseReady
+        ? `${latestMonthly?.reportingMonth} · v${latestMonthly?.version} · ${latestMonthly?.status}`
+        : monthlyDraftReady
+          ? `${latestMonthly?.reportingMonth} · v${latestMonthly?.version} · ${latestMonthly?.status}`
+          : "Cierre mensual no generado",
+      state: monthlyCloseReady ? "done" : monthlyDraftReady ? "attention" : "pending"
     },
     {
       index: "05",
@@ -176,6 +225,103 @@ export default async function ReportingPage() {
         <a className="buttonLink" href={complianceSources.declaration2026.url} target="_blank" rel="noreferrer">
           Fuente MMA ↗
         </a>
+      </section>
+
+      <section className="reportingComparisonGrid" aria-label="Lectura ejecutiva del período">
+        <article className="reportingComparisonCard">
+          <span>Compliance gates</span>
+          <strong>{readyCount}/{auditScope.length}</strong>
+          <div><b>Objetivo {auditScope.length}/{auditScope.length}</b><b>Gap {complianceGap}</b></div>
+          <p>La decisión principal es cuánto falta para que el cierre sea defendible, no cuánto cambió contra el mes pasado.</p>
+        </article>
+        <article className="reportingComparisonCard">
+          <span>Expediente documental</span>
+          <strong>{documentReadyCount}/{documentReadiness.length}</strong>
+          <div><b>Objetivo 100%</b><b>Gap {documentGap}</b></div>
+          <p>Controles documentales con cobertura suficiente para el período según los controles implementados.</p>
+        </article>
+        <article className="reportingComparisonCard">
+          <span>Cobertura documento tributario</span>
+          <strong>{taxCoverageComparison.value === null ? "—" : taxCoverageComparison.value.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + "%"}</strong>
+          <div>
+            <b>Objetivo 100%</b>
+            <b>Gap {taxCoverageGap === null ? "—" : taxCoverageGap.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + " pp"}</b>
+            <b>YoY {comparisonLabel(taxCoverageComparison.yoyPct)}</b>
+          </div>
+          <p>La referencia histórica aparece sólo cuando existe base comparable válida.</p>
+        </article>
+        <article className="reportingComparisonCard">
+          <span>Actividad operacional</span>
+          <strong>{currentOperationalRows.toLocaleString("es-CL")}</strong>
+          <div><b>YoY {comparisonLabel(operationalYoY)}</b></div>
+          <p>Registros de introducción al mercado + operaciones de gestión del período reportable.</p>
+          <details className="reportingSecondaryComparison">
+            <summary>Ver variación mensual</summary>
+            <span>Mercado MoM {comparisonLabel(marketComparison.momPct)} · Gestión MoM {comparisonLabel(wasteComparison.momPct)}</span>
+          </details>
+        </article>
+      </section>
+
+      <section className="panel reportingTrendPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Tendencia · 14 meses</p>
+            <h3>Primero objetivo y gap; después contexto histórico y tendencia.</h3>
+          </div>
+          <span className="workbenchUpdated">Base: registros canónicos persistidos</span>
+        </div>
+        <div className="reportingTrendRows">
+          {reportingTrend.map((point) => {
+            const maxRows = Math.max(1, ...reportingTrend.map((item) => item.marketRows + item.wasteRows));
+            const total = point.marketRows + point.wasteRows;
+            return (
+              <article key={point.month}>
+                <span>{monthLabel(point.month)}</span>
+                <div className="reportingTrendTrack">
+                  <i style={{ width: `${Math.max(2, (total / maxRows) * 100)}%` }} />
+                </div>
+                <strong>{total.toLocaleString("es-CL")}</strong>
+                <small>{point.marketRows.toLocaleString("es-CL")} mercado · {point.wasteRows.toLocaleString("es-CL")} gestión</small>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel documentReadinessPanel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Expediente REP · documentación legal</p>
+            <h3>Qué exige respaldar la normativa y qué está realmente cubierto en el período.</h3>
+          </div>
+          <b>{documentReadyCount}/{documentReadiness.length} READY · {documentReviewCount} revisar</b>
+        </div>
+
+        <div className="documentReadinessList">
+          {documentReadiness.map((item, index) => (
+            <article className={"documentReadinessRow documentReadiness-" + item.status.toLowerCase()} key={item.id}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div className="documentReadinessBody">
+                <div>
+                  <strong>{item.label}</strong>
+                  <em>{item.class.replaceAll("_", " ")}</em>
+                </div>
+                <p>{item.legalRequirement}</p>
+                <small>{item.legalBasis} · Retención: {item.retention}</small>
+                <small>Ejemplos de respaldo: {item.evidenceExamples.join(" · ")}</small>
+              </div>
+              <div className="documentReadinessState">
+                <strong>{item.coveragePct === null ? "—" : item.coveragePct.toLocaleString("es-CL", { maximumFractionDigits: 1 }) + "%"}</strong>
+                <span>{item.status.replaceAll("_", " ")}</span>
+                <small>{item.detail}</small>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <p className="historicalCaveat">
+          La plataforma distingue entre registro exigido, respaldo documental exigido y antecedentes condicionales. “READY” significa cobertura del control implementado, no una declaración jurídica autónoma de cumplimiento.
+        </p>
       </section>
 
       <section className="panel closeWorkflowPanel" aria-label="Flujo de cierre mensual REP">
@@ -329,6 +475,14 @@ export default async function ReportingPage() {
             <Link className="buttonLink" href="/reporting/intake">Ingresar datos reales →</Link>
             <form action={generateMonthlyDraftAction}>
               <button type="submit">Generar cierre mensual</button>
+            </form>
+            <form action={finalizeMonthlyDraftAction}>
+              <button
+                type="submit"
+                disabled={!latestMonthly || !reconciliationReady || openReconciliationIssues > 0 || monthlyCloseReady}
+              >
+                {monthlyCloseReady ? "Cierre validado" : "Validar cierre mensual"}
+              </button>
             </form>
           </div>
         </div>
@@ -495,8 +649,18 @@ export default async function ReportingPage() {
         </article>
 
         <article className="panel">
-          <p className="eyebrow">Final compliance pack</p>
-          <h3>Paquete de salida defendible.</h3>
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Final compliance pack</p>
+              <h3>Paquete de salida defendible.</h3>
+            </div>
+            <a className="buttonLink secondary" href="/reporting/export">
+              Descargar pack JSON →
+            </a>
+          </div>
+          <p className="muted">
+            El pack incluye estado de gates, cierre mensual, reconciliación, hallazgos, evidencia, ledger, snapshots oficiales y checksum propio.
+          </p>
           <div className="compliancePack">
             <span>01 Dataset consolidado por categoría / subcategoría</span>
             <span>02 Operaciones de gestión asociadas</span>
