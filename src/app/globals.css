@@ -1768,7 +1768,7 @@ h1{font-weight:500;letter-spacing:-.035em}
 /* Reporting intelligence */
 .reportingComparisonGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -1957,5 +1957,33 @@ h1{font-weight:500;letter-spacing:-.035em}
     grid-column: 2;
     justify-items: start;
     text-align: left;
+  }
+}
+
+
+.reportingSecondaryComparison {
+  margin-top: 2px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.reportingSecondaryComparison summary {
+  cursor: pointer;
+  color: var(--text-faint);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.reportingSecondaryComparison span {
+  display: block;
+  margin-top: 7px;
+  color: var(--text-soft);
+  font-size: 8px;
+}
+
+@media (max-width: 1150px) and (min-width: 901px) {
+  .reportingComparisonGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
