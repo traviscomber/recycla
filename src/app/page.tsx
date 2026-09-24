@@ -8,6 +8,7 @@ import { buildComplianceWorkbench } from "@/lib/workbench";
 import { buildComplianceAutopilot } from "@/lib/compliance-autopilot";
 import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
 import { listEvidenceChains } from "@/lib/evidence-chain";
+import { listGestorIntelligence } from "@/lib/gestor-intelligence";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,8 @@ export default async function Home() {
     clients,
     complianceFindings,
     evidenceChains,
-    complianceGates
+    complianceGates,
+    gestores
   ] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
@@ -40,7 +42,8 @@ export default async function Home() {
     listRepClients(),
     listComplianceFindings("recycla-os", 100),
     listEvidenceChains(100),
-    evaluateComplianceReadiness()
+    evaluateComplianceReadiness(),
+    listGestorIntelligence("recycla-os", 100)
   ]);
 
   const workItems = buildComplianceWorkbench({
@@ -52,7 +55,8 @@ export default async function Home() {
   const autopilotActions = buildComplianceAutopilot({
     findings: complianceFindings,
     chains: evidenceChains,
-    gates: complianceGates
+    gates: complianceGates,
+    gestores
   });
   const autopilotBlockers = autopilotActions.filter((item) => item.priority === "BLOCKER");
 
