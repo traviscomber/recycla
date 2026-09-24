@@ -40,40 +40,58 @@ export default async function EvidencePage() {
     <AppShell active="/evidence">
       <header className="topbar">
         <div>
-          <p className="eyebrow">REP Evidence Chain</p>
-          <h1>Evidence Graph</h1>
+          <p className="eyebrow">Evidencia</p>
+          <h1>Prueba qué pasó en cada operación</h1>
           <p className="muted">
-            Reconstruye cada movimiento desde el retiro físico hasta evidencia, valorización y estado REP.
+            Sigue cada retiro desde la operación física hasta sus documentos, valorización y respaldo REP.
           </p>
         </div>
         <div className="period"><span>Cadenas visibles</span><strong>{chains.length}</strong></div>
       </header>
 
-      <section className="decisionStrip" aria-label="Cobertura de Evidence Chain">
+      <section className="pageGuide">
         <article>
-          <span>Cadena completa</span>
+          <span>Qué ves aquí</span>
+          <strong>La historia completa de cada retiro</strong>
+          <p>Retiro, pesaje, lote, valorización, documentos y estado final en una sola secuencia.</p>
+        </article>
+        <article>
+          <span>Qué debes mirar</span>
+          <strong>Operaciones incompletas</strong>
+          <p>Si una etapa está pendiente, la app indica exactamente qué falta para cerrar la trazabilidad.</p>
+        </article>
+        <article>
+          <span>Siguiente paso</span>
+          <strong>Completar el primer bloqueo</strong>
+          <p>No necesitas entender toda la arquitectura: resuelve el primer pendiente de cada operación.</p>
+        </article>
+      </section>
+
+      <section className="decisionStrip" aria-label="Cobertura de evidencia">
+        <article>
+          <span>Operaciones completas</span>
           <strong>{chains.length ? completeChains.length + "/" + chains.length : "—"}</strong>
           <p>Retiro → pesaje → lote → valorización → evidencia → ledger</p>
         </article>
         <article>
-          <span>Evidencia íntegra</span>
+          <span>Documentación íntegra</span>
           <strong>{chains.length ? evidenceReadyChains.length + "/" + chains.length : "—"}</strong>
           <p>Con documentos asociados y checksum SHA-256 completo</p>
         </article>
         <article>
           <span>Requieren acción</span>
           <strong>{blockedChains.length}</strong>
-          <p>Cadenas con una o más etapas técnicas pendientes</p>
+          <p>Operaciones con uno o más pasos todavía pendientes</p>
         </article>
       </section>
 
       <section className="panel evidenceChainPanel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Cadena operacional verificable</p>
-            <h3>Una operación física, una historia reconstruible.</h3>
+            <p className="eyebrow">Trazabilidad de la operación</p>
+            <h3>Cada operación debe poder explicarse de principio a fin.</h3>
           </div>
-          <span className="chainLegend">6 etapas técnicas · no equivale por sí sola a cumplimiento</span>
+          <span className="chainLegend">6 pasos de trazabilidad · completar la cadena no reemplaza el cierre REP</span>
         </div>
 
         {chains.length ? (
@@ -121,19 +139,19 @@ export default async function EvidencePage() {
                       <small>{chain.evidenceCount ? chain.checksummedEvidence + "/" + chain.evidenceCount + " hash" : "Pendiente"}</small>
                     </div>
                     <div className={stageClass(ledgerDone)}>
-                      <span>06</span><strong>Ledger</strong>
+                      <span>06</span><strong>Estado REP</strong>
                       <small>{chain.latestLedgerState?.replaceAll("_", " ") ?? "Pendiente"}</small>
                     </div>
                   </div>
 
                   <div className="chainFooter">
                     <div>
-                      <span>Ruta</span>
+                      <span>Destino / valorización</span>
                       <strong>{chain.valuationRoutes.length ? chain.valuationRoutes.join(" · ").replaceAll("_", " ") : "Sin valorización cerrada"}</strong>
                       {chain.destinations.length ? <small>{chain.destinations.join(" · ")}</small> : null}
                     </div>
                     <div>
-                      <span>Siguiente acción</span>
+                      <span>Qué hacer ahora</span>
                       <strong>{chain.blockers[0] ?? "Cadena técnicamente completa"}</strong>
                       {chain.blockers.length > 1 ? <small>+{chain.blockers.length - 1} pendientes adicionales</small> : null}
                     </div>
@@ -144,8 +162,8 @@ export default async function EvidencePage() {
           </div>
         ) : (
           <div className="emptyState">
-            <strong>Sin cadenas operacionales persistidas.</strong>
-            <p>Evidence Chain aparecerá cuando existan retiros reales conectados a pesaje, lote, valorización, evidencia y ledger.</p>
+            <strong>Aún no hay operaciones trazables para mostrar.</strong>
+            <p>Esta vista se activará cuando existan retiros reales conectados a pesaje, lote, valorización y documentos.</p>
           </div>
         )}
       </section>
@@ -157,7 +175,7 @@ export default async function EvidencePage() {
             <h3>Contexto oficial conectado al respaldo operacional.</h3>
           </div>
           <Link className="buttonLink secondary" href="/state-intelligence">
-            Abrir Gestor Intelligence →
+            Revisar gestores y destinos →
           </Link>
         </div>
         <div className="workbenchPulse">
@@ -182,8 +200,8 @@ export default async function EvidencePage() {
       <section className="panel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Documentos persistidos</p>
-            <h3>Evidencia disponible y nivel de vinculación.</h3>
+            <p className="eyebrow">Documentos</p>
+            <h3>Qué respaldo existe y a qué operación pertenece.</h3>
           </div>
           <b>{linkedDocuments.length} vinculados</b>
         </div>
@@ -223,7 +241,7 @@ export default async function EvidencePage() {
       <section className="bottomGrid">
         <article className="panel">
           <div className="panelHead">
-            <div><p className="eyebrow">Cobertura del ledger</p><h3>Entradas REP respaldadas por evidencia.</h3></div>
+            <div><p className="eyebrow">Cobertura REP</p><h3>Registros que ya tienen respaldo documental.</h3></div>
             <b>{ledgerWithEvidence.length}</b>
           </div>
           {ledgerWithEvidence.length ? (
