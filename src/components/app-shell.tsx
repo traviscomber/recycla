@@ -10,7 +10,7 @@ const streamHref = {
 } as const;
 
 const nav = [
-  ["/", "Control Tower", "01"],
+  ["/", "Workbench", "01"],
   ["/clientes", "Clientes REP", "02"],
   ["/ledger", "REP Ledger", "03"],
   ["/evidence", "Evidence Graph", "04"],
