@@ -8,6 +8,7 @@ export type ClientDataIntegrity = {
   organizations: number;
   obligations: number;
   reportingPeriods: number;
+  clientDirectory: number;
   issues: {
     blankRut: number;
     blankSlug: number;
@@ -47,6 +48,7 @@ export async function inspectClientDataIntegrity(): Promise<ClientDataIntegrity>
       organizations: 0,
       obligations: 0,
       reportingPeriods: 0,
+      clientDirectory: 0,
       issues: emptyIssues,
       issueCount: 0
     };
@@ -59,11 +61,16 @@ export async function inspectClientDataIntegrity(): Promise<ClientDataIntegrity>
       organizations: number;
       obligations: number;
       reportingPeriods: number;
+      clientDirectory: number;
     }>>`
       select
         (select count(*)::int from organizations) as organizations,
         (select count(*)::int from rep_obligations) as obligations,
-        (select count(*)::int from reporting_periods) as "reportingPeriods"
+        (select count(*)::int from reporting_periods) as "reportingPeriods",
+        case
+          when to_regclass('public.client_directory') is null then 0
+          else (select count(*)::int from client_directory)
+        end as "clientDirectory"
     `;
 
     const [issues] = await sql<Array<{
@@ -146,6 +153,7 @@ export async function inspectClientDataIntegrity(): Promise<ClientDataIntegrity>
       organizations: counts?.organizations ?? 0,
       obligations: counts?.obligations ?? 0,
       reportingPeriods: counts?.reportingPeriods ?? 0,
+      clientDirectory: counts?.clientDirectory ?? 0,
       issues: normalizedIssues,
       issueCount
     };
@@ -156,6 +164,7 @@ export async function inspectClientDataIntegrity(): Promise<ClientDataIntegrity>
       organizations: 0,
       obligations: 0,
       reportingPeriods: 0,
+      clientDirectory: 0,
       issues: emptyIssues,
       issueCount: 0
     };
