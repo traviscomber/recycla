@@ -9,6 +9,7 @@ import { buildComplianceAutopilot } from "@/lib/compliance-autopilot";
 import { evaluateComplianceReadiness } from "@/lib/compliance-engine";
 import { listEvidenceChains } from "@/lib/evidence-chain";
 import { listGestorIntelligence } from "@/lib/gestor-intelligence";
+import { getRecyclaSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,8 @@ export default async function Home() {
     complianceFindings,
     evidenceChains,
     complianceGates,
-    gestores
+    gestores,
+    authState
   ] = await Promise.all([
     getStateSyncOverview(),
     listRecentSnapshots(100),
@@ -64,7 +66,8 @@ export default async function Home() {
     listComplianceFindings("recycla-os", 100),
     listEvidenceChains(100),
     evaluateComplianceReadiness(),
-    listGestorIntelligence("recycla-os", 100)
+    listGestorIntelligence("recycla-os", 100),
+    getRecyclaSession()
   ]);
 
   const workItems = buildComplianceWorkbench({
@@ -97,6 +100,8 @@ export default async function Home() {
     snapshot.subjectType.startsWith("rep_actor_")
   );
   const hasOperationalClients = clients.length > 0;
+  const isJuanCaseStudyUser =
+    authState.session?.user?.email?.toLocaleLowerCase("es-CL") === "juan@n3uralia.com";
 
   return (
     <AppShell active="/">
@@ -137,6 +142,20 @@ export default async function Home() {
           </div>
         </article>
       </section>
+
+      {isJuanCaseStudyUser && hasOperationalClients ? (
+        <section className="caseStudyEntry panel">
+          <div>
+            <p className="eyebrow">Caso de estudio interno</p>
+            <h2>Recorre la empresa REP más completa con datos reales.</h2>
+            <p>
+              Recycla selecciona automáticamente el caso con mayor completitud canónica para revisar
+              obligación, calendario, evidencia, ledger, rule packs y cierre sin usar datos demo.
+            </p>
+          </div>
+          <Link className="buttonLink" href="/case-study">Abrir caso de estudio →</Link>
+        </section>
+      ) : null}
 
       {clients.length === 0 ? (
         <section className="panel firstRunPanel">
