@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import * as XLSX from "xlsx";
 import { db, hasDatabase } from "@/lib/db";
+import { classifyRepInput } from "@/lib/rep-classification";
 
 type IntakeType = "MARKET_INTRODUCTIONS" | "WASTE_OPERATIONS";
 
@@ -268,12 +269,23 @@ function marketRecord(row: Row, rowNumber: number, subjectRef: string) {
     errors.push({ row: rowNumber, field: "cantidad", message: "Debe existir unidades o cantidad." });
   }
 
+  const classification = classifyRepInput({
+    priorityProduct,
+    category,
+    subcategory
+  });
+
   const normalized = {
     subject_ref: subjectRef,
     occurred_at: occurredAt,
     priority_product: priorityProduct,
     category,
     subcategory,
+    regulatory_stream: classification.stream,
+    regulatory_category_id: classification.categoryId,
+    regulatory_pack_version: classification.packVersion,
+    classification_status: classification.status,
+    classification_basis: classification.basis,
     units,
     quantity,
     unit,
@@ -338,12 +350,23 @@ function wasteRecord(row: Row, rowNumber: number, subjectRef: string) {
   if (quantity === null || quantity < 0) errors.push({ row: rowNumber, field: "cantidad", message: "Cantidad válida requerida." });
   if (!unit) errors.push({ row: rowNumber, field: "unidad", message: "Unidad requerida." });
 
+  const classification = classifyRepInput({
+    priorityProduct,
+    category,
+    subcategory
+  });
+
   const normalized = {
     subject_ref: subjectRef,
     occurred_at: occurredAt,
     priority_product: priorityProduct,
     category,
     subcategory,
+    regulatory_stream: classification.stream,
+    regulatory_category_id: classification.categoryId,
+    regulatory_pack_version: classification.packVersion,
+    classification_status: classification.status,
+    classification_basis: classification.basis,
     operation_type: operationType,
     counterparty_ref: counterpartyRef,
     counterparty_name: counterpartyName,
@@ -518,6 +541,11 @@ export async function importReportingFile(args: {
               "priority_product",
               "category",
               "subcategory",
+              "regulatory_stream",
+              "regulatory_category_id",
+              "regulatory_pack_version",
+              "classification_status",
+              "classification_basis",
               "units",
               "quantity",
               "unit",
@@ -545,6 +573,11 @@ export async function importReportingFile(args: {
               "priority_product",
               "category",
               "subcategory",
+              "regulatory_stream",
+              "regulatory_category_id",
+              "regulatory_pack_version",
+              "classification_status",
+              "classification_basis",
               "operation_type",
               "counterparty_ref",
               "counterparty_name",
