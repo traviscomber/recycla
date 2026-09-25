@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { listB2BCalendarEvents, type B2BCalendarEvent } from "@/lib/outcome-planning";
+import { listREPCalendarEvents, type REPCalendarEvent } from "@/lib/outcome-planning";
 import { fmt } from "@/lib/rep";
 
 export const revalidate = 60;
 
-const streamLabels: Record<Exclude<B2BCalendarEvent["stream"], null>, string> = {
+const streamLabels: Record<Exclude<REPCalendarEvent["stream"], null>, string> = {
   AEE_RAEE: "AEE / RAEE",
   NEUMATICOS: "Neumáticos",
   BATERIAS: "Baterías",
@@ -71,8 +71,8 @@ function formatMonthRange(start: Date, end: Date) {
   return `${left} — ${right}`;
 }
 
-function eventLabel(event: B2BCalendarEvent) {
-  if (event.kind === "document" || event.kind === "contract") {
+function eventLabel(event: REPCalendarEvent) {
+  if (event.kind === "document") {
     return event.title ?? "Hito";
   }
 
@@ -85,8 +85,8 @@ function eventLabel(event: B2BCalendarEvent) {
   return [stream, quantity].filter(Boolean).join(" · ");
 }
 
-function outcomeLabel(event: B2BCalendarEvent) {
-  if (event.kind === "document" || event.kind === "contract") {
+function outcomeLabel(event: REPCalendarEvent) {
+  if (event.kind === "document") {
     return event.detail ?? "Requiere revisión";
   }
 
@@ -146,7 +146,7 @@ export default async function PlanningPage({
   const showSummary = params.summary === "1";
   const companyFilter = params.company?.trim() ?? "";
 
-  const allEvents = await listB2BCalendarEvents({ start, end });
+  const allEvents = await listREPCalendarEvents({ start, end });
   const companies = [...new Map(allEvents.map((event) => [event.clientSlug, event.client])).entries()]
     .map(([slug, name]) => ({ slug, name }))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
@@ -154,7 +154,7 @@ export default async function PlanningPage({
   const events = allEvents.filter((event) => {
     if (layer === "planned" && event.kind !== "planned") return false;
     if (layer === "actual" && event.kind !== "actual") return false;
-    if (layer === "risk" && event.kind !== "document" && event.kind !== "contract") return false;
+    if (layer === "risk" && event.kind !== "document") return false;
     if (companyFilter && event.clientSlug !== companyFilter) return false;
     if (!query) return true;
     const haystack = [
@@ -173,7 +173,7 @@ export default async function PlanningPage({
   const todayKey = chileTodayKey();
   const plannedCount = events.filter((event) => event.kind === "planned").length;
   const actualCount = events.filter((event) => event.kind === "actual").length;
-  const riskCount = events.filter((event) => event.kind === "document" || event.kind === "contract").length;
+  const riskCount = events.filter((event) => event.kind === "document").length;
   const forecastedCount = events.filter(
     (event) => event.kind === "planned" && event.forecastRecoveryPct !== null
   ).length;
@@ -191,7 +191,7 @@ export default async function PlanningPage({
     );
   const strongestTwin = twinCandidates[0] ?? null;
 
-  const rowMap = new Map<string, { client: string; clientSlug: string; site: string | null; events: B2BCalendarEvent[] }>();
+  const rowMap = new Map<string, { client: string; clientSlug: string; site: string | null; events: REPCalendarEvent[] }>();
   for (const event of events) {
     const key = `${event.client}::${event.site ?? "Sin sitio"}`;
     const row = rowMap.get(key) ?? { client: event.client, clientSlug: event.clientSlug, site: event.site, events: [] };
@@ -218,9 +218,9 @@ export default async function PlanningPage({
       <header className="planningTopbar">
         <div>
           <p className="eyebrow">Planificación operacional</p>
-          <h1>Calendario operacional B2B</h1>
+          <h1>Calendario REP</h1>
           <p className="muted">
-            Empresas, instalaciones, retiros, ejecución y vencimientos críticos en una sola línea de tiempo.
+            Empresas, instalaciones, retiros, ejecución y evidencia relevante para el cumplimiento REP en una sola línea de tiempo.
           </p>
         </div>
         <div className="planningRangeLabel">
@@ -327,7 +327,7 @@ export default async function PlanningPage({
           <strong>{actualCount}</strong>
         </div>
         <div>
-          <span>Alertas calendario</span>
+          <span>Evidencia por revisar</span>
           <strong>{riskCount}</strong>
         </div>
         <div>
@@ -339,7 +339,7 @@ export default async function PlanningPage({
             ["all", "Todo"],
             ["planned", "Plan"],
             ["actual", "Ejecutado"],
-            ["risk", "Vencimientos"]
+            ["risk", "Evidencia"]
           ].map(([value, label]) => {
             const next = new URLSearchParams();
             next.set("date", toDateKey(start));
