@@ -24,7 +24,18 @@ const requiredColumns: Record<string, readonly string[]> = {
   evidence_links: ["id", "document_id", "entity_type", "entity_id", "evidence_role"],
   valuation_outputs: ["id", "lot_id", "quantity_kg", "circularity_route", "valued_at"],
   valuation_allocations: ["id", "valuation_output_id", "organization_id", "quantity_kg"],
-  market_introductions: ["id", "subject_ref", "occurred_at", "priority_product", "source_row_hash"],
+  market_introductions: [
+    "id",
+    "subject_ref",
+    "occurred_at",
+    "priority_product",
+    "source_row_hash",
+    "regulatory_stream",
+    "regulatory_category_id",
+    "regulatory_pack_version",
+    "classification_status",
+    "classification_basis"
+  ],
   waste_management_operations: [
     "id",
     "subject_ref",
@@ -33,7 +44,34 @@ const requiredColumns: Record<string, readonly string[]> = {
     "operation_type",
     "quantity",
     "unit",
-    "source_row_hash"
+    "source_row_hash",
+    "regulatory_stream",
+    "regulatory_category_id",
+    "regulatory_pack_version",
+    "classification_status",
+    "classification_basis"
+  ],
+  collections: [
+    "id",
+    "organization_id",
+    "stream",
+    "collected_at",
+    "regulatory_category_id",
+    "regulatory_pack_version",
+    "classification_status",
+    "classification_basis"
+  ],
+  rep_classification_events: [
+    "id",
+    "entity_type",
+    "entity_id",
+    "stream",
+    "pack_version",
+    "category_id",
+    "status",
+    "source_method",
+    "actor_ref",
+    "created_at"
   ],
   monthly_rep_reports: ["id", "subject_ref", "reporting_month", "status", "version", "checksum_sha256"],
   compliance_check_runs: ["id", "subject_ref", "status", "started_at", "finished_at"],
