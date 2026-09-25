@@ -3416,3 +3416,45 @@ h1{font-weight:500;letter-spacing:-.035em}
     grid-template-columns:1fr;
   }
 }
+
+
+.classificationAudit {
+  margin:14px 0;
+}
+
+.classificationAuditList {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1px;
+  background:var(--line);
+  border:1px solid var(--line);
+}
+
+.classificationAuditList > div {
+  background:var(--surface-3);
+  padding:10px 12px;
+  display:grid;
+  gap:3px;
+}
+
+.classificationAuditList span,
+.classificationAuditList small {
+  color:var(--text-faint);
+  font-size:7px;
+}
+
+.classificationAuditList strong {
+  font-size:8px;
+}
+
+.classificationAuditList p {
+  margin:0;
+  color:var(--text-soft);
+  font-size:7px;
+}
+
+@media(max-width:720px){
+  .classificationAuditList {
+    grid-template-columns:1fr;
+  }
+}
