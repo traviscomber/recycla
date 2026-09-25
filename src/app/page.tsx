@@ -100,9 +100,9 @@ export default async function Home() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Inicio</p>
-          <h1>Tu cumplimiento REP, en orden</h1>
+          <h1>Control REP para tu empresa</h1>
           <p className="muted">
-            La app te muestra qué falta, qué revisar y cuándo el cierre está realmente listo.
+            Consolida obligaciones, operación, evidencia y cierre regulatorio de cada empresa cliente en un solo sistema B2B.
           </p>
         </div>
         <div className="period">
@@ -115,22 +115,22 @@ export default async function Home() {
         <article>
           <span>01</span>
           <div>
-            <strong>Cliente y obligación</strong>
-            <p>Define quién reporta, qué producto REP aplica y cuál es la meta del período.</p>
+            <strong>Empresa y obligación</strong>
+            <p>Define la empresa obligada, su período, productos prioritarios, metas y responsables corporativos.</p>
           </div>
         </article>
         <article>
           <span>02</span>
           <div>
-            <strong>Operación y evidencia</strong>
-            <p>Conecta retiros, pesajes, documentos y valorización sin perder trazabilidad.</p>
+            <strong>Operación contratada y evidencia</strong>
+            <p>Conecta retiros, pesajes, lotes, gestores, valorización y documentos con trazabilidad por empresa.</p>
           </div>
         </article>
         <article>
           <span>03</span>
           <div>
-            <strong>Cierre y auditoría</strong>
-            <p>Resuelve observaciones y exporta sólo cuando el período está defendible.</p>
+            <strong>Cierre corporativo y auditoría</strong>
+            <p>Resuelve brechas, deja evidencia defendible y prepara el reporte de cumplimiento de la empresa.</p>
           </div>
         </article>
       </section>
@@ -296,8 +296,8 @@ export default async function Home() {
           <article className="panel">
             <div className="panelHead">
               <div>
-                <p className="eyebrow">Cartera</p>
-                <h3>Estado por cliente</h3>
+                <p className="eyebrow">Cartera B2B</p>
+                <h3>Estado REP por empresa cliente</h3>
               </div>
               <Link className="buttonLink secondary" href="/clientes">Ver todos →</Link>
             </div>
@@ -348,8 +348,8 @@ export default async function Home() {
       {hasOperationalClients ? (
       <section className="panel workbenchPaths">
         <div>
-          <p className="eyebrow">Herramientas de control</p>
-          <h3>Entra al detalle sólo cuando lo necesites.</h3>
+          <p className="eyebrow">Control corporativo</p>
+          <h3>Opera por excepción y entra al detalle sólo cuando una empresa lo requiera.</h3>
         </div>
         <div className="workbenchPathLinks">
           <Link href="/reporting"><span>Cierre REP</span><strong>Preparar y validar →</strong></Link>
