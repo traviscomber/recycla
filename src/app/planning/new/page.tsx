@@ -168,11 +168,14 @@ function messageForResult(result?: string) {
 export default async function NewPlanningPage({
   searchParams
 }: {
-  searchParams: Promise<{ result?: string }>;
+  searchParams: Promise<{ result?: string; client?: string }>;
 }) {
   const params = await searchParams;
   const { organizations, sites } = await listPlanningOptions();
   const message = messageForResult(params.result);
+  const selectedOrganization = params.client
+    ? organizations.find((organization) => organization.slug === params.client)
+    : undefined;
 
   return (
     <AppShell active="/planning">
@@ -197,14 +200,14 @@ export default async function NewPlanningPage({
       <section className="bottomGrid">
         <article className="panel">
           <p className="eyebrow">01 · Qué y para quién</p>
-          <h3>Cliente y flujo REP.</h3>
+          <h3>Empresa y flujo REP.</h3>
 
           {organizations.length ? (
             <form action={createPlanAction} className="intakeForm">
               <label>
                 <span>Cliente</span>
-                <select name="organizationId" required defaultValue="">
-                  <option value="" disabled>Seleccionar cliente</option>
+                <select name="organizationId" required defaultValue={selectedOrganization?.id ?? ""}>
+                  <option value="" disabled>Seleccionar empresa</option>
                   {organizations.map((organization) => (
                     <option value={organization.id} key={organization.id}>
                       {organization.name}

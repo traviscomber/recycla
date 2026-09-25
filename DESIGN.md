@@ -2,7 +2,7 @@
 
 ## Product character
 
-Recycla REP OS is an operational compliance system, not a marketing dashboard.
+Recycla REP OS is a B2B operational compliance system for Recycla and its corporate clients, not a marketing dashboard or consumer recycling app.
 
 The interface must feel:
 
@@ -43,6 +43,12 @@ Avoid cards inside cards unless there is a real interaction boundary.
 - Body: concise and operational.
 - Micro-labels: uppercase, tracked, low-noise.
 - Numbers: prominent only when they represent a decision or regulatory state.
+
+## B2B product rule
+
+The default entity is the company account, not the individual user. Screens should orient work around corporate obligations, periods, contracts, facilities, responsible parties, service execution, evidence and audit history.
+
+Avoid consumer language such as personal recycling goals, rewards, household impact or generic engagement metrics. Prefer enterprise language such as cartera, empresa, obligación, servicio, contrato, instalación, responsable, brecha, evidencia, auditoría, cierre and trazabilidad.
 
 ## Information hierarchy
 

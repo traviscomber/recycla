@@ -6,6 +6,7 @@ import { getClientCircularityOutcomes, getRepClient } from "@/lib/rep-repository
 import { getClient360 } from "@/lib/client-360";
 import { fmt } from "@/lib/rep";
 import { routeLabel } from "@/lib/circularity";
+import { getRecyclaSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,59 @@ function readiness(item: { obligation: number; accreditable: number }) {
 
 function gap(item: { obligation: number; accreditable: number }) {
   return item.accreditable - item.obligation;
+}
+
+function repRoleLabel(role: string) {
+  const labels: Record<string, string> = {
+    PRODUCER_IMPORTER: "Productor / importador",
+    MANAGEMENT_SYSTEM: "Sistema de gestión",
+    WASTE_MANAGER: "Gestor",
+    CONSUMER: "Consumidor",
+    MUNICIPALITY: "Municipalidad"
+  };
+  return labels[role] ?? role.replaceAll("_", " ");
+}
+
+function relationshipLabel(type: string) {
+  const labels: Record<string, string> = {
+    FINANCES_SYSTEM: "Financia sistema",
+    CONTRACTS_MANAGER: "Contrata gestor",
+    DELIVERS_WASTE: "Entrega residuos",
+    PUTS_PRODUCT_ON_MARKET: "Pone producto en mercado"
+  };
+  return labels[type] ?? type.replaceAll("_", " ");
+}
+
+function planStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    DRAFT: "Borrador",
+    PLANNED: "Planificado",
+    CONFIRMED: "Confirmado",
+    IN_PROGRESS: "En curso"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function contractStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    DRAFT: "Borrador",
+    ACTIVE: "Activo",
+    SUSPENDED: "Suspendido",
+    EXPIRED: "Vencido",
+    ENDED: "Finalizado"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function slaComparisonLabel(comparison: string) {
+  const labels: Record<string, string> = {
+    LT: "<",
+    LE: "≤",
+    EQ: "=",
+    GE: "≥",
+    GT: ">"
+  };
+  return labels[comparison] ?? comparison;
 }
 
 export default async function ClientPage({
@@ -32,10 +86,14 @@ export default async function ClientPage({
   const client = await getRepClient(slug, year);
   if (!client) notFound();
 
-  const [circularity, ficha] = await Promise.all([
+  const [circularity, ficha, authState] = await Promise.all([
     getClientCircularityOutcomes(slug, Number(client.period)),
-    getClient360(slug)
+    getClient360(slug),
+    getRecyclaSession()
   ]);
+  const canWriteAccount = authState.roles.some((role) =>
+    role === "operator" || role === "compliance" || role === "admin"
+  );
   const circularityTotal = circularity.reduce((sum, item) => sum + item.quantityKg, 0);
   const materialPriorityKg = circularity
     .filter((item) => item.route === "PREPARATION_FOR_REUSE" || item.route === "RECYCLING")
@@ -44,23 +102,27 @@ export default async function ClientPage({
   const values = client.obligations.map(readiness);
   const status = values.length > 0 && values.every((value) => value >= 100) ? "Listo" : values.length > 0 && values.every((value) => value >= 95) ? "Casi listo" : "Atención";
   const gaps = client.obligations.filter((item) => gap(item) < 0);
+  const nextPlan = ficha?.upcomingPlans[0] ?? null;
+  const activeRoles = ficha?.roles.filter((role) => !role.validTo || new Date(role.validTo) >= new Date()) ?? [];
 
   return (
     <AppShell active="/clientes">
       <header className="topbar">
-        <div><p className="eyebrow">Cliente REP · {client.period}</p><h1>{client.name}</h1><p className="muted">{client.rut} · {client.obligations.length} productos prioritarios activos</p></div>
+        <div><p className="eyebrow">Empresa REP · {client.period}</p><h1>{client.name}</h1><p className="muted">{client.rut} · Ficha B2B 360 · {client.obligations.length} productos prioritarios activos</p></div>
         <div className="period"><span>Estado consolidado</span><strong>{status}</strong></div>
       </header>
       <section className="ficha360Hero">
         <div>
-          <p className="eyebrow">Resumen operativo</p>
-          <h2>Qué necesita este cliente ahora</h2>
+          <p className="eyebrow">Ficha B2B 360</p>
+          <h2>Qué necesita esta empresa ahora</h2>
           <p className="muted">
-            Estado REP, brechas, documentos y cierre del período en una sola vista.
+            Obligaciones, operación, instalaciones, planificación, evidencia y cierre del período en una sola vista.
           </p>
         </div>
         <div className="ficha360Actions">
-          <Link className="buttonLink" href="/reporting">Abrir cierre REP →</Link>
+          {canWriteAccount ? <Link className="buttonLink" href={"/clientes/" + client.slug + "/cuenta"}>Gestionar cuenta →</Link> : null}
+          <Link className={canWriteAccount ? "buttonLink secondary" : "buttonLink"} href={"/planning/new?client=" + client.slug}>Planificar retiro →</Link>
+          <Link className="buttonLink secondary" href="/reporting">Abrir cierre REP →</Link>
           <Link className="buttonLink secondary" href="/evidence">Ver evidencia →</Link>
         </div>
       </section>
@@ -81,12 +143,17 @@ export default async function ClientPage({
           <strong>{ficha?.reporting.openFindings ?? 0}</strong>
           <p>{ficha?.reporting.criticalFindings ? `${ficha.reporting.criticalFindings} crítico(s).` : "Sin hallazgos críticos enlazados."}</p>
         </article>
+        <article className="ficha360Signal">
+          <span>Próxima operación</span>
+          <strong>{nextPlan ? new Date(nextPlan.plannedStart).toLocaleDateString("es-CL") : "Sin plan"}</strong>
+          <p>{nextPlan ? `${nextPlan.site ?? "Sin sitio"} · ${planStatusLabel(nextPlan.status)}` : "No hay un retiro futuro persistido para esta empresa."}</p>
+        </article>
       </section>
 
       <section className="ficha360Identity panel">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Datos del cliente</p>
+            <p className="eyebrow">Identidad corporativa</p>
             <h3>{ficha?.organization.legalName ?? client.name}</h3>
           </div>
           <span className="ficha360Updated">
@@ -95,10 +162,189 @@ export default async function ClientPage({
         </div>
         <div className="ficha360Meta">
           <div><span>RUT</span><strong>{client.rut}</strong></div>
-          <div><span>Período</span><strong>{client.period}</strong></div>
-          <div><span>Productos REP</span><strong>{client.obligations.length}</strong></div>
+          <div><span>Rol REP</span><strong>{activeRoles.length ? activeRoles.map((role) => repRoleLabel(role.role)).join(" · ") : "No informado"}</strong></div>
+          <div><span>Instalaciones</span><strong>{ficha?.sites.length ?? 0}</strong></div>
+          <div><span>Períodos con obligación</span><strong>{ficha?.periods.length ?? 0}</strong></div>
+          <div><span>Operaciones registradas</span><strong>{ficha?.collectionCount ?? 0}</strong></div>
+          <div><span>Última operación</span><strong>{ficha?.lastCollectionAt ? new Date(ficha.lastCollectionAt).toLocaleDateString("es-CL") : "Sin historial"}</strong></div>
+          <div><span>Relaciones B2B</span><strong>{ficha?.relationships.length ?? 0}</strong></div>
           <div><span>Cierre enlazado</span><strong>{ficha?.reporting.latestReport ? "Disponible" : "Aún no generado"}</strong></div>
         </div>
+      </section>
+
+      <section className="ficha360BusinessGrid">
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Instalaciones</p>
+              <h3>Dónde opera esta cuenta.</h3>
+            </div>
+            <span className="ficha360Updated">{ficha?.sites.length ?? 0} sitio(s)</span>
+          </div>
+          {ficha?.sites.length ? (
+            <div className="ficha360AccountList">
+              {ficha.sites.map((site) => (
+                <div key={site.id}>
+                  <div>
+                    <strong>{site.name}</strong>
+                    <p>{[site.address, site.commune, site.region].filter(Boolean).join(" · ") || "Ubicación no informada"}</p>
+                  </div>
+                  <div>
+                    <span>{site.collectionCount} operación(es)</span>
+                    <b>{site.nextPlanAt ? `Próximo ${new Date(site.nextPlanAt).toLocaleDateString("es-CL")}` : "Sin retiro planificado"}</b>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState compactEmpty"><strong>Sin instalaciones enlazadas.</strong><p>La empresa existe canónicamente, pero aún no tiene sitios registrados.</p></div>
+          )}
+        </article>
+
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Planificación B2B</p>
+              <h3>Próximos servicios operacionales.</h3>
+            </div>
+            <Link className="buttonLink secondary" href={"/planning?&q=" + encodeURIComponent(client.name)}>Ver calendario →</Link>
+          </div>
+          {ficha?.upcomingPlans.length ? (
+            <div className="ficha360AccountList">
+              {ficha.upcomingPlans.slice(0, 5).map((plan) => (
+                <div key={plan.id}>
+                  <div>
+                    <strong>{new Date(plan.plannedStart).toLocaleDateString("es-CL")} · {plan.stream.replaceAll("_", " ")}</strong>
+                    <p>{plan.site ?? "Sin sitio"}{plan.counterparty ? ` · ${plan.counterparty}` : ""}</p>
+                  </div>
+                  <div>
+                    <span>{planStatusLabel(plan.status)}</span>
+                    <b>{plan.estimatedQuantity !== null && plan.estimatedUnit ? `${fmt(plan.estimatedQuantity)} ${plan.estimatedUnit}` : "Cantidad no informada"}</b>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState compactEmpty"><strong>Sin servicios futuros registrados.</strong><p>No se inventa una planificación. Crea el próximo retiro cuando corresponda.</p><Link className="buttonLink" href={"/planning/new?client=" + client.slug}>Planificar retiro →</Link></div>
+          )}
+        </article>
+      </section>
+
+      <section className="panel ficha360EnterpriseContext">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Relación empresarial</p>
+            <h3>Roles, responsables, contratos y cobertura de la cuenta.</h3>
+          </div>
+        </div>
+        <div className="ficha360EnterpriseColumns">
+          <div>
+            <span className="label">Roles REP</span>
+            {ficha?.roles.length ? ficha.roles.map((role) => (
+              <p key={role.role}><strong>{repRoleLabel(role.role)}</strong>{role.validFrom ? ` · desde ${new Date(role.validFrom).toLocaleDateString("es-CL")}` : ""}{role.validTo ? ` · hasta ${new Date(role.validTo).toLocaleDateString("es-CL")}` : ""}</p>
+            )) : <p className="muted">Rol REP no informado.</p>}
+          </div>
+          <div>
+            <span className="label">Relaciones canónicas</span>
+            {ficha?.relationships.length ? ficha.relationships.slice(0, 6).map((relation) => (
+              <p key={relation.id}><strong>{relationshipLabel(relation.relationshipType)}</strong> · {relation.organizationName} · {relation.organizationRut}</p>
+            )) : <p className="muted">Sin relaciones B2B enlazadas.</p>}
+          </div>
+          <div>
+            <span className="label">Cobertura de cuenta</span>
+            <p><strong>Responsables / contactos</strong> · {ficha?.coverage.contacts === "available" ? "Disponible" : ficha?.coverage.contacts === "source_unavailable" ? "Esquema pendiente" : "Sin contactos registrados"}</p>
+            <p><strong>Contratos / SLA</strong> · {ficha?.coverage.contracts === "available" ? "Disponible" : ficha?.coverage.contracts === "source_unavailable" ? "Esquema pendiente" : "Sin contratos registrados"}</p>
+            <p><strong>Instalaciones</strong> · {ficha?.coverage.sites === "available" ? "Disponible" : "Sin información enlazada"}</p>
+            <p><strong>Planificación</strong> · {ficha?.coverage.planning === "available" ? "Disponible" : ficha?.coverage.planning === "source_unavailable" ? "Fuente no disponible" : "Sin servicios futuros"}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="ficha360BusinessGrid">
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Responsables de cuenta</p>
+              <h3>Quién coordina por cada lado.</h3>
+            </div>
+            <span className="ficha360Updated">{ficha?.contacts.length ?? 0} contacto(s)</span>
+          </div>
+          {ficha?.contacts.length ? (
+            <div className="ficha360AccountList">
+              {ficha.contacts.map((contact) => (
+                <div key={contact.id}>
+                  <div>
+                    <strong>{contact.fullName}</strong>
+                    <p>{contact.side === "RECYCLA" ? "Recycla" : "Cliente"}{contact.title ? ` · ${contact.title}` : ""}{contact.responsibility ? ` · ${contact.responsibility}` : ""}</p>
+                  </div>
+                  <div>
+                    <span>{contact.isPrimary ? "Responsable principal" : "Contacto"}</span>
+                    <b>{contact.email ?? contact.phone ?? "Sin canal informado"}</b>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState compactEmpty">
+              <strong>{ficha?.coverage.contacts === "source_unavailable" ? "Capa de responsables aún no aplicada." : "Sin responsables registrados."}</strong>
+              <p>{ficha?.coverage.contacts === "source_unavailable" ? "La rama ya incluye el modelo canónico; producción permanece intacta hasta aplicar la migración aprobada." : "La ficha mantiene visible esta ausencia para que la cuenta no dependa de conocimiento informal."}</p>
+            </div>
+          )}
+        </article>
+
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Contrato y SLA</p>
+              <h3>Qué servicio está comprometido.</h3>
+            </div>
+            <span className="ficha360Updated">{ficha?.contracts.length ?? 0} contrato(s)</span>
+          </div>
+          {ficha?.contracts.length ? (
+            <div className="ficha360ContractList">
+              {ficha.contracts.map((contract) => {
+                const services = ficha.contractServices.filter((service) => service.contractId === contract.id);
+                const slas = ficha.slas.filter((sla) => sla.contractId === contract.id);
+                return (
+                  <details className="ficha360Contract" key={contract.id}>
+                    <summary>
+                      <div>
+                        <strong>{contract.contractRef ?? "Contrato sin referencia"}</strong>
+                        <span>{contractStatusLabel(contract.status)}{contract.endsAt ? ` · vence ${new Date(contract.endsAt).toLocaleDateString("es-CL")}` : ""}</span>
+                      </div>
+                      <b>{contract.serviceCount} servicio(s) · {contract.slaCount} SLA</b>
+                    </summary>
+                    <div className="ficha360ContractBody">
+                      <div>
+                        <span className="label">Servicios</span>
+                        {services.length ? services.map((service) => (
+                          <p key={service.id}><strong>{service.serviceName}</strong>{service.site ? ` · ${service.site}` : ""}{service.frequency ? ` · ${service.frequency}` : ""}{service.includedQuantity !== null && service.unit ? ` · ${fmt(service.includedQuantity)} ${service.unit}` : ""}</p>
+                        )) : <p className="muted">Sin servicios detallados.</p>}
+                      </div>
+                      <div>
+                        <span className="label">SLA</span>
+                        {slas.length ? slas.map((sla) => (
+                          <p key={sla.id}><strong>{sla.label}</strong> · {slaComparisonLabel(sla.comparison)} {fmt(sla.targetValue)} {sla.targetUnit}</p>
+                        )) : <p className="muted">Sin SLA detallados.</p>}
+                      </div>
+                      <div>
+                        <span className="label">Vigencia</span>
+                        <p><strong>Inicio</strong> · {contract.startsAt ? new Date(contract.startsAt).toLocaleDateString("es-CL") : "No informado"}</p>
+                        <p><strong>Renovación</strong> · {contract.renewalAt ? new Date(contract.renewalAt).toLocaleDateString("es-CL") : "No informada"}</p>
+                        <p><strong>Facturación</strong> · {contract.billingModel ?? "No informada"}</p>
+                      </div>
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="emptyState compactEmpty">
+              <strong>{ficha?.coverage.contracts === "source_unavailable" ? "Capa contractual aún no aplicada." : "Sin contrato operativo registrado."}</strong>
+              <p>{ficha?.coverage.contracts === "source_unavailable" ? "El modelo de contratos, servicios y SLA ya está preparado en la rama sin alterar producción." : "No se asume un servicio ni un SLA sin evidencia contractual."}</p>
+            </div>
+          )}
+        </article>
       </section>
 
       <section className="panel ficha360Core">
