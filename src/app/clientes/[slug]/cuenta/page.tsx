@@ -422,7 +422,7 @@ export default async function AccountPage({
               </div>
               <button type="submit">Registrar contrato</button>
             </form>
-          ) : <p className="muted">Disponible después de aplicar el esquema B2B.</p>}
+          ) : <p className="muted">{!schemaReady ? "Disponible después de aplicar el esquema B2B." : "Modo sólo lectura para tu rol."}</p>}
         </article>
       </section>
 
@@ -430,7 +430,7 @@ export default async function AccountPage({
         <article className="panel">
           <p className="eyebrow">03 · Servicios</p>
           <h3>Qué está incluido.</h3>
-          {schemaReady && context.contracts.length ? (
+          {schemaReady && canWrite && context.contracts.length ? (
             <form action={createServiceAction.bind(null, slug)} className="intakeForm">
               <label><span>Contrato</span><select name="contractId" required>{context.contracts.map((contract) => <option value={contract.id} key={contract.id}>{contract.contractRef ?? "Sin referencia"} · {contract.status}</option>)}</select></label>
               <label><span>Instalación</span><select name="siteId" defaultValue=""><option value="">Todas / no especificada</option>{context.sites.map((site) => <option value={site.id} key={site.id}>{site.name}</option>)}</select></label>
@@ -453,7 +453,7 @@ export default async function AccountPage({
         <article className="panel">
           <p className="eyebrow">04 · SLA</p>
           <h3>Compromisos medibles.</h3>
-          {schemaReady && context.contracts.length ? (
+          {schemaReady && canWrite && context.contracts.length ? (
             <form action={createSlaAction.bind(null, slug)} className="intakeForm">
               <label><span>Contrato</span><select name="contractId" required>{context.contracts.map((contract) => <option value={contract.id} key={contract.id}>{contract.contractRef ?? "Sin referencia"} · {contract.status}</option>)}</select></label>
               <div className="bottomGrid">
@@ -467,7 +467,7 @@ export default async function AccountPage({
               <label><span>Unidad</span><input name="targetUnit" required placeholder="horas, %, días" /></label>
               <button type="submit">Agregar SLA</button>
             </form>
-          ) : <p className="muted">{schemaReady ? "Registra primero un contrato." : "Disponible después de aplicar el esquema B2B."}</p>}
+          ) : <p className="muted">{!schemaReady ? "Disponible después de aplicar el esquema B2B." : !canWrite ? "Modo sólo lectura para tu rol." : "Registra primero un contrato."}</p>}
           {context.slas.length ? <div className="ficha360AccountList">{context.slas.map((sla) => <div key={sla.id}><div><strong>{sla.label}</strong><p>{sla.targetValue} {sla.targetUnit}</p></div></div>)}</div> : null}
         </article>
       </section>
