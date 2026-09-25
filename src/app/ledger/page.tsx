@@ -55,7 +55,7 @@ export default async function LedgerPage() {
               <thead>
                 <tr>
                   <th>ID</th><th>Fecha</th><th>Cliente</th><th>Período</th><th>Producto</th>
-                  <th>Origen</th><th>Cantidad</th><th>Estado</th><th>Evidencias</th>
+                  <th>Origen</th><th>Cantidad</th><th>Estado</th><th>Regla</th><th>Evidencias</th>
                 </tr>
               </thead>
               <tbody>
@@ -69,6 +69,10 @@ export default async function LedgerPage() {
                     <td>{entry.sourceEntityType} · {entry.sourceEntityId.slice(0, 8)}</td>
                     <td>{fmt(entry.quantity)} {entry.unit}</td>
                     <td><span className="status">{entry.state.replaceAll("_", " ")}</span></td>
+                    <td>
+                      <strong>{entry.ruleCode ?? "—"}</strong>
+                      <small>{entry.ruleVersion !== null ? "v" + entry.ruleVersion : ""}{entry.ruleCategoryId ? " · " + entry.ruleCategoryId : ""}</small>
+                    </td>
                     <td>{entry.evidenceCount}</td>
                   </tr>
                 ))}
@@ -86,7 +90,7 @@ export default async function LedgerPage() {
       <section className="panel ledgerRule">
         <p className="eyebrow">Regla de integridad</p>
         <h3>Operación física → estado REP → regla aplicada → evidencia → acreditación</h3>
-        <p className="muted">La trazabilidad no borra historia. Una corrección genera una nueva transición o suspensión, nunca reescribe silenciosamente el pasado.</p>
+        <p className="muted">La trazabilidad no borra historia. Cada transición debe conservar regla, versión, categoría, origen y evidencia; una corrección genera una nueva transición o suspensión.</p>
       </section>
     </AppShell>
   );

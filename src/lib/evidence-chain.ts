@@ -28,6 +28,10 @@ export type EvidenceChain = {
   stream: PriorityStream;
   declaredQuantity: number | null;
   declaredUnit: "kg" | "l" | null;
+  sourceCategoryId: string | null;
+  sourcePackVersion: string | null;
+  sourceClassificationStatus: "VERIFIED" | "REVIEW_REQUIRED" | null;
+  sourceClassificationBasis: string | null;
   netKg: number | null;
   lotCount: number;
   lotCodes: string[];
@@ -62,6 +66,10 @@ type EvidenceChainRow = {
   stream: PriorityStream;
   declaredQuantity: number | null;
   declaredUnit: "kg" | "l" | null;
+  sourceCategoryId: string | null;
+  sourcePackVersion: string | null;
+  sourceClassificationStatus: "VERIFIED" | "REVIEW_REQUIRED" | null;
+  sourceClassificationBasis: string | null;
   netKg: number | null;
   lotCount: number;
   lotCodes: string[] | null;
@@ -80,11 +88,13 @@ type EvidenceChainRow = {
 function resolveRegulatoryContext(row: EvidenceChainRow) {
   const pack = getRepRulePack(row.stream);
   const hintedCategory =
-    typeof row.ledgerRuleJson?.categoryId === "string"
-      ? row.ledgerRuleJson.categoryId
-      : typeof row.ledgerRuleJson?.category === "string"
-        ? row.ledgerRuleJson.category
-        : null;
+    row.sourceClassificationStatus === "VERIFIED" && row.sourceCategoryId
+      ? row.sourceCategoryId
+      : typeof row.ledgerRuleJson?.categoryId === "string"
+        ? row.ledgerRuleJson.categoryId
+        : typeof row.ledgerRuleJson?.category === "string"
+          ? row.ledgerRuleJson.category
+          : null;
   const autoCategory = pack.categories.length === 1 ? pack.categories[0]?.id ?? null : null;
   const categoryId = hintedCategory ?? autoCategory;
   const category = categoryId
@@ -131,6 +141,12 @@ function resolveRegulatoryContext(row: EvidenceChainRow) {
   });
 
   const regulatoryBlockers: string[] = [];
+  if (row.sourceClassificationStatus === "REVIEW_REQUIRED") {
+    regulatoryBlockers.push("Clasificación de origen requiere revisión");
+  }
+  if (row.sourcePackVersion && row.sourcePackVersion !== pack.version) {
+    regulatoryBlockers.push(`Clasificación persistida con pack ${row.sourcePackVersion}; pack actual ${pack.version}`);
+  }
   if (pack.enginePolicy !== "APPLY") {
     regulatoryBlockers.push(`Pack ${pack.version} en MONITOR_ONLY`);
   }
@@ -217,6 +233,10 @@ export async function listEvidenceChains(limit = 100): Promise<EvidenceChain[]> 
         c.stream,
         c.declared_quantity::float8 as "declaredQuantity",
         c.declared_unit as "declaredUnit",
+        c.regulatory_category_id as "sourceCategoryId",
+        c.regulatory_pack_version as "sourcePackVersion",
+        c.classification_status as "sourceClassificationStatus",
+        c.classification_basis as "sourceClassificationBasis",
         (select sum(w.net_kg)::float8 from weighings w where w.collection_id = c.id) as "netKg",
         (select count(distinct li.lot_id)::int from lot_inputs li where li.collection_id = c.id) as "lotCount",
         coalesce((

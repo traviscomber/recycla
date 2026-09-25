@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import * as XLSX from "xlsx";
 import { db, hasDatabase } from "@/lib/db";
+import { classifyRepInput } from "@/lib/rep-classification";
 
 type IntakeType = "MARKET_INTRODUCTIONS" | "WASTE_OPERATIONS";
 
@@ -268,12 +269,23 @@ function marketRecord(row: Row, rowNumber: number, subjectRef: string) {
     errors.push({ row: rowNumber, field: "cantidad", message: "Debe existir unidades o cantidad." });
   }
 
+  const classification = classifyRepInput({
+    priorityProduct,
+    category,
+    subcategory
+  });
+
   const normalized = {
     subject_ref: subjectRef,
     occurred_at: occurredAt,
     priority_product: priorityProduct,
     category,
     subcategory,
+    regulatory_stream: classification.stream,
+    regulatory_category_id: classification.categoryId,
+    regulatory_pack_version: classification.packVersion,
+    classification_status: classification.status,
+    classification_basis: classification.basis,
     units,
     quantity,
     unit,
@@ -338,12 +350,23 @@ function wasteRecord(row: Row, rowNumber: number, subjectRef: string) {
   if (quantity === null || quantity < 0) errors.push({ row: rowNumber, field: "cantidad", message: "Cantidad válida requerida." });
   if (!unit) errors.push({ row: rowNumber, field: "unidad", message: "Unidad requerida." });
 
+  const classification = classifyRepInput({
+    priorityProduct,
+    category,
+    subcategory
+  });
+
   const normalized = {
     subject_ref: subjectRef,
     occurred_at: occurredAt,
     priority_product: priorityProduct,
     category,
     subcategory,
+    regulatory_stream: classification.stream,
+    regulatory_category_id: classification.categoryId,
+    regulatory_pack_version: classification.packVersion,
+    classification_status: classification.status,
+    classification_basis: classification.basis,
     operation_type: operationType,
     counterparty_ref: counterpartyRef,
     counterparty_name: counterpartyName,
@@ -510,7 +533,14 @@ export async function importReportingFile(args: {
       if (args.type === "MARKET_INTRODUCTIONS") {
         for (let index = 0; index < accepted.length; index += 500) {
           const chunk = accepted.slice(index, index + 500);
-          await sql`
+          const inserted = await sql<Array<{
+            id: string;
+            regulatory_stream: string | null;
+            regulatory_category_id: string | null;
+            regulatory_pack_version: string | null;
+            classification_status: string | null;
+            classification_basis: string | null;
+          }>>`
             insert into market_introductions ${sql(
               chunk,
               "subject_ref",
@@ -518,6 +548,11 @@ export async function importReportingFile(args: {
               "priority_product",
               "category",
               "subcategory",
+              "regulatory_stream",
+              "regulatory_category_id",
+              "regulatory_pack_version",
+              "classification_status",
+              "classification_basis",
               "units",
               "quantity",
               "unit",
@@ -532,12 +567,55 @@ export async function importReportingFile(args: {
             on conflict (subject_ref, source_row_hash)
             where source_row_hash is not null
             do nothing
+            returning
+              id::text as id,
+              regulatory_stream::text,
+              regulatory_category_id,
+              regulatory_pack_version,
+              classification_status,
+              classification_basis
           `;
+
+          const classificationEvents = inserted
+            .filter((row) => row.regulatory_stream && row.regulatory_pack_version && row.classification_status)
+            .map((row) => ({
+              entity_type: "MARKET_INTRODUCTION",
+              entity_id: row.id,
+              stream: row.regulatory_stream,
+              pack_version: row.regulatory_pack_version,
+              category_id: row.regulatory_category_id,
+              status: row.classification_status,
+              source_method: "INGESTION",
+              note: row.classification_basis
+            }));
+
+          if (classificationEvents.length) {
+            await sql`
+              insert into rep_classification_events ${sql(
+                classificationEvents,
+                "entity_type",
+                "entity_id",
+                "stream",
+                "pack_version",
+                "category_id",
+                "status",
+                "source_method",
+                "note"
+              )}
+            `;
+          }
         }
       } else {
         for (let index = 0; index < accepted.length; index += 500) {
           const chunk = accepted.slice(index, index + 500);
-          await sql`
+          const inserted = await sql<Array<{
+            id: string;
+            regulatory_stream: string | null;
+            regulatory_category_id: string | null;
+            regulatory_pack_version: string | null;
+            classification_status: string | null;
+            classification_basis: string | null;
+          }>>`
             insert into waste_management_operations ${sql(
               chunk,
               "subject_ref",
@@ -545,6 +623,11 @@ export async function importReportingFile(args: {
               "priority_product",
               "category",
               "subcategory",
+              "regulatory_stream",
+              "regulatory_category_id",
+              "regulatory_pack_version",
+              "classification_status",
+              "classification_basis",
               "operation_type",
               "counterparty_ref",
               "counterparty_name",
@@ -560,7 +643,43 @@ export async function importReportingFile(args: {
             on conflict (subject_ref, source_row_hash)
             where source_row_hash is not null
             do nothing
+            returning
+              id::text as id,
+              regulatory_stream::text,
+              regulatory_category_id,
+              regulatory_pack_version,
+              classification_status,
+              classification_basis
           `;
+
+          const classificationEvents = inserted
+            .filter((row) => row.regulatory_stream && row.regulatory_pack_version && row.classification_status)
+            .map((row) => ({
+              entity_type: "WASTE_OPERATION",
+              entity_id: row.id,
+              stream: row.regulatory_stream,
+              pack_version: row.regulatory_pack_version,
+              category_id: row.regulatory_category_id,
+              status: row.classification_status,
+              source_method: "INGESTION",
+              note: row.classification_basis
+            }));
+
+          if (classificationEvents.length) {
+            await sql`
+              insert into rep_classification_events ${sql(
+                classificationEvents,
+                "entity_type",
+                "entity_id",
+                "stream",
+                "pack_version",
+                "category_id",
+                "status",
+                "source_method",
+                "note"
+              )}
+            `;
+          }
         }
       }
     }
