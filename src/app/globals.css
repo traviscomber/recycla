@@ -2800,127 +2800,48 @@ h1{font-weight:500;letter-spacing:-.035em}
 }
 
 
-.ficha360ContractList {
-  display: grid;
-  border-top: 1px solid var(--line);
-}
-
-.ficha360Contract {
-  border-bottom: 1px solid var(--line);
-}
-
-.ficha360Contract > summary {
-  list-style: none;
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: center;
-  padding: 14px 0;
-  cursor: pointer;
-}
-
-.ficha360Contract > summary::-webkit-details-marker {
-  display: none;
-}
-
-.ficha360Contract > summary div {
-  display: grid;
-  gap: 3px;
-}
-
-.ficha360Contract > summary span,
-.ficha360ContractBody .label {
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
-.ficha360Contract > summary b {
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.ficha360ContractBody {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  margin: 0 0 14px;
-}
-
-.ficha360ContractBody > div {
-  background: var(--panel);
-  padding: 14px;
-}
-
-.ficha360ContractBody .label {
-  display: block;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-
-.ficha360ContractBody p {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.45;
-}
-
-@media (max-width: 760px) {
-  .ficha360Contract > summary {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .ficha360ContractBody {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* Black Swan-style B2B calendar density */
-.b2bCalendarShell {
+/* Black Swan-style REP calendar density */
+.repCalendarShell {
   min-height: 520px;
 }
 
-.b2bCalendarShell .outcomeCalendarScroll {
+.repCalendarShell .outcomeCalendarScroll {
   max-height: calc(100dvh - 260px);
   scrollbar-gutter: stable both-edges;
 }
 
-.b2bCalendarShell .outcomeCalendarHeader {
+.repCalendarShell .outcomeCalendarHeader {
   top: 0;
   box-shadow: 0 1px 0 rgba(0,0,0,.55);
 }
 
-.b2bCalendarShell .outcomeCalendarRow {
+.repCalendarShell .outcomeCalendarRow {
   min-height: 44px;
 }
 
-.b2bCalendarShell .outcomeCalendarRow.companyStart {
+.repCalendarShell .outcomeCalendarRow.companyStart {
   border-top: 1px solid var(--line-strong);
 }
 
-.b2bCalendarShell .calendarResource,
-.b2bCalendarShell .calendarCell {
+.repCalendarShell .calendarResource,
+.repCalendarShell .calendarCell {
   min-height: 44px;
 }
 
-.b2bCalendarShell .calendarResource {
+.repCalendarShell .calendarResource {
   padding: 7px 10px;
 }
 
-.b2bCalendarShell .calendarResource strong {
+.repCalendarShell .calendarResource strong {
   font-size: 9px;
 }
 
-.b2bCalendarShell .calendarResource span {
+.repCalendarShell .calendarResource span {
   font-size: 7px;
   margin-top: 2px;
 }
 
-.b2bCalendarShell .calendarEvent {
+.repCalendarShell .calendarEvent {
   min-height: 34px;
   margin: 4px 2px;
   padding: 4px 6px;
@@ -2928,27 +2849,25 @@ h1{font-weight:500;letter-spacing:-.035em}
   box-shadow: none;
 }
 
-.b2bCalendarShell .calendarEventState {
+.repCalendarShell .calendarEventState {
   font-size: 5px;
 }
 
-.b2bCalendarShell .calendarEvent strong {
+.repCalendarShell .calendarEvent strong {
   font-size: 7px;
 }
 
-.b2bCalendarShell .calendarEvent small {
+.repCalendarShell .calendarEvent small {
   font-size: 6px;
 }
 
 .calendarEvent-document,
-.calendarEvent-contract,
 .calendarEvent-attention {
   background: #251b12;
   border-color: #72512f;
 }
 
-.calendarEvent-document small,
-.calendarEvent-contract small,
+.calendarEvent-document small small,
 .calendarEvent-attention small {
   color: #d2b083;
 }
@@ -3058,23 +2977,23 @@ h1{font-weight:500;letter-spacing:-.035em}
   .planningSummaryPanel > div {
     min-height:48px;
   }
-  .b2bCalendarShell .outcomeCalendarScroll {
+  .repCalendarShell .outcomeCalendarScroll {
     max-height:none;
   }
 }
 
 
-/* B2B account cockpit */
-.b2bCockpit {
+/* REP cockpit */
+.repCockpit {
   margin-top: 14px;
 }
 
-.b2bAlertList {
+.repAlertList {
   display: grid;
   border-top: 1px solid var(--line);
 }
 
-.b2bAlert {
+.repAlert {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
   gap: 12px;
@@ -3084,25 +3003,25 @@ h1{font-weight:500;letter-spacing:-.035em}
   border-bottom: 1px solid var(--line);
 }
 
-.b2bAlertIndex {
+.repAlertIndex {
   color: var(--text-faint);
   font-size: 8px;
   letter-spacing: .08em;
 }
 
-.b2bAlert strong {
+.repAlert strong {
   display: block;
   font-size: 10px;
 }
 
-.b2bAlert p {
+.repAlert p {
   margin: 3px 0 0;
   color: var(--text-soft);
   font-size: 8px;
   line-height: 1.45;
 }
 
-.b2bAlert > a {
+.repAlert > a {
   color: var(--text);
   border: 1px solid var(--line-strong);
   background: var(--surface-3);
@@ -3112,23 +3031,23 @@ h1{font-weight:500;letter-spacing:-.035em}
   white-space: nowrap;
 }
 
-.b2bAlert-critical {
+.repAlert-critical {
   box-shadow: inset 2px 0 0 #9c5a52;
 }
 
-.b2bAlert-warning {
+.repAlert-warning {
   box-shadow: inset 2px 0 0 #8c6b3f;
 }
 
-.b2bAlert-review {
+.repAlert-review {
   box-shadow: inset 2px 0 0 #526f63;
 }
 
 @media(max-width:700px){
-  .b2bAlert {
+  .repAlert {
     grid-template-columns: 28px 1fr;
   }
-  .b2bAlert > a {
+  .repAlert > a {
     grid-column: 2;
     justify-self: start;
   }
