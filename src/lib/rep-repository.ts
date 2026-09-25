@@ -2,6 +2,7 @@ import "server-only";
 import { db, hasDatabase } from "@/lib/db";
 import { inspectSchemaContract } from "@/lib/schema-contract";
 import type { PriorityStream } from "@/lib/rep";
+import { repRulePacks } from "@/lib/rep-rule-packs";
 
 export type PersistedObligation = {
   stream: PriorityStream;
@@ -13,6 +14,8 @@ export type PersistedObligation = {
   eligible: number;
   evidenceComplete: number;
   accreditable: number;
+  regulatoryMode: "APPLY" | "MONITOR_ONLY";
+  regulatoryVersion: string;
 };
 
 export type PersistedClient = {
@@ -74,7 +77,9 @@ function groupRows(rows: ClientRow[]): PersistedClient[] {
       valued: Number(row.valued),
       eligible: Number(row.eligible),
       evidenceComplete: Number(row.evidence_complete),
-      accreditable: Number(row.accreditable)
+      accreditable: Number(row.accreditable),
+      regulatoryMode: repRulePacks[row.stream].enginePolicy,
+      regulatoryVersion: repRulePacks[row.stream].version
     });
 
     map.set(key, current);
