@@ -31,10 +31,13 @@ function autopilotActionLabel(href: string) {
 }
 
 function clientState(client: Awaited<ReturnType<typeof listRepClients>>[number]) {
-  const gaps = client.obligations.filter(
+  const applicable = client.obligations.filter((item) => item.regulatoryMode === "APPLY");
+  if (!applicable.length) return { label: "Monitoreo", tone: "review", count: 0 };
+
+  const gaps = applicable.filter(
     (item) => item.accreditable - item.obligation < 0
   );
-  const evidenceGaps = client.obligations.filter(
+  const evidenceGaps = applicable.filter(
     (item) => item.eligible - item.evidenceComplete > 0
   );
 
@@ -102,7 +105,7 @@ export default async function Home() {
           <p className="eyebrow">Inicio</p>
           <h1>Control REP para tu empresa</h1>
           <p className="muted">
-            Consolida obligaciones, operación, evidencia y cierre regulatorio de cada empresa cliente en un solo sistema B2B.
+            Consolida obligaciones, operación, evidencia y cierre regulatorio de cada empresa sujeta a REP.
           </p>
         </div>
         <div className="period">
@@ -116,13 +119,13 @@ export default async function Home() {
           <span>01</span>
           <div>
             <strong>Empresa y obligación</strong>
-            <p>Define la empresa obligada, su período, productos prioritarios, metas y responsables corporativos.</p>
+            <p>Define el actor REP, período, productos prioritarios, reglas aplicables y metas verificadas.</p>
           </div>
         </article>
         <article>
           <span>02</span>
           <div>
-            <strong>Operación contratada y evidencia</strong>
+            <strong>Operación y evidencia</strong>
             <p>Conecta retiros, pesajes, lotes, gestores, valorización y documentos con trazabilidad por empresa.</p>
           </div>
         </article>
@@ -296,8 +299,8 @@ export default async function Home() {
           <article className="panel">
             <div className="panelHead">
               <div>
-                <p className="eyebrow">Cartera B2B</p>
-                <h3>Estado REP por empresa cliente</h3>
+                <p className="eyebrow">Empresas REP</p>
+                <h3>Estado REP por empresa</h3>
               </div>
               <Link className="buttonLink secondary" href="/clientes">Ver todos →</Link>
             </div>
@@ -348,7 +351,7 @@ export default async function Home() {
       {hasOperationalClients ? (
       <section className="panel workbenchPaths">
         <div>
-          <p className="eyebrow">Control corporativo</p>
+          <p className="eyebrow">Control REP</p>
           <h3>Opera por excepción y entra al detalle sólo cuando una empresa lo requiera.</h3>
         </div>
         <div className="workbenchPathLinks">
