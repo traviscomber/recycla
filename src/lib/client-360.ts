@@ -324,7 +324,7 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
               limit 20
             `
           : Promise.resolve([] as Client360Contact[]),
-        hasContracts
+        hasContracts && hasContractServices && hasSlas
           ? sql<Client360Contract[]>`
               select
                 sc.id::text as id,
@@ -335,14 +335,10 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
                 sc.renewal_at::text as "renewalAt",
                 sc.currency,
                 sc.billing_model as "billingModel",
-                case when ${hasContractServices} then (
-                  select count(*)::int from b2b_contract_services cs
-                  where cs.contract_id = sc.id and cs.active = true
-                ) else 0 end as "serviceCount",
-                case when ${hasSlas} then (
-                  select count(*)::int from b2b_service_slas sla
-                  where sla.contract_id = sc.id and sla.active = true
-                ) else 0 end as "slaCount",
+                (select count(*)::int from b2b_contract_services cs
+                  where cs.contract_id = sc.id and cs.active = true) as "serviceCount",
+                (select count(*)::int from b2b_service_slas sla
+                  where sla.contract_id = sc.id and sla.active = true) as "slaCount",
                 sc.updated_at::text as "updatedAt"
               from b2b_service_contracts sc
               where sc.client_organization_id = ${organization.id}::uuid
@@ -352,7 +348,29 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
                 sc.updated_at desc
               limit 10
             `
-          : Promise.resolve([] as Client360Contract[]),
+          : hasContracts
+            ? sql<Client360Contract[]>`
+                select
+                  sc.id::text as id,
+                  sc.contract_ref as "contractRef",
+                  sc.status,
+                  sc.starts_at::text as "startsAt",
+                  sc.ends_at::text as "endsAt",
+                  sc.renewal_at::text as "renewalAt",
+                  sc.currency,
+                  sc.billing_model as "billingModel",
+                  0::int as "serviceCount",
+                  0::int as "slaCount",
+                  sc.updated_at::text as "updatedAt"
+                from b2b_service_contracts sc
+                where sc.client_organization_id = ${organization.id}::uuid
+                order by
+                  case sc.status when 'ACTIVE' then 0 when 'DRAFT' then 1 else 2 end,
+                  coalesce(sc.ends_at, date '9999-12-31') asc,
+                  sc.updated_at desc
+                limit 10
+              `
+            : Promise.resolve([] as Client360Contract[]),
         hasContracts && hasContractServices
           ? sql<Client360ContractService[]>`
               select
