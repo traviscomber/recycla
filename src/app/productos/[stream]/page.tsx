@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { getStreamAdapter, streamAdapters } from "@/lib/streams";
+import { getRepRulePack } from "@/lib/rep-rule-packs";
 
 export function generateStaticParams() {
   return streamAdapters.map((stream) => ({ stream: stream.slug }));
@@ -16,6 +17,7 @@ export default async function StreamPage({
   const adapter = getStreamAdapter(stream);
 
   if (!adapter) notFound();
+  const rulePack = getRepRulePack(adapter.id);
 
   return (
     <AppShell active="">
@@ -43,6 +45,19 @@ export default async function StreamPage({
           </Link>
         ))}
       </nav>
+
+      <section className="regulatoryGate panel">
+        <div>
+          <p className="eyebrow">Gate regulatorio</p>
+          <h3>{rulePack.sourceTitle}</h3>
+          <p className="muted">{rulePack.summary}</p>
+        </div>
+        <div className="regulatoryGateState">
+          <span>{rulePack.status.replaceAll("_", " ")}</span>
+          <strong>{rulePack.enginePolicy === "APPLY" ? "APLICA AL MOTOR" : "SOLO MONITOREO"}</strong>
+          <small>{rulePack.effectiveFrom ? "Vigente desde " + new Date(rulePack.effectiveFrom + "T12:00:00Z").toLocaleDateString("es-CL", { timeZone: "UTC" }) : "Sin fecha automática activada"}</small>
+        </div>
+      </section>
 
       <section className="adapterHero">
         <article className="card dark">
