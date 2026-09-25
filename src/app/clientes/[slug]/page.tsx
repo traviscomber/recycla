@@ -104,6 +104,61 @@ export default async function ClientPage({
   const gaps = client.obligations.filter((item) => gap(item) < 0);
   const nextPlan = ficha?.upcomingPlans[0] ?? null;
   const activeRoles = ficha?.roles.filter((role) => !role.validTo || new Date(role.validTo) >= new Date()) ?? [];
+  const now = new Date();
+  const contractAlerts = (ficha?.contracts ?? []).filter((contract) => {
+    const date = contract.renewalAt ?? contract.endsAt;
+    if (!date || contract.status !== "ACTIVE") return false;
+    const days = Math.ceil((new Date(date).getTime() - now.getTime()) / 86400000);
+    return days >= 0 && days <= 60;
+  });
+  const accountAlerts = [
+    ...gaps.map((item) => ({
+      id: `gap-${item.stream}`,
+      tone: "critical",
+      title: `Brecha REP · ${item.label}`,
+      detail: `Faltan ${fmt(Math.abs(gap(item)))} ${item.unit} acreditables para cubrir la obligación.`,
+      href: "/reporting",
+      action: "Resolver brecha"
+    })),
+    ...(ficha?.expiringDocumentCount
+      ? [{
+          id: "expiring-documents",
+          tone: "warning",
+          title: "Documentos próximos a vencer",
+          detail: `${ficha.expiringDocumentCount} documento(s) vencen dentro de los próximos 60 días.`,
+          href: "/evidence",
+          action: "Revisar evidencia"
+        }]
+      : []),
+    ...(ficha?.reporting.criticalFindings
+      ? [{
+          id: "critical-findings",
+          tone: "critical",
+          title: "Hallazgos críticos abiertos",
+          detail: `${ficha.reporting.criticalFindings} hallazgo(s) crítico(s) requieren resolución antes del cierre.`,
+          href: "/audit",
+          action: "Abrir auditoría"
+        }]
+      : []),
+    ...(!nextPlan
+      ? [{
+          id: "missing-plan",
+          tone: "review",
+          title: "Sin próxima operación planificada",
+          detail: "No existe un retiro futuro persistido para esta empresa.",
+          href: `/planning/new?client=${client.slug}`,
+          action: "Planificar retiro"
+        }]
+      : []),
+    ...contractAlerts.map((contract) => ({
+      id: `contract-${contract.id}`,
+      tone: "warning",
+      title: contract.renewalAt ? "Renovación contractual próxima" : "Contrato próximo a vencer",
+      detail: `${contract.contractRef ?? "Contrato sin referencia"} · ${new Date(contract.renewalAt ?? contract.endsAt ?? "").toLocaleDateString("es-CL")}.`,
+      href: `/clientes/${client.slug}/cuenta`,
+      action: "Revisar cuenta"
+    }))
+  ];
 
   return (
     <AppShell active="/clientes">
@@ -148,6 +203,37 @@ export default async function ClientPage({
           <strong>{nextPlan ? new Date(nextPlan.plannedStart).toLocaleDateString("es-CL") : "Sin plan"}</strong>
           <p>{nextPlan ? `${nextPlan.site ?? "Sin sitio"} · ${planStatusLabel(nextPlan.status)}` : "No hay un retiro futuro persistido para esta empresa."}</p>
         </article>
+      </section>
+
+      <section className="b2bCockpit panel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Cockpit de cuenta</p>
+            <h3>Qué requiere acción antes de seguir operando.</h3>
+          </div>
+          <Link className="buttonLink secondary" href={"/planning?company=" + client.slug + "&summary=1"}>
+            Abrir calendario de la empresa →
+          </Link>
+        </div>
+        {accountAlerts.length ? (
+          <div className="b2bAlertList">
+            {accountAlerts.slice(0, 8).map((alert, index) => (
+              <article className={"b2bAlert b2bAlert-" + alert.tone} key={alert.id}>
+                <span className="b2bAlertIndex">{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <strong>{alert.title}</strong>
+                  <p>{alert.detail}</p>
+                </div>
+                <Link href={alert.href}>{alert.action} →</Link>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin alertas accionables derivadas de los datos actuales.</strong>
+            <p>Esto no reemplaza la validación formal del cierre REP.</p>
+          </div>
+        )}
       </section>
 
       <section className="ficha360Identity panel">
