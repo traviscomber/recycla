@@ -23,6 +23,54 @@ export type Client360LedgerEvent = {
   evidenceCount: number;
 };
 
+export type Client360Site = {
+  id: string;
+  name: string;
+  address: string | null;
+  region: string | null;
+  commune: string | null;
+  createdAt: string;
+  collectionCount: number;
+  lastCollectionAt: string | null;
+  plannedCount: number;
+  nextPlanAt: string | null;
+};
+
+export type Client360Role = {
+  role: string;
+  validFrom: string | null;
+  validTo: string | null;
+};
+
+export type Client360Relationship = {
+  id: string;
+  direction: "FROM" | "TO";
+  relationshipType: string;
+  organizationName: string;
+  organizationRut: string;
+  validFrom: string | null;
+  validTo: string | null;
+};
+
+export type Client360Plan = {
+  id: string;
+  site: string | null;
+  stream: PriorityStream;
+  plannedStart: string;
+  plannedEnd: string | null;
+  status: string;
+  estimatedQuantity: number | null;
+  estimatedUnit: "kg" | "l" | null;
+  counterparty: string | null;
+  vehicleRef: string | null;
+  updatedAt: string;
+};
+
+export type Client360Period = {
+  year: number;
+  obligationCount: number;
+};
+
 export type Client360 = {
   organization: {
     id: string;
@@ -31,6 +79,20 @@ export type Client360 = {
     legalName: string;
     rut: string;
     createdAt: string;
+  };
+  sites: Client360Site[];
+  roles: Client360Role[];
+  relationships: Client360Relationship[];
+  upcomingPlans: Client360Plan[];
+  periods: Client360Period[];
+  lastCollectionAt: string | null;
+  collectionCount: number;
+  coverage: {
+    contacts: "not_modeled";
+    contracts: "not_modeled";
+    sites: "available" | "empty";
+    relationships: "available" | "empty";
+    planning: "available" | "empty" | "source_unavailable";
   };
   documents: Client360Document[];
   documentCount: number;
@@ -84,8 +146,92 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
     const organization = organizations[0];
     if (!organization) return null;
 
-    const [documents, documentStats, ledgerEvents, ledgerStats, reportingRows] =
+    const schemaRows = await sql<Array<{ plans: string | null }>>`
+      select to_regclass('public.collection_plans')::text as plans
+    `;
+    const hasPlans = Boolean(schemaRows[0]?.plans);
+
+    const [sites, roles, relationships, periods, collectionStats, upcomingPlans, documents, documentStats, ledgerEvents, ledgerStats, reportingRows] =
       await Promise.all([
+        sql<Client360Site[]>`
+          select
+            s.id::text as id,
+            s.name,
+            s.address,
+            s.region,
+            s.commune,
+            s.created_at::text as "createdAt",
+            count(distinct c.id)::int as "collectionCount",
+            max(c.collected_at)::text as "lastCollectionAt",
+            0::int as "plannedCount",
+            null::text as "nextPlanAt"
+          from sites s
+          left join collections c on c.site_id = s.id
+          where s.organization_id = ${organization.id}::uuid
+          group by s.id
+          order by s.name asc
+        `,
+        sql<Client360Role[]>`
+          select role::text as role,
+            valid_from::text as "validFrom",
+            valid_to::text as "validTo"
+          from organization_rep_roles
+          where organization_id = ${organization.id}::uuid
+          order by valid_from desc nulls last, role asc
+        `,
+        sql<Client360Relationship[]>`
+          select
+            rr.id::text as id,
+            case when rr.from_organization_id = ${organization.id}::uuid then 'FROM' else 'TO' end as direction,
+            rr.relationship_type::text as "relationshipType",
+            case when rr.from_organization_id = ${organization.id}::uuid then target.display_name else source.display_name end as "organizationName",
+            case when rr.from_organization_id = ${organization.id}::uuid then target.rut else source.rut end as "organizationRut",
+            rr.valid_from::text as "validFrom",
+            rr.valid_to::text as "validTo"
+          from rep_relationships rr
+          join organizations source on source.id = rr.from_organization_id
+          join organizations target on target.id = rr.to_organization_id
+          where rr.from_organization_id = ${organization.id}::uuid
+             or rr.to_organization_id = ${organization.id}::uuid
+          order by rr.created_at desc
+          limit 12
+        `,
+        sql<Client360Period[]>`
+          select rp.year, count(ro.id)::int as "obligationCount"
+          from rep_obligations ro
+          join reporting_periods rp on rp.id = ro.reporting_period_id
+          where ro.organization_id = ${organization.id}::uuid
+          group by rp.year
+          order by rp.year desc
+        `,
+        sql<Array<{ total: number; last_at: string | null }>>`
+          select count(*)::int as total, max(collected_at)::text as last_at
+          from collections
+          where organization_id = ${organization.id}::uuid
+        `,
+        hasPlans
+          ? sql<Client360Plan[]>`
+              select
+                cp.id::text as id,
+                s.name as site,
+                cp.stream,
+                cp.planned_start::text as "plannedStart",
+                cp.planned_end::text as "plannedEnd",
+                cp.status::text as status,
+                cp.estimated_quantity::float8 as "estimatedQuantity",
+                cp.estimated_unit as "estimatedUnit",
+                cp.counterparty_name as counterparty,
+                cp.vehicle_ref as "vehicleRef",
+                cp.updated_at::text as "updatedAt"
+              from collection_plans cp
+              left join sites s on s.id = cp.site_id
+              where cp.organization_id = ${organization.id}::uuid
+                and cp.status not in ('COMPLETED', 'CANCELLED')
+                and coalesce(cp.planned_end, cp.planned_start) >= now()
+              order by cp.planned_start asc
+              limit 8
+            `
+          : Promise.resolve([] as Client360Plan[]),
         sql<Client360Document[]>`
           select id::text as id,
             document_type as "documentType",
@@ -182,6 +328,27 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
         legalName: organization.legal_name,
         rut: organization.rut,
         createdAt: organization.created_at
+      },
+      sites: sites.map((site) => {
+        const sitePlans = upcomingPlans.filter((plan) => plan.site === site.name);
+        return {
+          ...site,
+          plannedCount: sitePlans.length,
+          nextPlanAt: sitePlans[0]?.plannedStart ?? null
+        };
+      }),
+      roles,
+      relationships,
+      upcomingPlans,
+      periods,
+      lastCollectionAt: collectionStats[0]?.last_at ?? null,
+      collectionCount: collectionStats[0]?.total ?? 0,
+      coverage: {
+        contacts: "not_modeled",
+        contracts: "not_modeled",
+        sites: sites.length ? "available" : "empty",
+        relationships: relationships.length ? "available" : "empty",
+        planning: !hasPlans ? "source_unavailable" : upcomingPlans.length ? "available" : "empty"
       },
       documents,
       documentCount: documentStats[0]?.total ?? 0,
