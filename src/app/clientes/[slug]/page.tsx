@@ -6,6 +6,7 @@ import { getClientCircularityOutcomes, getRepClient } from "@/lib/rep-repository
 import { getClient360 } from "@/lib/client-360";
 import { fmt } from "@/lib/rep";
 import { routeLabel } from "@/lib/circularity";
+import { getRecyclaSession } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 
@@ -85,10 +86,14 @@ export default async function ClientPage({
   const client = await getRepClient(slug, year);
   if (!client) notFound();
 
-  const [circularity, ficha] = await Promise.all([
+  const [circularity, ficha, authState] = await Promise.all([
     getClientCircularityOutcomes(slug, Number(client.period)),
-    getClient360(slug)
+    getClient360(slug),
+    getRecyclaSession()
   ]);
+  const canWriteAccount = authState.roles.some((role) =>
+    role === "operator" || role === "compliance" || role === "admin"
+  );
   const circularityTotal = circularity.reduce((sum, item) => sum + item.quantityKg, 0);
   const materialPriorityKg = circularity
     .filter((item) => item.route === "PREPARATION_FOR_REUSE" || item.route === "RECYCLING")
@@ -115,7 +120,8 @@ export default async function ClientPage({
           </p>
         </div>
         <div className="ficha360Actions">
-          <Link className="buttonLink" href={"/planning/new?client=" + client.slug}>Planificar retiro →</Link>
+          {canWriteAccount ? <Link className="buttonLink" href={"/clientes/" + client.slug + "/cuenta"}>Gestionar cuenta →</Link> : null}
+          <Link className={canWriteAccount ? "buttonLink secondary" : "buttonLink"} href={"/planning/new?client=" + client.slug}>Planificar retiro →</Link>
           <Link className="buttonLink secondary" href="/reporting">Abrir cierre REP →</Link>
           <Link className="buttonLink secondary" href="/evidence">Ver evidencia →</Link>
         </div>
