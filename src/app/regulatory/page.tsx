@@ -1,11 +1,14 @@
 import { AppShell } from "@/components/app-shell";
 import { repRegulatoryUniverse } from "@/lib/rep";
+import { repRegulatoryMilestones, repRulePacks } from "@/lib/rep-rule-packs";
 
 export default function RegulatoryRadarPage() {
   const operationalProducts = repRegulatoryUniverse.filter((item) => item.operational);
   const monitoredProducts = repRegulatoryUniverse.filter((item) => !item.operational);
   const operational = operationalProducts.length;
   const radarOnly = monitoredProducts.length;
+  const rulePacks = Object.values(repRulePacks);
+  const enforceablePacks = rulePacks.filter((item) => item.enginePolicy === "APPLY");
 
   return (
     <AppShell active="/regulatory">
@@ -52,6 +55,54 @@ export default function RegulatoryRadarPage() {
           <strong>{radarOnly}</strong>
           <p>Observados sin ampliar el alcance operativo</p>
         </article>
+      </section>
+
+      <section className="decisionStrip" aria-label="Aplicabilidad regulatoria">
+        <article>
+          <span>Rule packs</span>
+          <strong>{rulePacks.length}</strong>
+          <p>Versionados por producto prioritario</p>
+        </article>
+        <article>
+          <span>Aplicables al motor</span>
+          <strong>{enforceablePacks.length}</strong>
+          <p>Sólo normas vigentes y verificadas</p>
+        </article>
+        <article>
+          <span>Monitoreo regulatorio</span>
+          <strong>{rulePacks.length - enforceablePacks.length}</strong>
+          <p>No alteran cálculos automáticos</p>
+        </article>
+      </section>
+
+      <section className="panel">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Calendario regulatorio</p>
+            <h3>Hitos oficiales sin inventar fechas.</h3>
+          </div>
+          <b>{repRegulatoryMilestones.length}</b>
+        </div>
+        <div className="regulatoryMatrix">
+          {repRegulatoryMilestones.map((item, index) => (
+            <article className="regulatoryRow operational" key={item.id}>
+              <span className="regIndex">{String(index + 1).padStart(2, "0")}</span>
+              <div className="regProduct">
+                <strong>{item.title}</strong>
+                <span>{item.status === "SCHEDULED" ? "PROGRAMADO" : "FECHA PENDIENTE"}</span>
+              </div>
+              <div className="regStage">
+                <span>Ventana oficial</span>
+                <strong>{item.windowLabel}</strong>
+              </div>
+              <div className="regMilestone">
+                <span>Motor</span>
+                <strong>{item.status === "SCHEDULED" ? "CALENDARIZABLE" : "NO HARDcode"}</strong>
+              </div>
+              <p>{item.sourceTitle}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="panel">
