@@ -49,6 +49,28 @@ function planStatusLabel(status: string) {
   return labels[status] ?? status.replaceAll("_", " ");
 }
 
+function contractStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    DRAFT: "Borrador",
+    ACTIVE: "Activo",
+    SUSPENDED: "Suspendido",
+    EXPIRED: "Vencido",
+    ENDED: "Finalizado"
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function slaComparisonLabel(comparison: string) {
+  const labels: Record<string, string> = {
+    LT: "<",
+    LE: "≤",
+    EQ: "=",
+    GE: "≥",
+    GT: ">"
+  };
+  return labels[comparison] ?? comparison;
+}
+
 export default async function ClientPage({
   params,
   searchParams
@@ -206,7 +228,7 @@ export default async function ClientPage({
         <div className="panelHead">
           <div>
             <p className="eyebrow">Relación empresarial</p>
-            <h3>Roles, vínculos y cobertura de la cuenta.</h3>
+            <h3>Roles, responsables, contratos y cobertura de la cuenta.</h3>
           </div>
         </div>
         <div className="ficha360EnterpriseColumns">
@@ -223,13 +245,100 @@ export default async function ClientPage({
             )) : <p className="muted">Sin relaciones B2B enlazadas.</p>}
           </div>
           <div>
-            <span className="label">Cobertura pendiente</span>
-            <p><strong>Responsables / contactos</strong> · No modelados todavía</p>
-            <p><strong>Contratos / SLA</strong> · No modelados todavía</p>
+            <span className="label">Cobertura de cuenta</span>
+            <p><strong>Responsables / contactos</strong> · {ficha?.coverage.contacts === "available" ? "Disponible" : ficha?.coverage.contacts === "source_unavailable" ? "Esquema pendiente" : "Sin contactos registrados"}</p>
+            <p><strong>Contratos / SLA</strong> · {ficha?.coverage.contracts === "available" ? "Disponible" : ficha?.coverage.contracts === "source_unavailable" ? "Esquema pendiente" : "Sin contratos registrados"}</p>
             <p><strong>Instalaciones</strong> · {ficha?.coverage.sites === "available" ? "Disponible" : "Sin información enlazada"}</p>
             <p><strong>Planificación</strong> · {ficha?.coverage.planning === "available" ? "Disponible" : ficha?.coverage.planning === "source_unavailable" ? "Fuente no disponible" : "Sin servicios futuros"}</p>
           </div>
         </div>
+      </section>
+
+      <section className="ficha360BusinessGrid">
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Responsables de cuenta</p>
+              <h3>Quién coordina por cada lado.</h3>
+            </div>
+            <span className="ficha360Updated">{ficha?.contacts.length ?? 0} contacto(s)</span>
+          </div>
+          {ficha?.contacts.length ? (
+            <div className="ficha360AccountList">
+              {ficha.contacts.map((contact) => (
+                <div key={contact.id}>
+                  <div>
+                    <strong>{contact.fullName}</strong>
+                    <p>{contact.side === "RECYCLA" ? "Recycla" : "Cliente"}{contact.title ? ` · ${contact.title}` : ""}{contact.responsibility ? ` · ${contact.responsibility}` : ""}</p>
+                  </div>
+                  <div>
+                    <span>{contact.isPrimary ? "Responsable principal" : "Contacto"}</span>
+                    <b>{contact.email ?? contact.phone ?? "Sin canal informado"}</b>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState compactEmpty">
+              <strong>{ficha?.coverage.contacts === "source_unavailable" ? "Capa de responsables aún no aplicada." : "Sin responsables registrados."}</strong>
+              <p>{ficha?.coverage.contacts === "source_unavailable" ? "La rama ya incluye el modelo canónico; producción permanece intacta hasta aplicar la migración aprobada." : "La ficha mantiene visible esta ausencia para que la cuenta no dependa de conocimiento informal."}</p>
+            </div>
+          )}
+        </article>
+
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Contrato y SLA</p>
+              <h3>Qué servicio está comprometido.</h3>
+            </div>
+            <span className="ficha360Updated">{ficha?.contracts.length ?? 0} contrato(s)</span>
+          </div>
+          {ficha?.contracts.length ? (
+            <div className="ficha360ContractList">
+              {ficha.contracts.map((contract) => {
+                const services = ficha.contractServices.filter((service) => service.contractId === contract.id);
+                const slas = ficha.slas.filter((sla) => sla.contractId === contract.id);
+                return (
+                  <details className="ficha360Contract" key={contract.id}>
+                    <summary>
+                      <div>
+                        <strong>{contract.contractRef ?? "Contrato sin referencia"}</strong>
+                        <span>{contractStatusLabel(contract.status)}{contract.endsAt ? ` · vence ${new Date(contract.endsAt).toLocaleDateString("es-CL")}` : ""}</span>
+                      </div>
+                      <b>{contract.serviceCount} servicio(s) · {contract.slaCount} SLA</b>
+                    </summary>
+                    <div className="ficha360ContractBody">
+                      <div>
+                        <span className="label">Servicios</span>
+                        {services.length ? services.map((service) => (
+                          <p key={service.id}><strong>{service.serviceName}</strong>{service.site ? ` · ${service.site}` : ""}{service.frequency ? ` · ${service.frequency}` : ""}{service.includedQuantity !== null && service.unit ? ` · ${fmt(service.includedQuantity)} ${service.unit}` : ""}</p>
+                        )) : <p className="muted">Sin servicios detallados.</p>}
+                      </div>
+                      <div>
+                        <span className="label">SLA</span>
+                        {slas.length ? slas.map((sla) => (
+                          <p key={sla.id}><strong>{sla.label}</strong> · {slaComparisonLabel(sla.comparison)} {fmt(sla.targetValue)} {sla.targetUnit}</p>
+                        )) : <p className="muted">Sin SLA detallados.</p>}
+                      </div>
+                      <div>
+                        <span className="label">Vigencia</span>
+                        <p><strong>Inicio</strong> · {contract.startsAt ? new Date(contract.startsAt).toLocaleDateString("es-CL") : "No informado"}</p>
+                        <p><strong>Renovación</strong> · {contract.renewalAt ? new Date(contract.renewalAt).toLocaleDateString("es-CL") : "No informada"}</p>
+                        <p><strong>Facturación</strong> · {contract.billingModel ?? "No informada"}</p>
+                      </div>
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="emptyState compactEmpty">
+              <strong>{ficha?.coverage.contracts === "source_unavailable" ? "Capa contractual aún no aplicada." : "Sin contrato operativo registrado."}</strong>
+              <p>{ficha?.coverage.contracts === "source_unavailable" ? "El modelo de contratos, servicios y SLA ya está preparado en la rama sin alterar producción." : "No se asume un servicio ni un SLA sin evidencia contractual."}</p>
+            </div>
+          )}
+        </article>
       </section>
 
       <section className="panel ficha360Core">
