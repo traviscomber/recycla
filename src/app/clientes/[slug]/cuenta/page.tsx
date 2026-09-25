@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { db, hasDatabase } from "@/lib/db";
-import { requireWriteSession } from "@/lib/auth/server";
+import { getRecyclaSession, requireWriteSession } from "@/lib/auth/server";
 import { priorityStreams } from "@/lib/rep";
 
 export const dynamic = "force-dynamic";
@@ -341,8 +341,15 @@ export default async function AccountPage({
 }) {
   const { slug } = await params;
   const query = await searchParams;
-  const context = await getAccountContext(slug);
+  const [context, authState] = await Promise.all([
+    getAccountContext(slug),
+    getRecyclaSession()
+  ]);
   if (!context) notFound();
+
+  const canWrite = authState.roles.some((role) =>
+    role === "operator" || role === "compliance" || role === "admin"
+  );
 
   const schemaReady = Boolean(
     context.schema?.contacts &&
@@ -380,7 +387,7 @@ export default async function AccountPage({
         <article className="panel">
           <p className="eyebrow">01 · Responsables</p>
           <h3>Cliente y Recycla.</h3>
-          {schemaReady ? (
+          {schemaReady && canWrite ? (
             <form action={createContactAction.bind(null, slug)} className="intakeForm">
               <label><span>Lado</span><select name="side" defaultValue="CLIENT"><option value="CLIENT">Cliente</option><option value="RECYCLA">Recycla</option></select></label>
               <label><span>Nombre</span><input name="fullName" required /></label>
@@ -393,14 +400,14 @@ export default async function AccountPage({
               <label className="accountCheck"><input name="isPrimary" type="checkbox" /><span>Responsable principal de este lado</span></label>
               <button type="submit">Agregar responsable</button>
             </form>
-          ) : <p className="muted">Disponible después de aplicar el esquema B2B.</p>}
+          ) : <p className="muted">{!schemaReady ? "Disponible después de aplicar el esquema B2B." : "Modo sólo lectura para tu rol."}</p>}
           {context.contacts.length ? <div className="ficha360AccountList">{context.contacts.map((contact) => <div key={contact.id}><div><strong>{contact.fullName}</strong><p>{contact.side === "RECYCLA" ? "Recycla" : "Cliente"} · {contact.responsibility ?? "Sin responsabilidad definida"}</p></div><div><span>{contact.isPrimary ? "Principal" : "Contacto"}</span><b>{contact.email ?? "Sin email"}</b></div></div>)}</div> : null}
         </article>
 
         <article className="panel">
           <p className="eyebrow">02 · Contrato</p>
           <h3>Vigencia y modelo comercial.</h3>
-          {schemaReady ? (
+          {schemaReady && canWrite ? (
             <form action={createContractAction.bind(null, slug)} className="intakeForm">
               <label><span>Referencia</span><input name="contractRef" placeholder="Contrato / OC / acuerdo" /></label>
               <label><span>Estado</span><select name="status" defaultValue="ACTIVE"><option value="DRAFT">Borrador</option><option value="ACTIVE">Activo</option><option value="SUSPENDED">Suspendido</option><option value="EXPIRED">Vencido</option><option value="ENDED">Finalizado</option></select></label>
@@ -439,7 +446,7 @@ export default async function AccountPage({
               </div>
               <button type="submit">Agregar servicio</button>
             </form>
-          ) : <p className="muted">{schemaReady ? "Registra primero un contrato." : "Disponible después de aplicar el esquema B2B."}</p>}
+          ) : <p className="muted">{!schemaReady ? "Disponible después de aplicar el esquema B2B." : !canWrite ? "Modo sólo lectura para tu rol." : "Registra primero un contrato."}</p>}
           {context.services.length ? <div className="ficha360AccountList">{context.services.map((service) => <div key={service.id}><div><strong>{service.serviceName}</strong><p>{service.site ?? "Sin sitio específico"} · {service.stream ?? "Sin producto específico"}</p></div></div>)}</div> : null}
         </article>
 
