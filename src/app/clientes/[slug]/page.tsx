@@ -162,7 +162,7 @@ export default async function ClientPage({
         </article>
       </section>
 
-      <section className="b2bCockpit panel">
+      <section className="repCockpit panel">
         <div className="panelHead">
           <div>
             <p className="eyebrow">Control REP</p>
@@ -173,10 +173,10 @@ export default async function ClientPage({
           </Link>
         </div>
         {accountAlerts.length ? (
-          <div className="b2bAlertList">
+          <div className="repAlertList">
             {accountAlerts.slice(0, 8).map((alert, index) => (
-              <article className={"b2bAlert b2bAlert-" + alert.tone} key={alert.id}>
-                <span className="b2bAlertIndex">{String(index + 1).padStart(2, "0")}</span>
+              <article className={"repAlert repAlert-" + alert.tone} key={alert.id}>
+                <span className="repAlertIndex">{String(index + 1).padStart(2, "0")}</span>
                 <div>
                   <strong>{alert.title}</strong>
                   <p>{alert.detail}</p>
