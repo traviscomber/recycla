@@ -6,6 +6,7 @@ import { repRegulatoryMilestones, repRulePacks } from "@/lib/rep-rule-packs";
 import { getRecyclaSession, requireWriteSession } from "@/lib/auth/server";
 import {
   listPendingRepClassifications,
+  listClassificationAuditEvents,
   reviewRepClassification,
   type ClassificationEntityType
 } from "@/lib/rep-classification-review";
@@ -48,8 +49,9 @@ async function reviewClassificationAction(formData: FormData) {
 export default async function RegulatoryRadarPage() {
   const operationalProducts = repRegulatoryUniverse.filter((item) => item.operational);
   const monitoredProducts = repRegulatoryUniverse.filter((item) => !item.operational);
-  const [pendingClassifications, authState] = await Promise.all([
+  const [pendingClassifications, classificationAudit, authState] = await Promise.all([
     listPendingRepClassifications(60),
+    listClassificationAuditEvents(20),
     getRecyclaSession()
   ]);
   const canWrite = authState.roles.some((role) =>
@@ -186,6 +188,33 @@ export default async function RegulatoryRadarPage() {
           <div className="emptyState compactEmpty">
             <strong>Sin clasificaciones regulatorias pendientes.</strong>
             <p>Las filas reconocidas quedaron resueltas por taxonomía determinística o revisión humana.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="panel classificationAudit">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Auditoría de clasificación</p>
+            <h3>Qué se clasificó, con qué pack y por quién.</h3>
+          </div>
+          <b>{classificationAudit.length}</b>
+        </div>
+        {classificationAudit.length ? (
+          <div className="classificationAuditList">
+            {classificationAudit.map((event) => (
+              <div key={event.id}>
+                <span>{new Date(event.createdAt).toLocaleString("es-CL")}</span>
+                <strong>{event.stream} · {event.categoryId ?? "SIN CATEGORÍA"}</strong>
+                <p>{event.packVersion} · {event.sourceMethod.replaceAll("_", " ")} · {event.status}</p>
+                <small>{event.actorRef ?? "Sistema"}{event.note ? " · " + event.note : ""}</small>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin eventos de clasificación persistidos.</strong>
+            <p>El historial se activará con nuevas ingestas o revisiones manuales.</p>
           </div>
         )}
       </section>
