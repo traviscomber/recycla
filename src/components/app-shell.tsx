@@ -11,8 +11,8 @@ const streamHref = {
 
 const primaryNav = [
   ["/", "Inicio", "01"],
-  ["/planning", "Planificación", "02"],
-  ["/clientes", "Clientes", "03"],
+  ["/planning", "Calendario", "02"],
+  ["/clientes", "Empresas", "03"],
   ["/evidence", "Evidencia", "04"],
   ["/reporting", "Cierre REP", "05"]
 ] as const;
@@ -46,7 +46,7 @@ export function AppShell({
           </div>
         </div>
 
-        <div className="railLabel">Cumplimiento REP, paso a paso</div>
+        <div className="railLabel">Operación B2B · Cumplimiento REP</div>
 
 
         <nav className="sideNav" aria-label="Navegación principal">
