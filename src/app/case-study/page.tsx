@@ -83,7 +83,7 @@ export default async function CaseStudyPage() {
           <p className="eyebrow">Caso de estudio interno · Juan</p>
           <h1>{selected.name}</h1>
           <p className="muted">
-            Seleccionada automáticamente por completitud canónica. No contiene datos demo ni cifras simuladas.
+            Seleccionada automáticamente por completitud canónica. No contiene datos ficticios ni cifras simuladas.
           </p>
         </div>
         <div className="period">
