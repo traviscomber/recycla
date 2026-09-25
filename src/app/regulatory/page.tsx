@@ -11,6 +11,8 @@ import {
 } from "@/lib/rep-classification-review";
 import type { PriorityStream } from "@/lib/rep";
 
+export const dynamic = "force-dynamic";
+
 async function reviewClassificationAction(formData: FormData) {
   "use server";
 
