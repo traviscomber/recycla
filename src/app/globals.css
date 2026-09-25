@@ -2877,3 +2877,188 @@ h1{font-weight:500;letter-spacing:-.035em}
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Black Swan-style B2B calendar density */
+.b2bCalendarShell {
+  min-height: 520px;
+}
+
+.b2bCalendarShell .outcomeCalendarScroll {
+  max-height: calc(100dvh - 260px);
+  scrollbar-gutter: stable both-edges;
+}
+
+.b2bCalendarShell .outcomeCalendarHeader {
+  top: 0;
+  box-shadow: 0 1px 0 rgba(0,0,0,.55);
+}
+
+.b2bCalendarShell .outcomeCalendarRow {
+  min-height: 44px;
+}
+
+.b2bCalendarShell .outcomeCalendarRow.companyStart {
+  border-top: 1px solid var(--line-strong);
+}
+
+.b2bCalendarShell .calendarResource,
+.b2bCalendarShell .calendarCell {
+  min-height: 44px;
+}
+
+.b2bCalendarShell .calendarResource {
+  padding: 7px 10px;
+}
+
+.b2bCalendarShell .calendarResource strong {
+  font-size: 9px;
+}
+
+.b2bCalendarShell .calendarResource span {
+  font-size: 7px;
+  margin-top: 2px;
+}
+
+.b2bCalendarShell .calendarEvent {
+  min-height: 34px;
+  margin: 4px 2px;
+  padding: 4px 6px;
+  border-radius: 1px;
+  box-shadow: none;
+}
+
+.b2bCalendarShell .calendarEventState {
+  font-size: 5px;
+}
+
+.b2bCalendarShell .calendarEvent strong {
+  font-size: 7px;
+}
+
+.b2bCalendarShell .calendarEvent small {
+  font-size: 6px;
+}
+
+.calendarEvent-document,
+.calendarEvent-contract,
+.calendarEvent-attention {
+  background: #251b12;
+  border-color: #72512f;
+}
+
+.calendarEvent-document small,
+.calendarEvent-contract small,
+.calendarEvent-attention small {
+  color: #d2b083;
+}
+
+.legendRisk {
+  background:#251b12;
+  border-color:#72512f!important;
+}
+
+.planningSummaryPanel {
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  border:1px solid var(--line);
+  background:var(--surface-3);
+  margin-bottom:10px;
+}
+
+.planningSummaryPanel > div {
+  min-height:54px;
+  padding:10px 12px;
+  border-right:1px solid var(--line);
+  display:grid;
+  align-content:center;
+  gap:4px;
+}
+
+.planningSummaryPanel > div:last-child {
+  border-right:0;
+}
+
+.planningSummaryPanel span {
+  color:var(--text-faint);
+  font-size:7px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.planningSummaryPanel strong {
+  font-size:14px;
+}
+
+.planningSummaryPanel .attention {
+  background:#1f1710;
+}
+
+.planningSummaryPanel .attention strong {
+  color:#d2b083;
+}
+
+.planningCompanyFilter {
+  display:flex;
+  align-items:center;
+  min-width:210px;
+}
+
+.planningCompanyFilter select {
+  min-height:34px;
+  min-width:150px;
+  border:1px solid var(--line-strong);
+  border-right:0;
+  background:var(--surface-3);
+  color:var(--text);
+  padding:0 9px;
+  font:inherit;
+  font-size:9px;
+}
+
+.planningCompanyFilter button {
+  min-height:34px;
+  border:1px solid var(--line-strong);
+  background:var(--surface-2);
+  color:var(--text);
+  padding:0 10px;
+  font-size:9px;
+}
+
+.planningSearchWide {
+  min-width:240px;
+}
+
+@media(max-width:1200px){
+  .planningSummaryPanel {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .planningSummaryPanel > div:nth-child(3) {
+    border-right:0;
+  }
+}
+
+@media(max-width:900px){
+  .planningCompanyFilter {
+    flex:1 1 100%;
+    order:4;
+  }
+  .planningCompanyFilter select {
+    flex:1;
+  }
+  .planningSummaryPanel {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:640px){
+  .planningSummaryPanel {
+    grid-template-columns:1fr 1fr;
+  }
+  .planningSummaryPanel > div {
+    min-height:48px;
+  }
+  .b2bCalendarShell .outcomeCalendarScroll {
+    max-height:none;
+  }
+}
