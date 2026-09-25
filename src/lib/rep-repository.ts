@@ -247,6 +247,9 @@ export type PersistedLedgerEntry = {
   unit: "kg" | "l";
   sourceEntityType: string;
   sourceEntityId: string;
+  ruleCode: string | null;
+  ruleVersion: number | null;
+  ruleCategoryId: string | null;
   evidenceCount: number;
 };
 
@@ -275,10 +278,14 @@ export async function listRepLedgerEntries(limit = 50): Promise<PersistedLedgerE
           le.unit,
           le.source_entity_type as "sourceEntityType",
           le.source_entity_id::text as "sourceEntityId",
+          rr.code as "ruleCode",
+          rr.rule_version as "ruleVersion",
+          coalesce(rr.rule_json->>'categoryId', rr.rule_json->>'category') as "ruleCategoryId",
           count(distinct el.document_id)::int as "evidenceCount"
         from rep_ledger_entries le
         join organizations o on o.id = le.organization_id
         join reporting_periods rp on rp.id = le.reporting_period_id
+        left join rep_rules rr on rr.id = le.rule_id
         left join evidence_links el
           on el.entity_type = le.source_entity_type
           and el.entity_id = le.source_entity_id
@@ -286,7 +293,7 @@ export async function listRepLedgerEntries(limit = 50): Promise<PersistedLedgerE
           select 1 from rep_ledger_entries newer
           where newer.supersedes_entry_id = le.id
         )
-        group by le.id, o.display_name, rp.year
+        group by le.id, o.display_name, rp.year, rr.code, rr.rule_version, rr.rule_json
         order by le.created_at desc
         limit ${safeLimit}
       `;
@@ -304,10 +311,14 @@ export async function listRepLedgerEntries(limit = 50): Promise<PersistedLedgerE
         le.unit,
         le.source_entity_type as "sourceEntityType",
         le.source_entity_id::text as "sourceEntityId",
+        rr.code as "ruleCode",
+        rr.rule_version as "ruleVersion",
+        coalesce(rr.rule_json->>'categoryId', rr.rule_json->>'category') as "ruleCategoryId",
         0::int as "evidenceCount"
       from rep_ledger_entries le
       join organizations o on o.id = le.organization_id
       join reporting_periods rp on rp.id = le.reporting_period_id
+      left join rep_rules rr on rr.id = le.rule_id
       where not exists (
         select 1 from rep_ledger_entries newer
         where newer.supersedes_entry_id = le.id
