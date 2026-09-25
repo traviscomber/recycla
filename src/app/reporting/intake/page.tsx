@@ -104,7 +104,7 @@ export default async function ReportingIntakePage({
           <p className="eyebrow">01 · Introducción al mercado</p>
           <h3>Cargar productos introducidos y transacciones.</h3>
           <p className="muted">
-            XLSX o CSV. Requiere fecha, producto prioritario y al menos unidades o cantidad.
+            XLSX o CSV. Requiere fecha, producto prioritario y al menos unidades o cantidad. Categoría y subcategoría se validan contra el rule pack correspondiente.
           </p>
 
           <form action={importFileAction} className="intakeForm">
@@ -139,7 +139,7 @@ export default async function ReportingIntakePage({
           <p className="eyebrow">02 · Operaciones de gestión</p>
           <h3>Cargar recolección, tratamiento y valorización.</h3>
           <p className="muted">
-            XLSX o CSV. Requiere fecha, producto prioritario, tipo de operación, cantidad y unidad.
+            XLSX o CSV. Requiere fecha, producto prioritario, tipo de operación, cantidad y unidad. La clasificación regulatoria se persiste desde el ingreso.
           </p>
 
           <form action={importFileAction} className="intakeForm">
@@ -163,6 +163,7 @@ export default async function ReportingIntakePage({
           <div className="intakeFields">
             <span>fecha</span>
             <span>producto prioritario</span>
+            <span>categoría / subcategoría</span>
             <span>tipo operación</span>
             <span>gestor / contraparte</span>
             <span>cantidad + unidad</span>
@@ -219,9 +220,9 @@ export default async function ReportingIntakePage({
 
       <section className="panel ledgerRule">
         <p className="eyebrow">Integrity rule</p>
-        <h3>Importar no significa reportar.</h3>
+        <h3>Importar no significa acreditar.</h3>
         <p className="muted">
-          Cada archivo se valida primero. Sólo filas válidas llegan al modelo normalizado, y el cierre mensual continúa en DRAFT hasta pasar reconciliación y auditoría.
+          Cada fila se valida, clasifica contra un rule pack versionado y conserva lineage. Una categoría ambigua queda en REVIEW_REQUIRED y no puede transformarse silenciosamente en cantidad acreditable.
         </p>
       </section>
     </AppShell>
