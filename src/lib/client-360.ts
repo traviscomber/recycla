@@ -71,6 +71,58 @@ export type Client360Period = {
   obligationCount: number;
 };
 
+export type Client360Contact = {
+  id: string;
+  side: "CLIENT" | "RECYCLA";
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  title: string | null;
+  responsibility: string | null;
+  isPrimary: boolean;
+  validFrom: string | null;
+  validTo: string | null;
+  updatedAt: string;
+};
+
+export type Client360Contract = {
+  id: string;
+  contractRef: string | null;
+  status: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  renewalAt: string | null;
+  currency: string | null;
+  billingModel: string | null;
+  serviceCount: number;
+  slaCount: number;
+  updatedAt: string;
+};
+
+export type Client360ContractService = {
+  id: string;
+  contractId: string;
+  site: string | null;
+  stream: PriorityStream | null;
+  serviceCode: string;
+  serviceName: string;
+  frequency: string | null;
+  includedQuantity: number | null;
+  unit: "kg" | "l" | null;
+  active: boolean;
+};
+
+export type Client360Sla = {
+  id: string;
+  contractId: string;
+  metricCode: string;
+  label: string;
+  targetValue: number;
+  targetUnit: string;
+  comparison: "LT" | "LE" | "EQ" | "GE" | "GT";
+  active: boolean;
+};
+
 export type Client360 = {
   organization: {
     id: string;
@@ -85,11 +137,15 @@ export type Client360 = {
   relationships: Client360Relationship[];
   upcomingPlans: Client360Plan[];
   periods: Client360Period[];
+  contacts: Client360Contact[];
+  contracts: Client360Contract[];
+  contractServices: Client360ContractService[];
+  slas: Client360Sla[];
   lastCollectionAt: string | null;
   collectionCount: number;
   coverage: {
-    contacts: "not_modeled";
-    contracts: "not_modeled";
+    contacts: "available" | "empty" | "source_unavailable";
+    contracts: "available" | "empty" | "source_unavailable";
     sites: "available" | "empty";
     relationships: "available" | "empty";
     planning: "available" | "empty" | "source_unavailable";
@@ -146,12 +202,27 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
     const organization = organizations[0];
     if (!organization) return null;
 
-    const schemaRows = await sql<Array<{ plans: string | null }>>`
-      select to_regclass('public.collection_plans')::text as plans
+    const schemaRows = await sql<Array<{
+      plans: string | null;
+      contacts: string | null;
+      contracts: string | null;
+      contractServices: string | null;
+      slas: string | null;
+    }>>`
+      select
+        to_regclass('public.collection_plans')::text as plans,
+        to_regclass('public.b2b_account_contacts')::text as contacts,
+        to_regclass('public.b2b_service_contracts')::text as contracts,
+        to_regclass('public.b2b_contract_services')::text as "contractServices",
+        to_regclass('public.b2b_service_slas')::text as slas
     `;
     const hasPlans = Boolean(schemaRows[0]?.plans);
+    const hasContacts = Boolean(schemaRows[0]?.contacts);
+    const hasContracts = Boolean(schemaRows[0]?.contracts);
+    const hasContractServices = Boolean(schemaRows[0]?.contractServices);
+    const hasSlas = Boolean(schemaRows[0]?.slas);
 
-    const [sites, roles, relationships, periods, collectionStats, upcomingPlans, documents, documentStats, ledgerEvents, ledgerStats, reportingRows] =
+    const [sites, roles, relationships, periods, collectionStats, upcomingPlans, contacts, contracts, contractServices, slas, documents, documentStats, ledgerEvents, ledgerStats, reportingRows] =
       await Promise.all([
         sql<Client360Site[]>`
           select
@@ -232,6 +303,97 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
               limit 8
             `
           : Promise.resolve([] as Client360Plan[]),
+        hasContacts
+          ? sql<Client360Contact[]>`
+              select
+                id::text as id,
+                side,
+                full_name as "fullName",
+                email,
+                phone,
+                title,
+                responsibility,
+                is_primary as "isPrimary",
+                valid_from::text as "validFrom",
+                valid_to::text as "validTo",
+                updated_at::text as "updatedAt"
+              from b2b_account_contacts
+              where client_organization_id = ${organization.id}::uuid
+                and (valid_to is null or valid_to >= current_date)
+              order by is_primary desc, side asc, full_name asc
+              limit 20
+            `
+          : Promise.resolve([] as Client360Contact[]),
+        hasContracts
+          ? sql<Client360Contract[]>`
+              select
+                sc.id::text as id,
+                sc.contract_ref as "contractRef",
+                sc.status,
+                sc.starts_at::text as "startsAt",
+                sc.ends_at::text as "endsAt",
+                sc.renewal_at::text as "renewalAt",
+                sc.currency,
+                sc.billing_model as "billingModel",
+                case when ${hasContractServices} then (
+                  select count(*)::int from b2b_contract_services cs
+                  where cs.contract_id = sc.id and cs.active = true
+                ) else 0 end as "serviceCount",
+                case when ${hasSlas} then (
+                  select count(*)::int from b2b_service_slas sla
+                  where sla.contract_id = sc.id and sla.active = true
+                ) else 0 end as "slaCount",
+                sc.updated_at::text as "updatedAt"
+              from b2b_service_contracts sc
+              where sc.client_organization_id = ${organization.id}::uuid
+              order by
+                case sc.status when 'ACTIVE' then 0 when 'DRAFT' then 1 else 2 end,
+                coalesce(sc.ends_at, date '9999-12-31') asc,
+                sc.updated_at desc
+              limit 10
+            `
+          : Promise.resolve([] as Client360Contract[]),
+        hasContracts && hasContractServices
+          ? sql<Client360ContractService[]>`
+              select
+                cs.id::text as id,
+                cs.contract_id::text as "contractId",
+                s.name as site,
+                cs.stream,
+                cs.service_code as "serviceCode",
+                cs.service_name as "serviceName",
+                cs.frequency,
+                cs.included_quantity::float8 as "includedQuantity",
+                cs.unit,
+                cs.active
+              from b2b_contract_services cs
+              join b2b_service_contracts sc on sc.id = cs.contract_id
+              left join sites s on s.id = cs.site_id
+              where sc.client_organization_id = ${organization.id}::uuid
+                and cs.active = true
+              order by cs.service_name asc
+              limit 30
+            `
+          : Promise.resolve([] as Client360ContractService[]),
+        hasContracts && hasSlas
+          ? sql<Client360Sla[]>`
+              select
+                sla.id::text as id,
+                sla.contract_id::text as "contractId",
+                sla.metric_code as "metricCode",
+                sla.label,
+                sla.target_value::float8 as "targetValue",
+                sla.target_unit as "targetUnit",
+                sla.comparison,
+                sla.active
+              from b2b_service_slas sla
+              join b2b_service_contracts sc on sc.id = sla.contract_id
+              where sc.client_organization_id = ${organization.id}::uuid
+                and sla.active = true
+              order by sla.label asc
+              limit 30
+            `
+          : Promise.resolve([] as Client360Sla[]),
         sql<Client360Document[]>`
           select id::text as id,
             document_type as "documentType",
@@ -341,11 +503,15 @@ export async function getClient360(slug: string): Promise<Client360 | null> {
       relationships,
       upcomingPlans,
       periods,
+      contacts,
+      contracts,
+      contractServices,
+      slas,
       lastCollectionAt: collectionStats[0]?.last_at ?? null,
       collectionCount: collectionStats[0]?.total ?? 0,
       coverage: {
-        contacts: "not_modeled",
-        contracts: "not_modeled",
+        contacts: !hasContacts ? "source_unavailable" : contacts.length ? "available" : "empty",
+        contracts: !hasContracts ? "source_unavailable" : contracts.length ? "available" : "empty",
         sites: sites.length ? "available" : "empty",
         relationships: relationships.length ? "available" : "empty",
         planning: !hasPlans ? "source_unavailable" : upcomingPlans.length ? "available" : "empty"
