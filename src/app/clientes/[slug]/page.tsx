@@ -72,9 +72,18 @@ export default async function ClientPage({
     .filter((item) => item.route === "PREPARATION_FOR_REUSE" || item.route === "RECYCLING")
     .reduce((sum, item) => sum + item.quantityKg, 0);
 
-  const values = client.obligations.map(readiness);
-  const status = values.length > 0 && values.every((value) => value >= 100) ? "Listo" : values.length > 0 && values.every((value) => value >= 95) ? "Casi listo" : "Atención";
-  const gaps = client.obligations.filter((item) => gap(item) < 0);
+  const applicableObligations = client.obligations.filter((item) => item.regulatoryMode === "APPLY");
+  const monitoredObligations = client.obligations.filter((item) => item.regulatoryMode === "MONITOR_ONLY");
+  const values = applicableObligations.map(readiness);
+  const status =
+    values.length === 0
+      ? "Monitoreo"
+      : values.every((value) => value >= 100)
+        ? "Listo"
+        : values.every((value) => value >= 95)
+          ? "Casi listo"
+          : "Atención";
+  const gaps = applicableObligations.filter((item) => gap(item) < 0);
   const nextPlan = ficha?.upcomingPlans[0] ?? null;
   const activeRoles = ficha?.roles.filter((role) => !role.validTo || new Date(role.validTo) >= new Date()) ?? [];
   const accountAlerts = [
@@ -121,7 +130,7 @@ export default async function ClientPage({
   return (
     <AppShell active="/clientes">
       <header className="topbar">
-        <div><p className="eyebrow">Empresa REP · {client.period}</p><h1>{client.name}</h1><p className="muted">{client.rut} · Ficha REP 360 · {client.obligations.length} productos prioritarios activos</p></div>
+        <div><p className="eyebrow">Empresa REP · {client.period}</p><h1>{client.name}</h1><p className="muted">{client.rut} · Ficha REP 360 · {applicableObligations.length} regla(s) aplicables · {monitoredObligations.length} en monitoreo</p></div>
         <div className="period"><span>Estado consolidado</span><strong>{status}</strong></div>
       </header>
       <section className="ficha360Hero">
@@ -143,7 +152,7 @@ export default async function ClientPage({
         <article className={gaps.length ? "ficha360Signal signal-attention" : "ficha360Signal signal-ok"}>
           <span>Estado del período</span>
           <strong>{status}</strong>
-          <p>{gaps.length ? `Resolver ${gaps.length} brecha(s) REP antes del cierre.` : ficha?.reporting.latestCheck?.status === "PASS" ? "Continuar al cierre regulatorio." : "Ejecutar la validación final del cierre."}</p>
+          <p>{status === "Monitoreo" ? "No hay rule packs vigentes aplicables al cálculo automático de esta empresa." : gaps.length ? `Resolver ${gaps.length} brecha(s) REP antes del cierre.` : ficha?.reporting.latestCheck?.status === "PASS" ? "Continuar al cierre regulatorio." : "Ejecutar la validación final del cierre."}</p>
         </article>
         <article className="ficha360Signal">
           <span>Evidencia</span>
@@ -318,7 +327,7 @@ export default async function ClientPage({
               <details key={item.stream} className="ficha360Product">
                 <summary>
                   <div>
-                    <strong>{item.label}</strong>
+                    <strong>{item.label}</strong><span className={item.regulatoryMode === "APPLY" ? "ruleMode ruleModeApply" : "ruleMode"}>{item.regulatoryMode === "APPLY" ? "REGLA VIGENTE" : "MONITOREO"} · {item.regulatoryVersion}</span>
                     <span>{pct.toFixed(1)}% de avance</span>
                   </div>
                   <b className={currentGap < 0 ? "negative" : "positive"}>
