@@ -169,7 +169,7 @@ export default async function PlanningPage({
   });
 
   const days = Array.from({ length: range }, (_, index) => addDays(start, index));
-  const dayWidth = range <= 14 ? 56 : range <= 30 ? 46 : 36;
+  const dayWidth = range <= 7 ? 72 : range <= 14 ? 56 : range <= 21 ? 44 : range <= 30 ? 38 : range <= 45 ? 32 : 28;
   const todayKey = chileTodayKey();
   const plannedCount = events.filter((event) => event.kind === "planned").length;
   const actualCount = events.filter((event) => event.kind === "actual").length;
