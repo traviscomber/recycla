@@ -150,7 +150,7 @@ export default async function Home() {
             <h2>Recorre la empresa REP más completa con datos reales.</h2>
             <p>
               Recycla selecciona automáticamente el caso con mayor completitud canónica para revisar
-              obligación, calendario, evidencia, ledger, rule packs y cierre sin usar datos demo.
+              obligación, calendario, evidencia, ledger, rule packs y cierre sin usar datos ficticios.
             </p>
           </div>
           <Link className="buttonLink" href="/case-study">Abrir caso de estudio →</Link>
