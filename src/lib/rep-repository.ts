@@ -293,7 +293,7 @@ export async function listRepLedgerEntries(limit = 50): Promise<PersistedLedgerE
           select 1 from rep_ledger_entries newer
           where newer.supersedes_entry_id = le.id
         )
-        group by le.id, o.display_name, rp.year
+        group by le.id, o.display_name, rp.year, rr.code, rr.rule_version, rr.rule_json
         order by le.created_at desc
         limit ${safeLimit}
       `;
