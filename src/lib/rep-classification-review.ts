@@ -3,6 +3,7 @@ import "server-only";
 import { db, hasDatabase } from "@/lib/db";
 import type { PriorityStream } from "@/lib/rep";
 import { repRulePacks } from "@/lib/rep-rule-packs";
+import { classifyRepInput } from "@/lib/rep-classification";
 
 export type ClassificationEntityType = "MARKET_INTRODUCTION" | "WASTE_OPERATION" | "COLLECTION";
 
@@ -26,7 +27,7 @@ export async function listPendingRepClassifications(limit = 60) {
   const safeLimit = Math.min(Math.max(limit, 1), 100);
 
   try {
-    return await sql<PendingRepClassification[]>`
+    const rows = await sql<PendingRepClassification[]>`
       with pending as (
         select 'MARKET_INTRODUCTION'::text as "entityType", mi.id::text as "entityId",
           mi.occurred_at::text as "occurredAt", mi.priority_product as "priorityProduct",
@@ -35,12 +36,14 @@ export async function listPendingRepClassifications(limit = 60) {
           mi.classification_basis as basis, mi.quantity::float8 as quantity, mi.unit
         from market_introductions mi
         where mi.classification_status = 'REVIEW_REQUIRED'
+           or mi.classification_status is null
         union all
         select 'WASTE_OPERATION'::text, wo.id::text, wo.occurred_at::text,
           wo.priority_product, wo.regulatory_stream, wo.category, wo.subcategory,
           wo.regulatory_pack_version, wo.classification_basis, wo.quantity::float8, wo.unit
         from waste_management_operations wo
         where wo.classification_status = 'REVIEW_REQUIRED'
+           or wo.classification_status is null
         union all
         select 'COLLECTION'::text, c.id::text, c.collected_at::text, c.stream::text,
           c.stream, c.regulatory_category_id, null::text, c.regulatory_pack_version,
@@ -52,6 +55,21 @@ export async function listPendingRepClassifications(limit = 60) {
       order by "occurredAt" desc
       limit ${safeLimit}
     `;
+
+    return rows.map((row) => {
+      if (row.stream) return row;
+      const classification = classifyRepInput({
+        priorityProduct: row.priorityProduct,
+        category: row.rawCategory,
+        subcategory: row.rawSubcategory
+      });
+      return {
+        ...row,
+        stream: classification.stream,
+        packVersion: classification.packVersion,
+        basis: row.basis ?? classification.basis
+      };
+    });
   } catch {
     return [];
   }
