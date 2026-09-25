@@ -3221,3 +3221,101 @@ h1{font-weight:500;letter-spacing:-.035em}
     grid-template-columns:1fr;
   }
 }
+
+
+/* REP evidence regulatory lineage */
+.chainRegulatoryTrace {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  margin-top:10px;
+}
+
+.chainRegulatoryTrace > div {
+  padding:10px 12px;
+  border-right:1px solid var(--line);
+  display:grid;
+  gap:3px;
+}
+
+.chainRegulatoryTrace > div:last-child {
+  border-right:0;
+}
+
+.chainRegulatoryTrace span,
+.chainRegulatoryTrace small {
+  color:var(--text-faint);
+  font-size:7px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+.chainRegulatoryTrace strong {
+  font-size:9px;
+}
+
+.chainRequirements {
+  margin-top:10px;
+  border-top:1px solid var(--line);
+  padding-top:8px;
+}
+
+.chainRequirements > summary {
+  cursor:pointer;
+  color:var(--text-soft);
+  font-size:8px;
+}
+
+.chainRequirements > div {
+  display:grid;
+  margin-top:8px;
+}
+
+.chainRequirements > div > span {
+  display:grid;
+  grid-template-columns:20px minmax(0,1fr) minmax(180px,1fr);
+  gap:8px;
+  align-items:center;
+  padding:7px 0;
+  border-top:1px solid var(--line);
+}
+
+.chainRequirements b {
+  font-size:9px;
+}
+
+.chainRequirements strong {
+  font-size:8px;
+}
+
+.chainRequirements small {
+  color:var(--text-soft);
+  font-size:7px;
+}
+
+.requirementDone b {
+  color:var(--signal);
+}
+
+.requirementPending b {
+  color:#d2b083;
+}
+
+@media(max-width:900px){
+  .chainRegulatoryTrace {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:640px){
+  .chainRegulatoryTrace {
+    grid-template-columns:1fr;
+  }
+  .chainRequirements > div > span {
+    grid-template-columns:20px 1fr;
+  }
+  .chainRequirements small {
+    grid-column:2;
+  }
+}
