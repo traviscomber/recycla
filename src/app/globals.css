@@ -3052,3 +3052,58 @@ h1{font-weight:500;letter-spacing:-.035em}
     justify-self: start;
   }
 }
+
+
+/* REP regulatory rule packs */
+.regulatoryGate {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:24px;
+  align-items:center;
+  margin-bottom:14px;
+}
+
+.regulatoryGateState {
+  min-width:220px;
+  display:grid;
+  gap:4px;
+  justify-items:end;
+  text-align:right;
+}
+
+.regulatoryGateState span,
+.ruleMode {
+  font-size:7px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+}
+
+.regulatoryGateState strong {
+  font-size:10px;
+}
+
+.regulatoryGateState small {
+  color:var(--text-soft);
+  font-size:8px;
+}
+
+.ruleMode {
+  display:block;
+  margin-top:4px;
+}
+
+.ruleModeApply {
+  color:var(--signal);
+}
+
+@media(max-width:760px){
+  .regulatoryGate {
+    grid-template-columns:1fr;
+  }
+  .regulatoryGateState {
+    justify-items:start;
+    text-align:left;
+    min-width:0;
+  }
+}
