@@ -94,9 +94,9 @@ export default async function ClientesPage({
     <AppShell active="/clientes">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Clientes</p>
-          <h1>Quién debe cumplir y cómo va</h1>
-          <p className="muted">Aquí ves cada cliente operativo, sus obligaciones REP y qué falta para cerrar el período.</p>
+          <p className="eyebrow">Cartera B2B</p>
+          <h1>Empresas, obligaciones y estado REP</h1>
+          <p className="muted">Gestiona cada cuenta corporativa con su período, obligaciones, brechas, evidencia y estado de cierre.</p>
         </div>
         <div className="period">
           <span>Fichas operacionales</span>
@@ -124,8 +124,8 @@ export default async function ClientesPage({
       <section className="pageGuide">
         <article>
           <span>Qué ves aquí</span>
-          <strong>Clientes con obligaciones REP reales</strong>
-          <p>Una empresa aparece como operacional sólo cuando tiene organización, período y obligaciones persistidas.</p>
+          <strong>Empresas con obligaciones REP reales</strong>
+          <p>Una cuenta B2B aparece como operacional sólo cuando tiene entidad legal, período y obligaciones persistidas.</p>
         </article>
         <article>
           <span>Qué debes mirar</span>
@@ -134,8 +134,8 @@ export default async function ClientesPage({
         </article>
         <article>
           <span>Siguiente paso</span>
-          <strong>Abrir la ficha del cliente</strong>
-          <p>Desde ahí revisas obligación, avance, evidencia y pendientes del período.</p>
+          <strong>Abrir la ficha 360 de la empresa</strong>
+          <p>Desde ahí revisas obligación, operación, avance, evidencia, responsables y pendientes del período.</p>
         </article>
       </section>
 
@@ -152,7 +152,7 @@ export default async function ClientesPage({
           <p className="muted">Calculado desde obligaciones persistidas.</p>
         </article>
         <article className="card risk">
-          <span className="label">Clientes que requieren acción</span>
+          <span className="label">Empresas que requieren acción</span>
           <div className="gap">{clientsWithGap}</div>
           <p className="muted">Requieren intervención antes del cierre.</p>
         </article>
@@ -220,8 +220,8 @@ export default async function ClientesPage({
       <section className="panel clientDirectory">
         <div className="panelHead">
           <div>
-            <p className="eyebrow">Cartera operacional</p>
-            <h3>Busca un cliente y entra directamente a su estado REP.</h3>
+            <p className="eyebrow">Cartera operacional B2B</p>
+            <h3>Busca una empresa y entra directamente a su estado REP.</h3>
           </div>
           {(query || statusFilter !== "all" || streamFilter !== "all" || yearFilter !== "all") ? (
             <Link className="buttonLink secondary" href="/clientes">Limpiar filtros</Link>
