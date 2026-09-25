@@ -46,7 +46,7 @@ export function AppShell({
           </div>
         </div>
 
-        <div className="railLabel">Operación B2B · Cumplimiento REP</div>
+        <div className="railLabel">Operación REP · Cumplimiento</div>
 
 
         <nav className="sideNav" aria-label="Navegación principal">
