@@ -3319,3 +3319,100 @@ h1{font-weight:500;letter-spacing:-.035em}
     grid-column:2;
   }
 }
+
+
+/* REP regulatory classification queue */
+.classificationQueue {
+  margin:14px 0;
+}
+
+.classificationQueueList {
+  display:grid;
+  border-top:1px solid var(--line);
+}
+
+.classificationQueueList > article {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(340px,.9fr);
+  gap:18px;
+  align-items:center;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+}
+
+.classificationQueueList > article > div:first-child {
+  display:grid;
+  gap:4px;
+}
+
+.classificationQueueList span,
+.classificationQueueList small {
+  color:var(--text-faint);
+  font-size:7px;
+}
+
+.classificationQueueList strong {
+  font-size:9px;
+}
+
+.classificationQueueList p {
+  margin:0;
+  color:var(--text-soft);
+  font-size:8px;
+}
+
+.classificationReviewForm {
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:8px;
+  align-items:end;
+}
+
+.classificationReviewForm label {
+  display:grid;
+  gap:4px;
+}
+
+.classificationReviewForm select,
+.classificationReviewForm input {
+  min-height:34px;
+  border:1px solid var(--line-strong);
+  background:var(--surface-3);
+  color:var(--text);
+  padding:0 9px;
+  font:inherit;
+  font-size:8px;
+}
+
+.classificationReviewForm button {
+  min-height:34px;
+  border:1px solid var(--line-strong);
+  background:var(--text);
+  color:var(--surface);
+  padding:0 11px;
+  font-size:8px;
+  cursor:pointer;
+}
+
+.classificationReviewState {
+  justify-self:end;
+  display:grid;
+  gap:3px;
+  text-align:right;
+}
+
+@media(max-width:900px){
+  .classificationQueueList > article {
+    grid-template-columns:1fr;
+  }
+  .classificationReviewState {
+    justify-self:start;
+    text-align:left;
+  }
+}
+
+@media(max-width:640px){
+  .classificationReviewForm {
+    grid-template-columns:1fr;
+  }
+}
