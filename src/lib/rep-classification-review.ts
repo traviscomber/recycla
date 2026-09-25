@@ -3,7 +3,7 @@ import "server-only";
 import { db, hasDatabase } from "@/lib/db";
 import type { PriorityStream } from "@/lib/rep";
 import { repRulePacks } from "@/lib/rep-rule-packs";
-import { classifyRepInput } from "@/lib/rep-classification";
+import { classifyRepInput, resolvePriorityStream } from "@/lib/rep-classification";
 
 export type ClassificationEntityType = "MARKET_INTRODUCTION" | "WASTE_OPERATION" | "COLLECTION";
 
@@ -119,6 +119,46 @@ export async function listClassificationAuditEvents(limit = 30) {
   }
 }
 
+async function assertEntityMatchesStream(
+  sql: ReturnType<typeof db>,
+  entityType: ClassificationEntityType,
+  entityId: string,
+  stream: PriorityStream
+) {
+  if (entityType === "COLLECTION") {
+    const rows = await sql<Array<{ stream: PriorityStream }>>`
+      select stream
+      from collections
+      where id = ${entityId}::uuid
+      limit 1
+    `;
+    if (!rows[0] || rows[0].stream !== stream) throw new Error("STREAM_MISMATCH");
+    return;
+  }
+
+  const table =
+    entityType === "MARKET_INTRODUCTION"
+      ? "market_introductions"
+      : "waste_management_operations";
+
+  const rows = table === "market_introductions"
+    ? await sql<Array<{ priorityProduct: string }>>`
+        select priority_product as "priorityProduct"
+        from market_introductions
+        where id = ${entityId}::uuid
+        limit 1
+      `
+    : await sql<Array<{ priorityProduct: string }>>`
+        select priority_product as "priorityProduct"
+        from waste_management_operations
+        where id = ${entityId}::uuid
+        limit 1
+      `;
+
+  const resolved = rows[0] ? resolvePriorityStream(rows[0].priorityProduct) : null;
+  if (!resolved || resolved !== stream) throw new Error("STREAM_MISMATCH");
+}
+
 export async function reviewRepClassification(input: {
   entityType: ClassificationEntityType;
   entityId: string;
@@ -133,6 +173,7 @@ export async function reviewRepClassification(input: {
   }
 
   const sql = db();
+  await assertEntityMatchesStream(sql, input.entityType, input.entityId, input.stream);
   const note = input.note?.trim() || null;
 
   if (input.entityType === "MARKET_INTRODUCTION") {
