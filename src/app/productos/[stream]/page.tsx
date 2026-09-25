@@ -59,6 +59,100 @@ export default async function StreamPage({
         </div>
       </section>
 
+      <section className="rulePackGrid">
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Categorías regulatorias</p>
+              <h3>Qué debe clasificarse antes de calcular.</h3>
+            </div>
+            <b>{rulePack.categories.length}</b>
+          </div>
+          <div className="rulePackList">
+            {rulePack.categories.map((category) => (
+              <div key={category.id}>
+                <strong>{category.label}</strong>
+                <p>{category.definition}</p>
+                <span>{category.targetBearing ? "SUJETA A META / REGLA" : "SIN META EN ESTE PACK"}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Gates de acreditación</p>
+              <h3>Qué debe estar resuelto antes del cierre.</h3>
+            </div>
+            <b>{rulePack.operationalGates.length}</b>
+          </div>
+          <div className="checkList indexedList">
+            {rulePack.operationalGates.map((gate, index) => (
+              <span key={gate}><b>{String(index + 1).padStart(2, "0")}</b>{gate}</span>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="panel rulePackTargets">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Metas y fórmulas</p>
+            <h3>{rulePack.enginePolicy === "APPLY" ? "Reglas activas del motor" : "Referencia regulatoria · no calcula cumplimiento"}</h3>
+          </div>
+          <span className="rulePackPolicy">{rulePack.enginePolicy}</span>
+        </div>
+        <div className="rulePackTargetGrid">
+          {rulePack.targets.map((target) => (
+            <article key={target.id}>
+              <div className="rulePackTargetHead">
+                <strong>{target.label}</strong>
+                <span>{target.legalStatus.replaceAll("_", " ")}</span>
+              </div>
+              <p>{target.basis}</p>
+              <div className="rulePackSchedule">
+                {target.points.map((point) => (
+                  <div key={point.periodLabel}>
+                    <span>{point.periodLabel}</span>
+                    <b>R {point.collectionPct === null ? "—" : point.collectionPct + "%"}</b>
+                    <b>V {point.valorizationPct === null ? "—" : point.valorizationPct + "%"}</b>
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="rulePackGrid">
+        <article className="panel">
+          <p className="eyebrow">Evidencia mínima</p>
+          <h3>Qué bloquea la acreditación.</h3>
+          <div className="rulePackEvidence">
+            {rulePack.evidenceRequirements.map((item) => (
+              <div key={item.id}>
+                <strong>{item.label}</strong>
+                <span>{item.blocking ? "BLOQUEANTE" : "CONTROL"}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel">
+          <p className="eyebrow">Fuentes</p>
+          <h3>De dónde proviene cada regla.</h3>
+          <div className="rulePackSources">
+            {rulePack.sources.map((source) => (
+              <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>
+                <strong>{source.title}</strong>
+                <span>{source.authority} · {source.role.replaceAll("_", " ")}</span>
+              </a>
+            ))}
+          </div>
+        </article>
+      </section>
+
       <section className="adapterHero">
         <article className="card dark">
           <span className="label">Regla de acreditación</span>
