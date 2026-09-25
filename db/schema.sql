@@ -388,3 +388,20 @@ create table if not exists b2b_service_slas (
 
 create index if not exists b2b_service_slas_contract_idx
   on b2b_service_slas(contract_id, active);
+
+
+create table if not exists b2b_account_change_log (
+  id uuid primary key default gen_random_uuid(),
+  client_organization_id uuid not null references organizations(id),
+  entity_type text not null
+    check (entity_type in ('CONTACT','CONTRACT','SERVICE','SLA')),
+  entity_id uuid not null,
+  action text not null
+    check (action in ('CREATE','UPDATE','END','DEACTIVATE')),
+  actor_ref text,
+  changed_fields jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists b2b_account_change_log_org_idx
+  on b2b_account_change_log(client_organization_id, created_at desc);
