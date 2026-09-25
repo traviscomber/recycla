@@ -1,10 +1,63 @@
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { repRegulatoryUniverse } from "@/lib/rep";
 import { repRegulatoryMilestones, repRulePacks } from "@/lib/rep-rule-packs";
+import { getRecyclaSession, requireWriteSession } from "@/lib/auth/server";
+import {
+  listPendingRepClassifications,
+  listClassificationAuditEvents,
+  reviewRepClassification,
+  type ClassificationEntityType
+} from "@/lib/rep-classification-review";
+import type { PriorityStream } from "@/lib/rep";
 
-export default function RegulatoryRadarPage() {
+export const dynamic = "force-dynamic";
+
+async function reviewClassificationAction(formData: FormData) {
+  "use server";
+
+  const session = await requireWriteSession();
+  const entityType = String(formData.get("entityType") ?? "") as ClassificationEntityType;
+  const entityId = String(formData.get("entityId") ?? "");
+  const stream = String(formData.get("stream") ?? "") as PriorityStream;
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (!["MARKET_INTRODUCTION", "WASTE_OPERATION", "COLLECTION"].includes(entityType)) {
+    redirect("/regulatory?classification=invalid");
+  }
+  if (!entityId || !repRulePacks[stream] || !categoryId) {
+    redirect("/regulatory?classification=invalid");
+  }
+
+  const ok = await reviewRepClassification({
+    entityType,
+    entityId,
+    stream,
+    categoryId,
+    actorRef: session.session?.user?.email ?? null,
+    note
+  });
+
+  revalidatePath("/regulatory");
+  revalidatePath("/evidence");
+  revalidatePath("/ledger");
+  redirect("/regulatory?classification=" + (ok ? "resolved" : "not_found"));
+}
+
+export default async function RegulatoryRadarPage() {
   const operationalProducts = repRegulatoryUniverse.filter((item) => item.operational);
   const monitoredProducts = repRegulatoryUniverse.filter((item) => !item.operational);
+  const [pendingClassifications, classificationAudit, authState] = await Promise.all([
+    listPendingRepClassifications(60),
+    listClassificationAuditEvents(20),
+    getRecyclaSession()
+  ]);
+  const canWrite = authState.roles.some((role) =>
+    role === "operator" || role === "compliance" || role === "admin"
+  );
+
   const operational = operationalProducts.length;
   const radarOnly = monitoredProducts.length;
   const rulePacks = Object.values(repRulePacks);
@@ -73,6 +126,97 @@ export default function RegulatoryRadarPage() {
           <strong>{rulePacks.length - enforceablePacks.length}</strong>
           <p>No alteran cálculos automáticos</p>
         </article>
+      </section>
+
+      <section className="panel classificationQueue">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Clasificación regulatoria</p>
+            <h3>Resolver excepciones antes de acreditar.</h3>
+          </div>
+          <b>{pendingClassifications.length}</b>
+        </div>
+
+        {pendingClassifications.length ? (
+          <div className="classificationQueueList">
+            {pendingClassifications.map((item) => {
+              const pack = item.stream ? repRulePacks[item.stream] : null;
+              return (
+                <article key={item.entityType + ":" + item.entityId}>
+                  <div>
+                    <span>{item.entityType.replaceAll("_", " ")}</span>
+                    <strong>{item.priorityProduct}</strong>
+                    <p>
+                      {new Date(item.occurredAt).toLocaleDateString("es-CL")}
+                      {item.rawCategory ? " · " + item.rawCategory : ""}
+                      {item.quantity !== null ? " · " + item.quantity + " " + (item.unit ?? "") : ""}
+                    </p>
+                    <small>{item.basis ?? "Clasificación pendiente."}</small>
+                  </div>
+
+                  {pack && canWrite ? (
+                    <form action={reviewClassificationAction} className="classificationReviewForm">
+                      <input type="hidden" name="entityType" value={item.entityType} />
+                      <input type="hidden" name="entityId" value={item.entityId} />
+                      <input type="hidden" name="stream" value={item.stream ?? ""} />
+                      <label>
+                        <span>Categoría</span>
+                        <select name="categoryId" required defaultValue="">
+                          <option value="" disabled>Seleccionar</option>
+                          {pack.categories.map((category) => (
+                            <option value={category.id} key={category.id}>{category.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Nota</span>
+                        <input name="note" placeholder="Evidencia o criterio de revisión" />
+                      </label>
+                      <button type="submit">Confirmar clasificación</button>
+                    </form>
+                  ) : (
+                    <div className="classificationReviewState">
+                      <strong>{pack ? "REVISIÓN REQUERIDA" : "PRODUCTO NO MAPEADO"}</strong>
+                      <span>{pack ? pack.version : "Corregir fuente"}</span>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin clasificaciones regulatorias pendientes.</strong>
+            <p>Las filas reconocidas quedaron resueltas por taxonomía determinística o revisión humana.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="panel classificationAudit">
+        <div className="panelHead">
+          <div>
+            <p className="eyebrow">Auditoría de clasificación</p>
+            <h3>Qué se clasificó, con qué pack y por quién.</h3>
+          </div>
+          <b>{classificationAudit.length}</b>
+        </div>
+        {classificationAudit.length ? (
+          <div className="classificationAuditList">
+            {classificationAudit.map((event) => (
+              <div key={event.id}>
+                <span>{new Date(event.createdAt).toLocaleString("es-CL")}</span>
+                <strong>{event.stream} · {event.categoryId ?? "SIN CATEGORÍA"}</strong>
+                <p>{event.packVersion} · {event.sourceMethod.replaceAll("_", " ")} · {event.status}</p>
+                <small>{event.actorRef ?? "Sistema"}{event.note ? " · " + event.note : ""}</small>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState compactEmpty">
+            <strong>Sin eventos de clasificación persistidos.</strong>
+            <p>El historial se activará con nuevas ingestas o revisiones manuales.</p>
+          </div>
+        )}
       </section>
 
       <section className="panel">
