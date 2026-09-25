@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { listOutcomeCalendarEvents, type OutcomeCalendarEvent } from "@/lib/outcome-planning";
+import { listB2BCalendarEvents, type B2BCalendarEvent } from "@/lib/outcome-planning";
 import { fmt } from "@/lib/rep";
 
 export const revalidate = 60;
 
-const streamLabels: Record<OutcomeCalendarEvent["stream"], string> = {
+const streamLabels: Record<Exclude<B2BCalendarEvent["stream"], null>, string> = {
   AEE_RAEE: "AEE / RAEE",
   NEUMATICOS: "Neumáticos",
   BATERIAS: "Baterías",
@@ -71,16 +71,25 @@ function formatMonthRange(start: Date, end: Date) {
   return `${left} — ${right}`;
 }
 
-function eventLabel(event: OutcomeCalendarEvent) {
+function eventLabel(event: B2BCalendarEvent) {
+  if (event.kind === "document" || event.kind === "contract") {
+    return event.title ?? "Hito";
+  }
+
   const quantity =
     event.quantity === null || !event.unit
       ? ""
       : `${fmt(event.quantity)} ${event.unit}`;
 
-  return [streamLabels[event.stream], quantity].filter(Boolean).join(" · ");
+  const stream = event.stream ? streamLabels[event.stream] : "";
+  return [stream, quantity].filter(Boolean).join(" · ");
 }
 
-function outcomeLabel(event: OutcomeCalendarEvent) {
+function outcomeLabel(event: B2BCalendarEvent) {
+  if (event.kind === "document" || event.kind === "contract") {
+    return event.detail ?? "Requiere revisión";
+  }
+
   if (event.kind === "actual") {
     return event.actualRecoveryPct === null
       ? "Resultado pendiente"
@@ -116,25 +125,45 @@ export default async function PlanningPage({
     q?: string;
     layer?: string;
     created?: string;
+    summary?: string;
+    company?: string;
   }>;
 }) {
   const params = await searchParams;
   const anchor = parseAnchor(params.date);
-  const range = params.range === "30" ? 30 : params.range === "7" ? 7 : 14;
+  const allowedRanges = new Set([7, 14, 21, 30, 45, 60]);
+  const requestedRange = Number(params.range ?? "14");
+  const range = allowedRanges.has(requestedRange) ? requestedRange : 14;
   const start = startOfDayUtc(anchor);
   const end = addDays(start, range);
   const query = params.q?.trim().toLocaleLowerCase("es-CL") ?? "";
-  const layer = params.layer === "planned" || params.layer === "actual" ? params.layer : "all";
+  const layer =
+    params.layer === "planned" ||
+    params.layer === "actual" ||
+    params.layer === "risk"
+      ? params.layer
+      : "all";
+  const showSummary = params.summary === "1";
+  const companyFilter = params.company?.trim() ?? "";
 
-  const allEvents = await listOutcomeCalendarEvents({ start, end });
+  const allEvents = await listB2BCalendarEvents({ start, end });
+  const companies = [...new Map(allEvents.map((event) => [event.clientSlug, event.client])).entries()]
+    .map(([slug, name]) => ({ slug, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+
   const events = allEvents.filter((event) => {
-    if (layer !== "all" && event.kind !== layer) return false;
+    if (layer === "planned" && event.kind !== "planned") return false;
+    if (layer === "actual" && event.kind !== "actual") return false;
+    if (layer === "risk" && event.kind !== "document" && event.kind !== "contract") return false;
+    if (companyFilter && event.clientSlug !== companyFilter) return false;
     if (!query) return true;
     const haystack = [
       event.client,
       event.site ?? "",
       event.counterparty ?? "",
-      streamLabels[event.stream]
+      event.stream ? streamLabels[event.stream] : "",
+      event.title ?? "",
+      event.detail ?? ""
     ].join(" ").toLocaleLowerCase("es-CL");
     return haystack.includes(query);
   });
@@ -143,6 +172,7 @@ export default async function PlanningPage({
   const todayKey = chileTodayKey();
   const plannedCount = events.filter((event) => event.kind === "planned").length;
   const actualCount = events.filter((event) => event.kind === "actual").length;
+  const riskCount = events.filter((event) => event.kind === "document" || event.kind === "contract").length;
   const forecastedCount = events.filter(
     (event) => event.kind === "planned" && event.forecastRecoveryPct !== null
   ).length;
@@ -160,10 +190,10 @@ export default async function PlanningPage({
     );
   const strongestTwin = twinCandidates[0] ?? null;
 
-  const rowMap = new Map<string, { client: string; site: string | null; events: OutcomeCalendarEvent[] }>();
+  const rowMap = new Map<string, { client: string; clientSlug: string; site: string | null; events: B2BCalendarEvent[] }>();
   for (const event of events) {
     const key = `${event.client}::${event.site ?? "Sin sitio"}`;
-    const row = rowMap.get(key) ?? { client: event.client, site: event.site, events: [] };
+    const row = rowMap.get(key) ?? { client: event.client, clientSlug: event.clientSlug, site: event.site, events: [] };
     row.events.push(event);
     rowMap.set(key, row);
   }
@@ -177,6 +207,8 @@ export default async function PlanningPage({
     next.set("range", String(range));
     if (params.q) next.set("q", params.q);
     if (layer !== "all") next.set("layer", layer);
+    if (showSummary) next.set("summary", "1");
+    if (companyFilter) next.set("company", companyFilter);
     return `?${next.toString()}`;
   };
 
@@ -185,9 +217,9 @@ export default async function PlanningPage({
       <header className="planningTopbar">
         <div>
           <p className="eyebrow">Planificación operacional</p>
-          <h1>Calendario de resultados</h1>
+          <h1>Calendario operacional B2B</h1>
           <p className="muted">
-            Planifica retiros y compáralos con resultados históricos antes de ejecutar.
+            Empresas, instalaciones, retiros, ejecución y vencimientos críticos en una sola línea de tiempo.
           </p>
         </div>
         <div className="planningRangeLabel">
@@ -216,10 +248,12 @@ export default async function PlanningPage({
           </Link>
         </div>
 
-        <form className="planningSearch" method="get">
+        <form className="planningSearch planningSearchWide" method="get">
           <input type="hidden" name="date" value={toDateKey(start)} />
           <input type="hidden" name="range" value={range} />
           {layer !== "all" ? <input type="hidden" name="layer" value={layer} /> : null}
+          {showSummary ? <input type="hidden" name="summary" value="1" /> : null}
+          {companyFilter ? <input type="hidden" name="company" value={companyFilter} /> : null}
           <input
             name="q"
             defaultValue={params.q ?? ""}
@@ -230,12 +264,14 @@ export default async function PlanningPage({
         </form>
 
         <div className="planningToolbarGroup planningRangePresets" aria-label="Rango visible">
-          {[7, 14, 30].map((value) => {
+          {[7, 14, 21, 30, 45, 60].map((value) => {
             const next = new URLSearchParams();
             next.set("date", toDateKey(start));
             next.set("range", String(value));
             if (params.q) next.set("q", params.q);
             if (layer !== "all") next.set("layer", layer);
+            if (showSummary) next.set("summary", "1");
+            if (companyFilter) next.set("company", companyFilter);
             return (
               <Link className={range === value ? "active" : ""} href={`?${next.toString()}`} key={value}>
                 {value}d
@@ -243,6 +279,37 @@ export default async function PlanningPage({
             );
           })}
         </div>
+
+        <form className="planningCompanyFilter" method="get">
+          <input type="hidden" name="date" value={toDateKey(start)} />
+          <input type="hidden" name="range" value={range} />
+          {layer !== "all" ? <input type="hidden" name="layer" value={layer} /> : null}
+          {showSummary ? <input type="hidden" name="summary" value="1" /> : null}
+          {params.q ? <input type="hidden" name="q" value={params.q} /> : null}
+          <select name="company" defaultValue={companyFilter} aria-label="Filtrar por empresa">
+            <option value="">Todas las empresas</option>
+            {companies.map((company) => (
+              <option value={company.slug} key={company.slug}>{company.name}</option>
+            ))}
+          </select>
+          <button type="submit">Aplicar</button>
+        </form>
+
+        <Link
+          className={showSummary ? "calendarButton calendarButtonPrimary" : "calendarButton"}
+          href={(() => {
+            const next = new URLSearchParams();
+            next.set("date", toDateKey(start));
+            next.set("range", String(range));
+            if (params.q) next.set("q", params.q);
+            if (layer !== "all") next.set("layer", layer);
+            if (companyFilter) next.set("company", companyFilter);
+            if (!showSummary) next.set("summary", "1");
+            return `?${next.toString()}`;
+          })()}
+        >
+          Summary
+        </Link>
 
         <Link className="buttonLink planningNewAction" href="/planning/new">
           Nueva planificación →
@@ -259,6 +326,10 @@ export default async function PlanningPage({
           <strong>{actualCount}</strong>
         </div>
         <div>
+          <span>Alertas calendario</span>
+          <strong>{riskCount}</strong>
+        </div>
+        <div>
           <span>Con referencia histórica</span>
           <strong>{forecastedCount}</strong>
         </div>
@@ -266,12 +337,15 @@ export default async function PlanningPage({
           {[
             ["all", "Todo"],
             ["planned", "Plan"],
-            ["actual", "Ejecutado"]
+            ["actual", "Ejecutado"],
+            ["risk", "Vencimientos"]
           ].map(([value, label]) => {
             const next = new URLSearchParams();
             next.set("date", toDateKey(start));
             next.set("range", String(range));
             if (params.q) next.set("q", params.q);
+            if (companyFilter) next.set("company", companyFilter);
+            if (showSummary) next.set("summary", "1");
             if (value !== "all") next.set("layer", value);
             return (
               <Link className={layer === value ? "active" : ""} href={`?${next.toString()}`} key={value}>
@@ -282,7 +356,32 @@ export default async function PlanningPage({
         </nav>
       </section>
 
-      <section className="outcomeCalendarShell">
+      {showSummary ? (
+        <section className="planningSummaryPanel">
+          <div>
+            <span>Empresas visibles</span>
+            <strong>{new Set(events.map((event) => event.clientSlug)).size}</strong>
+          </div>
+          <div>
+            <span>Instalaciones activas</span>
+            <strong>{new Set(events.filter((event) => event.site).map((event) => `${event.clientSlug}:${event.site}`)).size}</strong>
+          </div>
+          <div>
+            <span>Planificado</span>
+            <strong>{plannedCount}</strong>
+          </div>
+          <div>
+            <span>Ejecutado</span>
+            <strong>{actualCount}</strong>
+          </div>
+          <div className={riskCount ? "attention" : ""}>
+            <span>Requieren revisión</span>
+            <strong>{riskCount}</strong>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="outcomeCalendarShell b2bCalendarShell">
         <div className="outcomeCalendarScroll">
           <div
             className="outcomeCalendarHeader"
@@ -302,15 +401,15 @@ export default async function PlanningPage({
 
           {rows.length ? (
             <div className="outcomeCalendarBody">
-              {rows.map((row) => (
+              {rows.map((row, rowIndex) => (
                 <div
-                  className="outcomeCalendarRow"
+                  className={rowIndex === 0 || rows[rowIndex - 1]?.client !== row.client ? "outcomeCalendarRow companyStart" : "outcomeCalendarRow"}
                   style={{ gridTemplateColumns: `260px repeat(${days.length}, 56px)` }}
                   key={`${row.client}:${row.site ?? "none"}`}
                 >
                   <div className="calendarResource">
-                    <strong>{row.client}</strong>
-                    <span>{row.site ?? "Sin sitio asignado"}</span>
+                    <strong>{rowIndex === 0 || rows[rowIndex - 1]?.client !== row.client ? row.client : "↳ " + (row.site ?? "Cuenta")}</strong>
+                    <span>{rowIndex === 0 || rows[rowIndex - 1]?.client !== row.client ? row.site ?? "Cuenta corporativa" : row.site ?? "Sin sitio asignado"}</span>
                   </div>
 
                   {days.map((day) => (
@@ -329,7 +428,7 @@ export default async function PlanningPage({
 
                     return (
                       <Link
-                        className={`calendarEvent calendarEvent-${event.kind}`}
+                        className={`calendarEvent calendarEvent-${event.kind} ${event.severity === "attention" ? "calendarEvent-attention" : ""}`}
                         href={`/clientes/${event.clientSlug}`}
                         style={{
                           gridColumn: `${startIndex + 2} / span ${span}`,
@@ -387,6 +486,7 @@ export default async function PlanningPage({
         <div className="planningLegend">
           <span><i className="legendPlanned" /> Planificado</span>
           <span><i className="legendActual" /> Ejecutado</span>
+          <span><i className="legendRisk" /> Vencimiento</span>
           <span><i className="legendToday" /> Hoy</span>
         </div>
       </section>
