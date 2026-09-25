@@ -382,7 +382,7 @@ export default async function PlanningPage({
         </section>
       ) : null}
 
-      <section className="outcomeCalendarShell b2bCalendarShell">
+      <section className="outcomeCalendarShell repCalendarShell">
         <div className="outcomeCalendarScroll">
           <div
             className="outcomeCalendarHeader"
