@@ -140,7 +140,7 @@ export default async function EvidencePage() {
             <p className="eyebrow">Trazabilidad de la operación</p>
             <h3>Cada operación debe poder explicarse de principio a fin.</h3>
           </div>
-          <span className="chainLegend">6 pasos de trazabilidad · completar la cadena no reemplaza el cierre REP</span>
+          <span className="chainLegend">8 pasos · operación + regla + acreditación</span>
         </div>
 
         {chains.length ? (
@@ -151,6 +151,8 @@ export default async function EvidencePage() {
               const valuationDone = chain.allocatedKg > 0;
               const evidenceDone = chain.evidenceCount > 0 && chain.checksummedEvidence === chain.evidenceCount;
               const ledgerDone = chain.latestLedgerState === "ACCREDITABLE";
+              const categoryDone = Boolean(chain.regulatoryCategoryId);
+              const regulatoryDone = chain.regulatoryReady;
 
               return (
                 <article className="evidenceChainRow" key={chain.collectionId}>
@@ -188,8 +190,39 @@ export default async function EvidencePage() {
                       <small>{chain.evidenceCount ? chain.checksummedEvidence + "/" + chain.evidenceCount + " hash" : "Pendiente"}</small>
                     </div>
                     <div className={stageClass(ledgerDone)}>
-                      <span>06</span><strong>Estado REP</strong>
+                      <span>06</span><strong>Ledger</strong>
                       <small>{chain.latestLedgerState?.replaceAll("_", " ") ?? "Pendiente"}</small>
+                    </div>
+                    <div className={stageClass(categoryDone)}>
+                      <span>07</span><strong>Categoría</strong>
+                      <small>{chain.regulatoryCategoryLabel ?? "Pendiente"}</small>
+                    </div>
+                    <div className={stageClass(regulatoryDone)}>
+                      <span>08</span><strong>Regla REP</strong>
+                      <small>{chain.regulatoryReady ? chain.regulatoryPackVersion : chain.regulatoryMode}</small>
+                    </div>
+                  </div>
+
+                  <div className="chainRegulatoryTrace">
+                    <div>
+                      <span>Rule pack</span>
+                      <strong>{chain.regulatoryPackVersion}</strong>
+                      <small>{chain.regulatoryMode}</small>
+                    </div>
+                    <div>
+                      <span>Regla de ledger</span>
+                      <strong>{chain.ledgerRuleCode ?? "Sin regla enlazada"}</strong>
+                      <small>{chain.ledgerRuleVersion !== null ? "v" + chain.ledgerRuleVersion : "—"}</small>
+                    </div>
+                    <div>
+                      <span>Categoría</span>
+                      <strong>{chain.regulatoryCategoryLabel ?? "No resuelta"}</strong>
+                      <small>{chain.regulatoryCategoryId ?? "—"}</small>
+                    </div>
+                    <div>
+                      <span>Resultado regulatorio</span>
+                      <strong>{chain.regulatoryReady ? "LISTO PARA ACREDITAR" : "BLOQUEADO"}</strong>
+                      <small>{chain.status.replaceAll("_", " ")}</small>
                     </div>
                   </div>
 
@@ -205,6 +238,18 @@ export default async function EvidencePage() {
                       {chain.blockers.length > 1 ? <small>+{chain.blockers.length - 1} pendientes adicionales</small> : null}
                     </div>
                   </div>
+                  <details className="chainRequirements">
+                    <summary>Ver requisitos regulatorios ({chain.evidenceRequirements.filter((item) => item.satisfied).length}/{chain.evidenceRequirements.length})</summary>
+                    <div>
+                      {chain.evidenceRequirements.map((item) => (
+                        <span className={item.satisfied ? "requirementDone" : "requirementPending"} key={item.id}>
+                          <b>{item.satisfied ? "✓" : "!"}</b>
+                          <strong>{item.label}</strong>
+                          <small>{item.detail}</small>
+                        </span>
+                      ))}
+                    </div>
+                  </details>
                 </article>
               );
             })}
@@ -314,9 +359,9 @@ export default async function EvidencePage() {
 
         <article className="panel blockerPanel">
           <p className="eyebrow">Principio de acreditación</p>
-          <h3>La ausencia de respaldo nunca se reemplaza con un supuesto.</h3>
+          <h3>La ausencia de respaldo o regla nunca se reemplaza con un supuesto.</h3>
           <p className="muted">
-            La cadena conserva operación física, transformación, documento, checksum y estado REP como capas separadas y verificables.
+            Una cantidad sólo se presenta como acreditable cuando la cadena física, la evidencia y el rule pack regulatorio aplicable son coherentes.
           </p>
           <div className="notReady">
             <span>INTEGRIDAD DOCUMENTAL</span>
