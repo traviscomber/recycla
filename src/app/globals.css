@@ -2798,3 +2798,82 @@ h1{font-weight:500;letter-spacing:-.035em}
     text-align: left;
   }
 }
+
+
+.ficha360ContractList {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.ficha360Contract {
+  border-bottom: 1px solid var(--line);
+}
+
+.ficha360Contract > summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 0;
+  cursor: pointer;
+}
+
+.ficha360Contract > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ficha360Contract > summary div {
+  display: grid;
+  gap: 3px;
+}
+
+.ficha360Contract > summary span,
+.ficha360ContractBody .label {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.ficha360Contract > summary b {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ficha360ContractBody {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin: 0 0 14px;
+}
+
+.ficha360ContractBody > div {
+  background: var(--panel);
+  padding: 14px;
+}
+
+.ficha360ContractBody .label {
+  display: block;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.ficha360ContractBody p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .ficha360Contract > summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ficha360ContractBody {
+    grid-template-columns: 1fr;
+  }
+}
