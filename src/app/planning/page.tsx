@@ -169,6 +169,7 @@ export default async function PlanningPage({
   });
 
   const days = Array.from({ length: range }, (_, index) => addDays(start, index));
+  const dayWidth = range <= 14 ? 56 : range <= 30 ? 46 : 36;
   const todayKey = chileTodayKey();
   const plannedCount = events.filter((event) => event.kind === "planned").length;
   const actualCount = events.filter((event) => event.kind === "actual").length;
@@ -385,7 +386,7 @@ export default async function PlanningPage({
         <div className="outcomeCalendarScroll">
           <div
             className="outcomeCalendarHeader"
-            style={{ gridTemplateColumns: `260px repeat(${days.length}, 56px)` }}
+            style={{ gridTemplateColumns: `260px repeat(${days.length}, ${dayWidth}px)` }}
           >
             <div className="calendarResourceHead">
               <strong>Cliente / sitio</strong>
@@ -404,7 +405,7 @@ export default async function PlanningPage({
               {rows.map((row, rowIndex) => (
                 <div
                   className={rowIndex === 0 || rows[rowIndex - 1]?.client !== row.client ? "outcomeCalendarRow companyStart" : "outcomeCalendarRow"}
-                  style={{ gridTemplateColumns: `260px repeat(${days.length}, 56px)` }}
+                  style={{ gridTemplateColumns: `260px repeat(${days.length}, ${dayWidth}px)` }}
                   key={`${row.client}:${row.site ?? "none"}`}
                 >
                   <div className="calendarResource">
