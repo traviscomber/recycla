@@ -296,3 +296,177 @@ export async function listOutcomeCalendarEvents(input: {
     return [];
   }
 }
+
+
+export type B2BCalendarEvent = {
+  id: string;
+  kind: "planned" | "actual" | "document" | "contract";
+  client: string;
+  clientSlug: string;
+  site: string | null;
+  stream: PriorityStream | null;
+  startAt: string;
+  endAt: string | null;
+  status: string;
+  quantity: number | null;
+  unit: "kg" | "l" | null;
+  counterparty: string | null;
+  evidenceCount: number;
+  actualRecoveryPct: number | null;
+  forecastRecoveryPct: number | null;
+  bestComparablePct: number | null;
+  worstComparablePct: number | null;
+  comparableCases: number;
+  forecastConfidence: "LOW" | "MEDIUM" | "HIGH" | null;
+  title: string | null;
+  detail: string | null;
+  severity: "info" | "attention";
+};
+
+export async function listB2BCalendarEvents(input: {
+  start: Date;
+  end: Date;
+}): Promise<B2BCalendarEvent[]> {
+  const operational = await listOutcomeCalendarEvents(input);
+  const events: B2BCalendarEvent[] = operational.map((event) => ({
+    ...event,
+    title: null,
+    detail: null,
+    severity: "info"
+  }));
+
+  if (!hasDatabase()) return events;
+
+  const sql = db();
+  const startKey = input.start.toISOString().slice(0, 10);
+  const endKey = input.end.toISOString().slice(0, 10);
+
+  try {
+    const schema = await sql<Array<{
+      documents: string | null;
+      contracts: string | null;
+    }>>`
+      select
+        to_regclass('public.documents')::text as documents,
+        to_regclass('public.b2b_service_contracts')::text as contracts
+    `;
+
+    if (schema[0]?.documents) {
+      const docs = await sql<Array<{
+        id: string;
+        client: string;
+        clientSlug: string;
+        expiresAt: string;
+        documentType: string;
+        fileName: string;
+      }>>`
+        select
+          d.id::text as id,
+          o.display_name as client,
+          o.slug as "clientSlug",
+          d.expires_at::text as "expiresAt",
+          d.document_type as "documentType",
+          d.file_name as "fileName"
+        from documents d
+        join organizations o on o.id = d.organization_id
+        where d.expires_at is not null
+          and d.expires_at >= ${startKey}::date
+          and d.expires_at < ${endKey}::date
+        order by d.expires_at asc
+        limit 200
+      `;
+
+      for (const row of docs) {
+        events.push({
+          id: row.id,
+          kind: "document",
+          client: row.client,
+          clientSlug: row.clientSlug,
+          site: null,
+          stream: null,
+          startAt: `${row.expiresAt}T12:00:00Z`,
+          endAt: null,
+          status: "EXPIRING",
+          quantity: null,
+          unit: null,
+          counterparty: null,
+          evidenceCount: 0,
+          actualRecoveryPct: null,
+          forecastRecoveryPct: null,
+          bestComparablePct: null,
+          worstComparablePct: null,
+          comparableCases: 0,
+          forecastConfidence: null,
+          title: `Vence ${row.documentType}`,
+          detail: row.fileName,
+          severity: "attention"
+        });
+      }
+    }
+
+    if (schema[0]?.contracts) {
+      const contracts = await sql<Array<{
+        id: string;
+        client: string;
+        clientSlug: string;
+        contractRef: string | null;
+        endsAt: string | null;
+        renewalAt: string | null;
+        status: string;
+      }>>`
+        select
+          sc.id::text as id,
+          o.display_name as client,
+          o.slug as "clientSlug",
+          sc.contract_ref as "contractRef",
+          sc.ends_at::text as "endsAt",
+          sc.renewal_at::text as "renewalAt",
+          sc.status
+        from b2b_service_contracts sc
+        join organizations o on o.id = sc.client_organization_id
+        where sc.status in ('ACTIVE','DRAFT','SUSPENDED')
+          and (
+            (sc.ends_at is not null and sc.ends_at >= ${startKey}::date and sc.ends_at < ${endKey}::date)
+            or
+            (sc.renewal_at is not null and sc.renewal_at >= ${startKey}::date and sc.renewal_at < ${endKey}::date)
+          )
+        order by coalesce(sc.renewal_at, sc.ends_at) asc
+        limit 100
+      `;
+
+      for (const row of contracts) {
+        const date = row.renewalAt ?? row.endsAt;
+        if (!date) continue;
+        const isRenewal = Boolean(row.renewalAt);
+        events.push({
+          id: row.id,
+          kind: "contract",
+          client: row.client,
+          clientSlug: row.clientSlug,
+          site: null,
+          stream: null,
+          startAt: `${date}T12:00:00Z`,
+          endAt: null,
+          status: isRenewal ? "RENEWAL" : "EXPIRING",
+          quantity: null,
+          unit: null,
+          counterparty: null,
+          evidenceCount: 0,
+          actualRecoveryPct: null,
+          forecastRecoveryPct: null,
+          bestComparablePct: null,
+          worstComparablePct: null,
+          comparableCases: 0,
+          forecastConfidence: null,
+          title: isRenewal ? "Renovación contractual" : "Vencimiento contractual",
+          detail: row.contractRef ?? "Contrato sin referencia",
+          severity: "attention"
+        });
+      }
+    }
+
+    return events.sort((a, b) => a.startAt.localeCompare(b.startAt));
+  } catch {
+    return events.sort((a, b) => a.startAt.localeCompare(b.startAt));
+  }
+}
