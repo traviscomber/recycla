@@ -1,6 +1,6 @@
 # Recycla REP OS
 
-B2B Operational REP Intelligence for Recycla Chile and its corporate clients.
+Operational REP Intelligence for Recycla Chile and its corporate clients.
 
 ## Product thesis
 
@@ -9,11 +9,11 @@ Recycla already operates the physical recycling chain for companies. Recycla REP
 Core flow:
 
 ```
-Corporate client -> REP obligation -> Contracted collection -> Weighing -> Lot -> Processing
+Corporate client -> REP obligation -> Collection -> Weighing -> Lot -> Processing
        -> Valuation -> REP eligibility -> Evidence -> Accreditation -> Reporting
 ```
 
-The platform is designed for B2B account operations. Each company is treated as an operational account with its own obligations, periods, product streams, evidence, responsible parties and audit trail.
+The platform is designed around REP compliance, not CRM, ERP or generic account management. Company data exists only when it is necessary to determine obligations, organize collection/valorization, preserve evidence, support auditability or prepare reporting.
 
 The platform keeps these quantities separate:
 
@@ -43,22 +43,22 @@ These are intentionally deferred because their material flows, aggregation and c
 
 The objective is not to cover every REP category. The objective is to prove a high-confidence REP operating model where physical material, evidence and regulatory accreditation can be reconciled end-to-end.
 
-## B2B operating model
+## REP operating model
 
-The primary user is not a consumer. The system serves Recycla teams and corporate client stakeholders who need to control obligations, service execution, evidence, auditability and reporting.
+The primary user is a company or Recycla operator responsible for REP execution and evidence. The product scope is intentionally limited to:
 
-Every enterprise account should progressively support:
-
-- legal entity and RUT;
-- REP role and applicable product streams;
-- reporting periods and obligations;
-- responsible contacts and internal owners;
-- contracted services and collection plans;
-- sites / facilities where relevant;
-- operational volumes and mass balance;
-- evidence completeness and accreditation status;
+- legal entity / RUT when required to identify the regulated actor;
+- REP role and applicable priority products;
+- reporting periods, obligations and product-specific rules;
+- sites relevant to collection and traceability;
+- systems of management / gestores and REP relationships;
+- collection, weighing, lots, processing and valorization;
+- evidence completeness and accreditable quantities;
 - audit findings and corrective actions;
+- regulatory milestones and declaration readiness;
 - reporting readiness and historical performance.
+
+Explicitly out of core: CRM, sales pipeline, generic contracts, commercial SLA management, invoicing, general procurement, HR and unrelated operational ERP workflows.
 
 ## Product surfaces
 
