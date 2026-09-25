@@ -343,6 +343,54 @@ export const repRulePacks: Record<PriorityStream, RepRulePack> = {
   }
 };
 
+
+
+function validateRulePack(pack: RepRulePack) {
+  const categoryIds = new Set(pack.categories.map((item) => item.id));
+  if (categoryIds.size !== pack.categories.length) {
+    throw new Error(`Duplicate category in REP rule pack ${pack.stream}`);
+  }
+
+  if (pack.enginePolicy === "APPLY") {
+    if (!pack.enforceable || !pack.effectiveFrom) {
+      throw new Error(`APPLY rule pack ${pack.stream} must be enforceable and have effectiveFrom`);
+    }
+    if (!pack.targets.some((item) => item.legalStatus === "ENFORCEABLE")) {
+      throw new Error(`APPLY rule pack ${pack.stream} needs an enforceable target schedule`);
+    }
+  }
+
+  if (pack.enginePolicy === "MONITOR_ONLY" && pack.targets.some((item) => item.legalStatus === "ENFORCEABLE")) {
+    throw new Error(`MONITOR_ONLY rule pack ${pack.stream} cannot contain enforceable targets`);
+  }
+
+  for (const target of pack.targets) {
+    if (!categoryIds.has(target.categoryId)) {
+      throw new Error(`Unknown category ${target.categoryId} in REP rule pack ${pack.stream}`);
+    }
+    for (const point of target.points) {
+      for (const value of [point.collectionPct, point.valorizationPct]) {
+        if (value !== null && (value < 0 || value > 100)) {
+          throw new Error(`Invalid target percentage in REP rule pack ${pack.stream}`);
+        }
+      }
+    }
+  }
+
+  const evidenceIds = new Set(pack.evidenceRequirements.map((item) => item.id));
+  if (evidenceIds.size !== pack.evidenceRequirements.length) {
+    throw new Error(`Duplicate evidence requirement in REP rule pack ${pack.stream}`);
+  }
+
+  if (!pack.sources.some((item) => item.role === "PRIMARY")) {
+    throw new Error(`REP rule pack ${pack.stream} requires a primary source`);
+  }
+}
+
+for (const pack of Object.values(repRulePacks)) {
+  validateRulePack(pack);
+}
+
 export type RepRegulatoryMilestone = {
   id: string;
   scope: "ALL_PRODUCTS" | PriorityStream;
