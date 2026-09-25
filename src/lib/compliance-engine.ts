@@ -2,6 +2,7 @@ import "server-only";
 
 import { db, hasDatabase } from "@/lib/db";
 import { auditScope, type ComplianceGateStatus } from "@/lib/compliance";
+import { listRepClients } from "@/lib/rep-repository";
 
 export type ComplianceGateResult = {
   id: string;
@@ -39,6 +40,11 @@ async function tableCount(name: string) {
 }
 
 export async function evaluateComplianceReadiness(): Promise<ComplianceGateResult[]> {
+  const clients = await listRepClients();
+  const applicableObligations = clients.flatMap((client) =>
+    client.obligations.filter((item) => item.regulatoryMode === "APPLY")
+  );
+
   const exists = Object.fromEntries(
     await Promise.all(
       [
@@ -131,12 +137,20 @@ export async function evaluateComplianceReadiness(): Promise<ComplianceGateResul
   };
 
   if (exists.rep_rules && exists.rep_ledger_entries) {
+    const classificationStatus =
+      applicableObligations.length === 0
+        ? "NOT_CONNECTED"
+        : counts.rep_ledger_entries > 0
+          ? "REVIEW_REQUIRED"
+          : "NOT_CONNECTED";
     set(
       "classification",
-      counts.rep_ledger_entries > 0 ? "REVIEW_REQUIRED" : "NOT_CONNECTED",
-      counts.rep_ledger_entries > 0
-        ? "Hay ledger REP disponible; falta ejecutar validación de clasificación contra reglas versionadas."
-        : "Las tablas existen, pero todavía no hay entradas REP para auditar.",
+      classificationStatus,
+      applicableObligations.length === 0
+        ? "No hay obligaciones asociadas a rule packs vigentes aplicables al motor; los demás productos permanecen en monitoreo regulatorio."
+        : counts.rep_ledger_entries > 0
+          ? "Hay ledger REP disponible; falta ejecutar validación de clasificación contra rule packs vigentes."
+          : "Existen obligaciones con regla vigente, pero todavía no hay entradas REP para auditar.",
       counts.rep_ledger_entries
     );
   } else {
