@@ -75,6 +75,50 @@ export async function listPendingRepClassifications(limit = 60) {
   }
 }
 
+
+
+export type ClassificationAuditEvent = {
+  id: string;
+  entityType: ClassificationEntityType;
+  entityId: string;
+  stream: PriorityStream;
+  packVersion: string;
+  categoryId: string | null;
+  status: "VERIFIED" | "REVIEW_REQUIRED";
+  sourceMethod: "INGESTION" | "MANUAL_REVIEW" | "MIGRATION";
+  actorRef: string | null;
+  note: string | null;
+  createdAt: string;
+};
+
+export async function listClassificationAuditEvents(limit = 30) {
+  if (!hasDatabase()) return [] as ClassificationAuditEvent[];
+  const sql = db();
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+
+  try {
+    return await sql<ClassificationAuditEvent[]>`
+      select
+        id::text as id,
+        entity_type as "entityType",
+        entity_id::text as "entityId",
+        stream,
+        pack_version as "packVersion",
+        category_id as "categoryId",
+        status,
+        source_method as "sourceMethod",
+        actor_ref as "actorRef",
+        note,
+        created_at::text as "createdAt"
+      from rep_classification_events
+      order by created_at desc
+      limit ${safeLimit}
+    `;
+  } catch {
+    return [];
+  }
+}
+
 export async function reviewRepClassification(input: {
   entityType: ClassificationEntityType;
   entityId: string;
