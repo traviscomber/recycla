@@ -63,24 +63,21 @@ export function resolvePriorityStream(value: string | null | undefined): Priorit
   return null;
 }
 
-function resolveCategory(stream: PriorityStream, category: string | null | undefined) {
+function resolveExplicitCategory(stream: PriorityStream, value: string | null | undefined) {
   const pack = repRulePacks[stream];
-  const raw = normalize(category);
+  const raw = normalize(value);
   const aliases = categoryAliases[stream] ?? {};
+  if (!raw) return null;
 
-  if (raw) {
-    for (const item of pack.categories) {
-      const candidates = [
-        normalize(item.id),
-        normalize(item.label),
-        ...(aliases[item.id] ?? []).map(normalize)
-      ];
-      if (candidates.includes(raw)) return item;
-    }
-    return null;
+  for (const item of pack.categories) {
+    const candidates = [
+      normalize(item.id),
+      normalize(item.label),
+      ...(aliases[item.id] ?? []).map(normalize)
+    ];
+    if (candidates.includes(raw)) return item;
   }
 
-  if (pack.categories.length === 1) return pack.categories[0] ?? null;
   return null;
 }
 
@@ -106,7 +103,28 @@ export function classifyRepInput(input: {
   }
 
   const pack = repRulePacks[stream];
-  const category = resolveCategory(stream, input.category);
+  const categoryMatch = resolveExplicitCategory(stream, input.category);
+  const subcategoryMatch = resolveExplicitCategory(stream, input.subcategory);
+
+  if (
+    categoryMatch &&
+    subcategoryMatch &&
+    categoryMatch.id !== subcategoryMatch.id
+  ) {
+    return {
+      stream,
+      packVersion: pack.version,
+      categoryId: null,
+      status: "REVIEW_REQUIRED",
+      basis: "Categoría y subcategoría apuntan a categorías regulatorias distintas.",
+      sourceValue
+    };
+  }
+
+  const category = categoryMatch ?? subcategoryMatch ??
+    (!input.category && !input.subcategory && pack.categories.length === 1
+      ? pack.categories[0] ?? null
+      : null);
 
   if (!category) {
     return {
@@ -114,8 +132,8 @@ export function classifyRepInput(input: {
       packVersion: pack.version,
       categoryId: null,
       status: "REVIEW_REQUIRED",
-      basis: input.category
-        ? "Categoría informada no coincide exactamente con la taxonomía versionada del pack."
+      basis: input.category || input.subcategory
+        ? "Categoría/subcategoría informada no coincide exactamente con la taxonomía versionada del pack."
         : "El pack requiere clasificación de categoría y el dato de origen no la resuelve.",
       sourceValue
     };
@@ -126,9 +144,11 @@ export function classifyRepInput(input: {
     packVersion: pack.version,
     categoryId: category.id,
     status: "VERIFIED",
-    basis: input.category
-      ? "Coincidencia determinística con alias/categoría controlada del pack."
-      : "Pack de categoría única; clasificación resuelta sin inferencia probabilística.",
+    basis: categoryMatch
+      ? "Coincidencia determinística con categoría controlada del pack."
+      : subcategoryMatch
+        ? "Coincidencia determinística con subcategoría controlada del pack."
+        : "Pack de categoría única; clasificación resuelta sin inferencia probabilística.",
     sourceValue
   };
 }
