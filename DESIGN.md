@@ -44,11 +44,13 @@ Avoid cards inside cards unless there is a real interaction boundary.
 - Micro-labels: uppercase, tracked, low-noise.
 - Numbers: prominent only when they represent a decision or regulatory state.
 
-## B2B product rule
+## REP product boundary
 
-The default entity is the company account, not the individual user. Screens should orient work around corporate obligations, periods, contracts, facilities, responsible parties, service execution, evidence and audit history.
+The default entity is the regulated company / REP actor, not a generic customer account. Screens should orient work around obligations, priority products, periods, facilities, systems of management, gestores, collection, valorization, evidence, audit history and reporting readiness.
 
-Avoid consumer language such as personal recycling goals, rewards, household impact or generic engagement metrics. Prefer enterprise language such as cartera, empresa, obligación, servicio, contrato, instalación, responsable, brecha, evidencia, auditoría, cierre and trazabilidad.
+Do not add CRM, generic contract management, commercial SLA, billing, sales or general ERP concepts to the core product. A field or workflow belongs in Recycla REP OS only if it materially affects REP obligation, execution, traceability, evidence, accreditation, declaration, audit or closure.
+
+Avoid consumer language such as personal recycling goals, rewards, household impact or generic engagement metrics. Prefer REP language such as empresa regulada, rol REP, producto prioritario, obligación, meta, recolección, valorización, gestor, evidencia, acreditable, brecha, auditoría, declaración, cierre and trazabilidad.
 
 ## Information hierarchy
 
